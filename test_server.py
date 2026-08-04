@@ -19,6 +19,7 @@ class ServerConfigTests(unittest.TestCase):
         messages = build_messages(
             {
                 "mode": "续写",
+                "creativity": "imaginative",
                 "context": {
                     "title": "春日札记",
                     "era": "江南",
@@ -33,6 +34,7 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("春日札记", messages[0]["content"])
         self.assertIn("沈砚", messages[0]["content"])
         self.assertIn("她把伞留在了门边。", messages[0]["content"])
+        self.assertIn("大胆想象", messages[0]["content"])
         self.assertEqual(messages[-1], {"role": "user", "content": "继续写下去"})
 
     def test_azure_model_listing_uses_configured_deployment_without_network(self) -> None:
