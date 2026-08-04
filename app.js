@@ -309,11 +309,47 @@ function addMessage({ role, name, text, avatarClass }) {
   bubble.className = "bubble";
   bubble.textContent = text;
   content.append(meta, bubble);
+  if (role === "assistant") {
+    const actions = document.createElement("div");
+    actions.className = "message-actions";
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.className = "message-action";
+    copyButton.textContent = "复制";
+    copyButton.setAttribute("aria-label", "复制这条回复");
+    copyButton.addEventListener("click", () => copyMessage(bubble.textContent));
+    actions.appendChild(copyButton);
+    content.appendChild(actions);
+  }
   row.append(...(role === "user" ? [content, avatar] : [avatar, content]));
   messages.appendChild(row);
   messages.scrollTop = messages.scrollHeight;
   updateCount();
   return { row, bubble };
+}
+
+async function copyMessage(text) {
+  if (!text.trim()) {
+    showToast("这条回复还没有内容");
+    return;
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const helper = document.createElement("textarea");
+      helper.value = text;
+      helper.style.position = "fixed";
+      helper.style.opacity = "0";
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand("copy");
+      helper.remove();
+    }
+    showToast("回复已复制");
+  } catch {
+    showToast("复制失败，请手动选择文字");
+  }
 }
 
 function renderConversation() {
