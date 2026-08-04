@@ -288,7 +288,7 @@ function updateCount() {
   messageCount.textContent = `${String(count).padStart(2, "0")} 条消息`;
 }
 
-function addMessage({ role, name, text, avatarClass }) {
+function addMessage({ role, name, text, avatarClass, historyIndex }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
 
@@ -319,6 +319,15 @@ function addMessage({ role, name, text, avatarClass }) {
     copyButton.setAttribute("aria-label", "复制这条回复");
     copyButton.addEventListener("click", () => copyMessage(bubble.textContent));
     actions.appendChild(copyButton);
+    if (Number.isInteger(historyIndex)) {
+      const retryButton = document.createElement("button");
+      retryButton.type = "button";
+      retryButton.className = "message-action";
+      retryButton.textContent = "重试";
+      retryButton.setAttribute("aria-label", "重新生成这条回复");
+      retryButton.addEventListener("click", () => retryMessage(historyIndex));
+      actions.appendChild(retryButton);
+    }
     content.appendChild(actions);
   }
   row.append(...(role === "user" ? [content, avatar] : [avatar, content]));
@@ -354,12 +363,13 @@ async function copyMessage(text) {
 
 function renderConversation() {
   messages.innerHTML = "";
-  conversationHistory.forEach((item) => {
+  conversationHistory.forEach((item, index) => {
     const assistant = item.role === "assistant";
     addMessage({
       role: item.role,
       name: item.name || (assistant ? selectedCharacter.name : "我"),
       text: item.content,
+      historyIndex: index,
       avatarClass: assistant
         ? item.name === "贾宝玉" ? "avatar-bao" : "avatar-dai"
         : "user-avatar",
@@ -508,7 +518,7 @@ async function requestModelReply() {
   return payload.text;
 }
 
-async function requestStreamReply(onDelta) {
+async function requestStreamReply(onDelta, character = selectedCharacter) {
   streamController = new AbortController();
   const response = await fetch("/api/chat/stream", {
     method: "POST",
@@ -518,7 +528,7 @@ async function requestStreamReply(onDelta) {
       provider: providerSelect.value,
       model: modelName.value.trim(),
       mode: selectedMode,
-      character: selectedCharacter,
+      character,
       context: getContext(),
       messages: conversationHistory,
     }),
@@ -564,6 +574,62 @@ async function requestStreamReply(onDelta) {
 function fallbackReply() {
   const list = replyTemplates[selectedMode];
   return list[Math.floor(Math.random() * list.length)];
+}
+
+async function generateAssistantReply(assistantMessage, character = selectedCharacter) {
+  setSending(true);
+  let reply = "";
+  try {
+    reply = await requestStreamReply((delta) => {
+      assistantMessage.bubble.textContent += delta;
+      messages.scrollTop = messages.scrollHeight;
+    }, character);
+  } catch (error) {
+    const stopped = error?.name === "AbortError";
+    reply = assistantMessage.bubble.textContent.trim();
+    if (!reply && !stopped) {
+      reply = fallbackReply();
+      assistantMessage.bubble.textContent = reply;
+      showToast("模型服务暂不可用，当前使用演示回复");
+    } else if (stopped && !reply) {
+      reply = "（生成已停止）";
+      assistantMessage.bubble.textContent = reply;
+    }
+  } finally {
+    streamController = null;
+    setSending(false);
+  }
+  return reply;
+}
+
+async function retryMessage(historyIndex) {
+  if (isSending) {
+    showToast("请先停止当前生成");
+    return;
+  }
+  if (historyIndex !== conversationHistory.length - 1 || conversationHistory.at(-1)?.role !== "assistant") {
+    showToast("请先重试最后一条回复");
+    return;
+  }
+
+  const previousReply = conversationHistory.at(-1);
+  const speaker = previousReply.name || selectedCharacter.name;
+  const character = getActiveProject().characters.find((item) => item.name === speaker)
+    || { name: speaker, tone: selectedCharacter.tone };
+  conversationHistory = conversationHistory.slice(0, -1);
+  saveConversation();
+  renderConversation();
+
+  const assistantMessage = addMessage({
+    role: "assistant",
+    name: speaker,
+    text: "",
+    historyIndex: conversationHistory.length,
+    avatarClass: speaker === "贾宝玉" ? "avatar-bao" : "avatar-dai",
+  });
+  const reply = await generateAssistantReply(assistantMessage, character);
+  conversationHistory.push({ role: "assistant", name: speaker, content: reply });
+  saveConversation();
 }
 
 function selectCharacter(card) {
@@ -665,37 +731,18 @@ composer.addEventListener("submit", async (event) => {
   conversationHistory.push({ role: "user", name: "我", content: text });
   saveConversation();
   messageInput.value = "";
-  setSending(true);
+  const character = { ...selectedCharacter };
 
   const assistantMessage = addMessage({
     role: "assistant",
-    name: selectedCharacter.name,
+    name: character.name,
     text: "",
-    avatarClass: selectedCharacter.name === "贾宝玉" ? "avatar-bao" : "avatar-dai",
+    historyIndex: conversationHistory.length,
+    avatarClass: character.name === "贾宝玉" ? "avatar-bao" : "avatar-dai",
   });
-  let reply = "";
-  try {
-    reply = await requestStreamReply((delta) => {
-      assistantMessage.bubble.textContent += delta;
-      messages.scrollTop = messages.scrollHeight;
-    });
-  } catch (error) {
-    const stopped = error?.name === "AbortError";
-    reply = assistantMessage.bubble.textContent.trim();
-    if (!reply && !stopped) {
-      reply = fallbackReply();
-      assistantMessage.bubble.textContent = reply;
-      showToast("模型服务暂不可用，当前使用演示回复");
-    } else if (stopped && !reply) {
-      reply = "（生成已停止）";
-      assistantMessage.bubble.textContent = reply;
-    }
-  } finally {
-    streamController = null;
-    setSending(false);
-  }
+  const reply = await generateAssistantReply(assistantMessage, character);
 
-  conversationHistory.push({ role: "assistant", name: selectedCharacter.name, content: reply });
+  conversationHistory.push({ role: "assistant", name: character.name, content: reply });
   saveConversation();
 });
 
@@ -714,6 +761,7 @@ document.querySelector("#resetSession").addEventListener("click", () => {
     role: "assistant",
     name: selectedCharacter.name,
     text: greeting,
+    historyIndex: conversationHistory.length - 1,
     avatarClass: selectedCharacter.name === "贾宝玉" ? "avatar-bao" : "avatar-dai",
   });
   showToast("对话已重置");
