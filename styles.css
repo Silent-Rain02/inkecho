@@ -139,6 +139,7 @@ textarea { resize: vertical; }
 .reference-meta .text-button { font-size: 9px; }
 .field-input:focus-within, .sidebar > textarea:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
 .subheading-row { display: flex; justify-content: space-between; align-items: center; }
+.character-actions { display: flex; align-items: center; gap: 9px; }
 .text-button { padding: 0; border: 0; color: var(--accent); background: transparent; font: 10px var(--mono); }
 .text-button:hover { color: var(--accent-dark); }
 .character-list { display: grid; gap: 7px; margin-top: 8px; }
@@ -238,6 +239,20 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .footer-accent { color: var(--accent); }
 .toast { position: fixed; left: 50%; bottom: 24px; z-index: 30; padding: 10px 16px; border: 1px solid #d6dfd0; background: #f0f6ec; color: #567052; font-size: 12px; box-shadow: var(--shadow); opacity: 0; transform: translate(-50%, 12px); pointer-events: none; transition: opacity 0.25s, transform 0.25s; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.character-dialog { width: min(420px, calc(100% - 36px)); padding: 0; border: 1px solid #d6dfd0; background: #f8f9f2; color: var(--ink); box-shadow: 0 24px 80px rgba(60, 67, 58, 0.22); }
+.character-dialog::backdrop { background: rgba(54, 61, 53, 0.22); backdrop-filter: blur(3px); }
+.character-dialog form { padding: 26px; }
+.character-dialog h2 { margin: 8px 0 22px; }
+.dialog-input, .dialog-textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--line); outline: 0; color: var(--ink); background: #fbfbf7; font-size: 13px; }
+.dialog-input { height: 38px; margin-bottom: 18px; padding: 0 10px; }
+.dialog-textarea { min-height: 84px; margin-bottom: 21px; padding: 9px 10px; line-height: 1.7; resize: vertical; }
+.dialog-input:focus, .dialog-textarea:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
+.dialog-actions { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center; }
+.dialog-actions button { min-height: 30px; padding: 0 12px; border: 1px solid var(--line); font-size: 11px; }
+.dialog-delete { border-color: transparent !important; color: #a26b46; background: transparent; }
+.dialog-cancel { color: var(--ink-soft); background: #f2f3ec; }
+.dialog-save { border-color: var(--accent) !important; color: #fff; background: var(--accent); }
+.dialog-actions button:hover { transform: translateY(-1px); }
 
 @keyframes appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
