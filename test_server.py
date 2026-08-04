@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from server import build_messages, list_provider_models, provider_settings
+from server import build_messages, list_provider_models, provider_settings, public_error
 
 
 class ServerConfigTests(unittest.TestCase):
@@ -43,6 +43,11 @@ class ServerConfigTests(unittest.TestCase):
         reference = "雨" * 5000
         system_prompt = build_messages({"context": {"reference": reference}})[0]["content"]
         self.assertEqual(system_prompt.count("雨"), 4000)
+
+    def test_provider_exception_is_not_returned_to_client(self) -> None:
+        error = public_error(RuntimeError("upstream key=secret-value response body"))
+        self.assertNotIn("secret-value", error)
+        self.assertEqual(error, "模型服务请求失败，请检查服务配置或连接")
 
 
 if __name__ == "__main__":
