@@ -11,6 +11,9 @@ const modelName = document.querySelector("#modelName");
 const providerBadge = document.querySelector("#providerBadge");
 const providerDescription = document.querySelector("#providerDescription");
 const sendButton = document.querySelector(".send-button");
+const conversationStorageKey = "inkecho.conversation.v1";
+const workspaceStorageKey = "inkecho.workspace.v1";
+const serviceStorageKey = "inkecho.service.v1";
 
 const modeHints = {
   续写: "续写这一段故事……",
@@ -56,11 +59,70 @@ let selectedCharacter = {
 let selectedMode = "续写";
 let toastTimer;
 let isSending = false;
-let conversationHistory = [
+const defaultConversationHistory = [
   { role: "assistant", content: "今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？" },
   { role: "user", content: "如果这一回不写离别，你想把故事带到哪里去？" },
   { role: "assistant", content: "那便去看一场没有结局的雨吧。雨停之前，谁也不必急着把心事说完。" },
 ];
+let conversationHistory = loadConversation();
+
+function loadConversation() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(conversationStorageKey) || "null");
+    if (Array.isArray(saved) && saved.length > 0) {
+      return saved.filter((item) => item && ["user", "assistant"].includes(item.role) && typeof item.content === "string").slice(-40);
+    }
+  } catch {
+    // Ignore malformed or unavailable local storage.
+  }
+  return defaultConversationHistory.map((item) => ({ ...item }));
+}
+
+function saveConversation() {
+  try {
+    localStorage.setItem(conversationStorageKey, JSON.stringify(conversationHistory.slice(-40)));
+  } catch {
+    // Local storage is an enhancement; the conversation still works without it.
+  }
+}
+
+function restoreWorkspace() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(workspaceStorageKey) || "null");
+    if (!saved) return;
+    if (typeof saved.title === "string") document.querySelector("#workTitle").value = saved.title;
+    if (typeof saved.era === "string") document.querySelector("#workEra").value = saved.era;
+    if (typeof saved.world === "string") document.querySelector("#workWorld").value = saved.world;
+  } catch {
+    // Ignore malformed or unavailable local storage.
+  }
+}
+
+function saveWorkspace() {
+  try {
+    localStorage.setItem(workspaceStorageKey, JSON.stringify(getContext()));
+  } catch {
+    // Local storage is an enhancement; the workspace still works without it.
+  }
+}
+
+function restoreServiceSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(serviceStorageKey) || "null");
+    if (saved && providerDefaults[saved.provider]) providerSelect.value = saved.provider;
+    if (saved && typeof saved.model === "string" && saved.model.trim()) modelName.value = saved.model;
+  } catch {
+    // Ignore malformed or unavailable local storage.
+  }
+}
+
+function saveServiceSettings() {
+  try {
+    localStorage.setItem(serviceStorageKey, JSON.stringify({ provider: providerSelect.value, model: modelName.value.trim() }));
+  } catch {
+    // Local storage is an enhancement; the selector still works without it.
+  }
+}
 
 function showToast(message) {
   toast.textContent = message;
@@ -99,6 +161,22 @@ function addMessage({ role, name, text, avatarClass }) {
   messages.appendChild(row);
   messages.scrollTop = messages.scrollHeight;
   updateCount();
+  return { row, bubble };
+}
+
+function renderConversation() {
+  messages.innerHTML = "";
+  conversationHistory.forEach((item) => {
+    const assistant = item.role === "assistant";
+    addMessage({
+      role: item.role,
+      name: assistant ? selectedCharacter.name : "我",
+      text: item.content,
+      avatarClass: assistant
+        ? selectedCharacter.name === "贾宝玉" ? "avatar-bao" : "avatar-dai"
+        : "user-avatar",
+    });
+  });
 }
 
 function getContext() {
@@ -162,6 +240,56 @@ async function requestModelReply() {
   return payload.text;
 }
 
+async function requestStreamReply(onDelta) {
+  const response = await fetch("/api/chat/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      provider: providerSelect.value,
+      model: modelName.value.trim(),
+      mode: selectedMode,
+      character: selectedCharacter,
+      context: getContext(),
+      messages: conversationHistory,
+    }),
+  });
+  if (!response.ok || !response.body) throw new Error("流式服务不可用");
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let answer = "";
+  let finished = false;
+
+  while (!finished) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const events = buffer.split("\n\n");
+    buffer = events.pop() || "";
+
+    for (const event of events) {
+      const line = event.split("\n").find((item) => item.startsWith("data: "));
+      if (!line) continue;
+      const payload = JSON.parse(line.slice(6));
+      if (payload.type === "start") {
+        providerBadge.textContent = "已连接";
+        providerBadge.style.color = "#6f8b6a";
+      } else if (payload.type === "delta") {
+        answer += payload.delta || "";
+        onDelta(payload.delta || "");
+      } else if (payload.type === "error") {
+        throw new Error("模型流式响应中断");
+      } else if (payload.type === "done") {
+        finished = true;
+      }
+    }
+    if (done) finished = true;
+  }
+
+  if (!answer.trim()) throw new Error("模型没有返回文本");
+  return answer.trim();
+}
+
 function fallbackReply() {
   const list = replyTemplates[selectedMode];
   return list[Math.floor(Math.random() * list.length)];
@@ -204,11 +332,19 @@ document.querySelectorAll(".prompt-card").forEach((card) => {
 });
 
 providerSelect.addEventListener("change", () => {
+  saveServiceSettings();
   updateProviderUI();
   showToast(`已切换到 ${providerSelect.options[providerSelect.selectedIndex].text}`);
 });
 
-modelName.addEventListener("change", () => checkProviderHealth());
+modelName.addEventListener("change", () => {
+  saveServiceSettings();
+  checkProviderHealth();
+});
+
+["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
+  document.querySelector(selector).addEventListener("input", saveWorkspace);
+});
 
 composer.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -222,26 +358,32 @@ composer.addEventListener("submit", async (event) => {
 
   addMessage({ role: "user", name: "我", text, avatarClass: "user-avatar" });
   conversationHistory.push({ role: "user", content: text });
+  saveConversation();
   messageInput.value = "";
   setSending(true);
 
-  let reply;
+  const assistantMessage = addMessage({
+    role: "assistant",
+    name: selectedCharacter.name,
+    text: "",
+    avatarClass: selectedCharacter.name === "贾宝玉" ? "avatar-bao" : "avatar-dai",
+  });
+  let reply = "";
   try {
-    reply = await requestModelReply();
+    reply = await requestStreamReply((delta) => {
+      assistantMessage.bubble.textContent += delta;
+      messages.scrollTop = messages.scrollHeight;
+    });
   } catch {
     reply = fallbackReply();
+    assistantMessage.bubble.textContent = reply;
     showToast("模型服务暂不可用，当前使用演示回复");
   } finally {
     setSending(false);
   }
 
   conversationHistory.push({ role: "assistant", content: reply });
-  addMessage({
-    role: "assistant",
-    name: selectedCharacter.name,
-    text: reply,
-    avatarClass: selectedCharacter.name === "贾宝玉" ? "avatar-bao" : "avatar-dai",
-  });
+  saveConversation();
 });
 
 messageInput.addEventListener("keydown", (event) => {
@@ -254,6 +396,7 @@ document.querySelector("#resetSession").addEventListener("click", () => {
   messages.innerHTML = "";
   const greeting = `新的对话已经准备好。${selectedCharacter.name}正在等你写下第一句。`;
   conversationHistory = [{ role: "assistant", content: greeting }];
+  saveConversation();
   addMessage({
     role: "assistant",
     name: selectedCharacter.name,
@@ -314,5 +457,8 @@ document.querySelector("#focusComposer").addEventListener("click", () => {
   document.querySelector(".conversation").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
+restoreServiceSettings();
+restoreWorkspace();
+renderConversation();
 updateProviderUI();
 updateCount();
