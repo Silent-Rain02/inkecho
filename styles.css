@@ -126,6 +126,15 @@ textarea { resize: vertical; }
 .avatar-bao { color: #4f6b58; background: #d5e3d5; }
 .selected-mark { color: var(--accent); font: 12px var(--mono); opacity: 0; }
 .character-card.active .selected-mark { opacity: 1; }
+.model-settings { margin-top: 24px; padding-top: 19px; border-top: 1px solid var(--line); }
+.model-settings .subheading-row { margin-bottom: 9px; }
+.model-settings .field-label { margin: 0; }
+.service-badge { color: #a26b46; font: 9px var(--mono); }
+.model-settings select { width: 100%; height: 34px; margin-bottom: 8px; padding: 0 8px; border: 1px solid var(--line); outline: 0; color: var(--ink-soft); background: rgba(250, 250, 245, 0.75); font-size: 11px; }
+.model-settings select:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
+.model-input { height: 32px; margin: 0; }
+.model-input input { font-size: 10px; }
+.provider-description { min-height: 31px; margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .sidebar-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; margin-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font: 9px var(--mono); }
 .sidebar-footer strong { color: var(--ink-soft); font-weight: 400; }
 
