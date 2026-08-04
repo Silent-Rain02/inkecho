@@ -130,6 +130,17 @@
             </div>
             <datalist id="modelOptions"></datalist>
             <p class="provider-description" id="providerDescription">读取 .env 中的办公网自定义端点和密钥。</p>
+            <div class="creativity-control">
+              <div class="subheading-row">
+                <label class="field-label" for="creativitySelect">创作倾向</label>
+                <span class="creativity-value" id="creativityValue">平衡</span>
+              </div>
+              <select id="creativitySelect" aria-label="选择创作倾向">
+                <option value="restrained">克制叙事</option>
+                <option value="balanced" selected>平衡</option>
+                <option value="imaginative">大胆想象</option>
+              </select>
+            </div>
           </div>
 
           <div class="sidebar-footer">
