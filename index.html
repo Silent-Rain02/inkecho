@@ -91,7 +91,10 @@
 
           <div class="subheading-row">
             <span class="field-label">角色卡</span>
-            <button class="text-button" id="addCharacter" type="button">+ 添加</button>
+            <span class="character-actions">
+              <button class="text-button" id="manageCharacter" type="button">管理</button>
+              <button class="text-button" id="addCharacter" type="button">+ 添加</button>
+            </span>
           </div>
           <div class="character-list" id="characterList">
             <button class="character-card active" type="button" data-character="林黛玉" data-tone="清冷、敏锐，却藏着很深的真心。">
@@ -232,6 +235,22 @@
         <span>让每一页，都有回声。</span>
       </footer>
     </main>
+    <dialog class="character-dialog" id="characterDialog" aria-labelledby="characterDialogTitle">
+      <form id="characterForm">
+        <span class="section-kicker">CHARACTER CARD</span>
+        <h2 id="characterDialogTitle">编辑角色</h2>
+        <label class="field-label" for="characterNameInput">角色名称</label>
+        <input class="dialog-input" id="characterNameInput" type="text" maxlength="40" required />
+        <label class="field-label" for="characterToneInput">性格与说话方式</label>
+        <textarea class="dialog-textarea" id="characterToneInput" rows="4" maxlength="240" placeholder="例如：克制、敏锐，说话像一封没有寄出的信。"></textarea>
+        <div class="dialog-actions">
+          <button class="dialog-delete" id="deleteCharacter" type="button">删除角色</button>
+          <span></span>
+          <button class="dialog-cancel" id="cancelCharacter" type="button">取消</button>
+          <button class="dialog-save" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
     <div class="toast" id="toast" role="status"></div>
     <script src="app.js"></script>
   </body>
