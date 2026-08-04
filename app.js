@@ -16,6 +16,7 @@ const sendButton = document.querySelector(".send-button");
 const projectSelect = document.querySelector("#projectSelect");
 const newProjectButton = document.querySelector("#newProject");
 const deleteProjectButton = document.querySelector("#deleteProject");
+const workReference = document.querySelector("#workReference");
 const conversationStorageKey = "inkecho.conversation.v1";
 const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
@@ -93,6 +94,7 @@ function createProject({ id, name, context, conversation, service, characters, s
       title: context?.title || name || "未命名作品",
       era: context?.era || "",
       world: context?.world || "",
+      reference: context?.reference || "",
     },
     conversation: Array.isArray(conversation) && conversation.length
       ? conversation.slice(-40).map((item) => ({
@@ -197,6 +199,7 @@ function hydrateActiveProject() {
   document.querySelector("#workTitle").value = project.context.title;
   document.querySelector("#workEra").value = project.context.era;
   document.querySelector("#workWorld").value = project.context.world;
+  workReference.value = project.context.reference || "";
   conversationHistory = project.conversation.map((item) => ({ ...item }));
   selectedMode = project.mode || "续写";
   selectedCharacter = project.characters.find((item) => item.name === project.selectedCharacterName) || project.characters[0];
@@ -242,6 +245,7 @@ function restoreWorkspace() {
     if (typeof saved.title === "string") document.querySelector("#workTitle").value = saved.title;
     if (typeof saved.era === "string") document.querySelector("#workEra").value = saved.era;
     if (typeof saved.world === "string") document.querySelector("#workWorld").value = saved.world;
+    if (typeof saved.reference === "string") workReference.value = saved.reference;
   } catch {
     // Ignore malformed or unavailable local storage.
   }
@@ -382,6 +386,7 @@ function getContext() {
     title: document.querySelector("#workTitle").value,
     era: document.querySelector("#workEra").value,
     world: document.querySelector("#workWorld").value,
+    reference: workReference.value,
   };
 }
 
@@ -405,6 +410,7 @@ function exportSession() {
     "",
     `- **时代 / 氛围**：${context.era || "未填写"}`,
     `- **世界观备注**：${context.world || "未填写"}`,
+    context.reference ? `- **参考片段**：\n\n${context.reference}` : "",
     "",
     "## 角色卡",
     "",
@@ -697,6 +703,12 @@ document.querySelectorAll(".prompt-card").forEach((card) => {
   });
 });
 
+document.querySelector(".composer-tools button").addEventListener("click", () => {
+  workReference.focus();
+  workReference.scrollIntoView({ behavior: "smooth", block: "center" });
+  showToast("已定位到参考片段，可粘贴原文或本章要点");
+});
+
 providerSelect.addEventListener("change", () => {
   saveServiceSettings();
   updateProviderUI();
@@ -710,7 +722,7 @@ modelName.addEventListener("change", () => {
 
 refreshModelsButton.addEventListener("click", refreshModels);
 
-["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
+["#workTitle", "#workEra", "#workWorld", "#workReference"].forEach((selector) => {
   document.querySelector(selector).addEventListener("input", saveWorkspace);
 });
 
