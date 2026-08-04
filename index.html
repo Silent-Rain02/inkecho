@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="InkEcho：让经典角色与你继续对话。" />
+    <title>InkEcho · 文学对话创作台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="InkEcho 首页">
+        <span class="brand-mark">IE</span>
+        <span>
+          <strong>InkEcho</strong>
+          <small>literary dialogue studio</small>
+        </span>
+      </a>
+      <div class="topbar-actions">
+        <span class="status-dot"><i></i>本地原型</span>
+        <button class="icon-button" id="resetSession" type="button" title="重置当前对话" aria-label="重置当前对话">↺</button>
+        <button class="avatar" type="button" aria-label="用户菜单">I</button>
+      </div>
+    </header>
+
+    <main id="top" class="shell">
+      <section class="intro">
+        <div>
+          <p class="eyebrow">WRITE BEYOND THE PAGE <span>✦</span></p>
+          <h1>让故事在<br /><em>下一页</em>继续回响。</h1>
+          <p class="intro-copy">把作品、角色与想象放在同一张桌上。和他们对话，沿着原作的气息，写出属于你的新章。</p>
+        </div>
+        <div class="intro-note">
+          <span class="note-line"></span>
+          <p>每一次提问，<br />都是一条新的叙事支线。</p>
+        </div>
+      </section>
+
+      <section class="studio-grid" aria-label="InkEcho 创作台">
+        <aside class="sidebar panel">
+          <div class="panel-heading">
+            <div>
+              <span class="section-kicker">01 / CONTEXT</span>
+              <h2>作品设定</h2>
+            </div>
+            <span class="panel-icon">⌘</span>
+          </div>
+
+          <label class="field-label" for="workTitle">作品名称</label>
+          <div class="field-input has-icon">
+            <span>▤</span>
+            <input id="workTitle" type="text" value="红楼梦" />
+          </div>
+
+          <label class="field-label" for="workEra">时代 / 氛围</label>
+          <div class="field-input has-icon">
+            <span>◷</span>
+            <input id="workEra" type="text" value="清代 · 金陵" />
+          </div>
+
+          <label class="field-label" for="workWorld">世界观备注</label>
+          <textarea id="workWorld" rows="3">大观园里的春日将尽，人物在礼法与真心之间周旋。</textarea>
+
+          <div class="subheading-row">
+            <span class="field-label">角色卡</span>
+            <button class="text-button" id="addCharacter" type="button">+ 添加</button>
+          </div>
+          <div class="character-list" id="characterList">
+            <button class="character-card active" type="button" data-character="林黛玉" data-tone="清冷、敏锐，却藏着很深的真心。">
+              <span class="character-avatar avatar-dai">黛</span>
+              <span><strong>林黛玉</strong><small>清冷 · 诗意 · 敏锐</small></span>
+              <span class="selected-mark">✓</span>
+            </button>
+            <button class="character-card" type="button" data-character="贾宝玉" data-tone="真挚、叛逆，对世俗规矩总有自己的看法。">
+              <span class="character-avatar avatar-bao">宝</span>
+              <span><strong>贾宝玉</strong><small>真挚 · 叛逆 · 多情</small></span>
+              <span class="selected-mark">✓</span>
+            </button>
+          </div>
+
+          <div class="sidebar-footer">
+            <span>本次创作</span>
+            <strong id="messageCount">03 条消息</strong>
+          </div>
+        </aside>
+
+        <section class="conversation panel">
+          <div class="conversation-header">
+            <div class="conversation-title">
+              <span class="live-pulse"></span>
+              <div>
+                <span class="section-kicker">02 / CONVERSATION</span>
+                <h2 id="conversationTitle">与林黛玉对话</h2>
+              </div>
+            </div>
+            <button class="more-button" type="button" aria-label="更多选项">•••</button>
+          </div>
+
+          <div class="mode-tabs" role="tablist" aria-label="创作模式">
+            <button class="mode-tab active" type="button" data-mode="续写" role="tab" aria-selected="true">续写 <span>↗</span></button>
+            <button class="mode-tab" type="button" data-mode="改写" role="tab" aria-selected="false">改写 <span>↗</span></button>
+            <button class="mode-tab" type="button" data-mode="独白" role="tab" aria-selected="false">角色独白 <span>↗</span></button>
+          </div>
+
+          <div class="messages" id="messages" aria-live="polite">
+            <div class="message-row assistant">
+              <span class="message-avatar avatar-dai">黛</span>
+              <div class="message-content">
+                <div class="message-meta"><strong>林黛玉</strong><time>刚刚</time></div>
+                <div class="bubble">今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？</div>
+              </div>
+            </div>
+            <div class="message-row user">
+              <div class="message-content">
+                <div class="message-meta"><strong>我</strong><time>刚刚</time></div>
+                <div class="bubble">如果这一回不写离别，你想把故事带到哪里去？</div>
+              </div>
+              <span class="message-avatar user-avatar">I</span>
+            </div>
+            <div class="message-row assistant">
+              <span class="message-avatar avatar-dai">黛</span>
+              <div class="message-content">
+                <div class="message-meta"><strong>林黛玉</strong><time>刚刚</time></div>
+                <div class="bubble">那便去看一场没有结局的雨吧。雨停之前，谁也不必急着把心事说完。</div>
+              </div>
+            </div>
+          </div>
+
+          <form class="composer" id="composer">
+            <div class="composer-tools">
+              <button type="button" aria-label="添加参考内容" title="添加参考内容">⊕</button>
+              <span class="composer-hint" id="composerHint">续写这一段故事……</span>
+            </div>
+            <textarea id="messageInput" rows="2" placeholder="写下你想说的话……" aria-label="输入消息"></textarea>
+            <div class="composer-bottom">
+              <span><kbd>⌘</kbd> + <kbd>Enter</kbd> 发送</span>
+              <button class="send-button" type="submit" aria-label="发送消息">↑</button>
+            </div>
+          </form>
+        </section>
+
+        <aside class="rightbar panel">
+          <div class="panel-heading">
+            <div>
+              <span class="section-kicker">03 / PROMPTS</span>
+              <h2>创作灵感</h2>
+            </div>
+            <span class="panel-icon">✦</span>
+          </div>
+          <p class="panel-description">不知道从哪里开始？试试这些切入点。</p>
+          <div class="prompt-list" id="promptList">
+            <button class="prompt-card" type="button" data-prompt="写一封没有寄出的信，告诉我你最想改变原作里的哪一刻。">
+              <span class="prompt-number">01</span>
+              <span><strong>一封未寄出的信</strong><small>换一个角度，重新理解角色。</small></span>
+              <span class="prompt-arrow">↗</span>
+            </button>
+            <button class="prompt-card" type="button" data-prompt="如果今天的雨会替人说话，它会对你说些什么？请用一段诗意的文字回答。">
+              <span class="prompt-number">02</span>
+              <span><strong>让天气开口</strong><small>为场景增加一层隐秘的情绪。</small></span>
+              <span class="prompt-arrow">↗</span>
+            </button>
+            <button class="prompt-card" type="button" data-prompt="在不改变人物性格的前提下，写出一个原作没有发生过的下午。">
+              <span class="prompt-number">03</span>
+              <span><strong>不存在的下午</strong><small>从日常细节里长出新故事。</small></span>
+              <span class="prompt-arrow">↗</span>
+            </button>
+          </div>
+
+          <div class="quote-card">
+            <span class="quote-mark">“</span>
+            <p>故事不是被写完的，<br /><em>而是被继续想象的。</em></p>
+            <span class="quote-author">— InkEcho</span>
+          </div>
+        </aside>
+      </section>
+
+      <footer class="footer">
+        <span>INK<span class="footer-accent">ECHO</span> / 2026</span>
+        <span>让每一页，都有回声。</span>
+      </footer>
+    </main>
+    <div class="toast" id="toast" role="status"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
