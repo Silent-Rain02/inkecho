@@ -292,5 +292,27 @@ document.querySelector("#addCharacter").addEventListener("click", () => {
   showToast(`已添加角色 ${cleanName}`);
 });
 
+document.addEventListener("pointermove", (event) => {
+  document.documentElement.style.setProperty("--pointer-x", `${event.clientX}px`);
+  document.documentElement.style.setProperty("--pointer-y", `${event.clientY}px`);
+});
+
+document.querySelectorAll(".magnetic").forEach((element) => {
+  element.addEventListener("pointermove", (event) => {
+    const rect = element.getBoundingClientRect();
+    const x = (event.clientX - rect.left - rect.width / 2) * 0.12;
+    const y = (event.clientY - rect.top - rect.height / 2) * 0.12;
+    element.style.transform = `translate(${x}px, ${y}px)`;
+  });
+  element.addEventListener("pointerleave", () => {
+    element.style.transform = "translate(0, 0)";
+  });
+});
+
+document.querySelector("#focusComposer").addEventListener("click", () => {
+  messageInput.focus();
+  document.querySelector(".conversation").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
 updateProviderUI();
 updateCount();
