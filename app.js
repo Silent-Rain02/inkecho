@@ -3,6 +3,11 @@ const composer = document.querySelector("#composer");
 const messageInput = document.querySelector("#messageInput");
 const messageCount = document.querySelector("#messageCount");
 const conversationTitle = document.querySelector("#conversationTitle");
+const conversationMenuButton = document.querySelector("#conversationMenuButton");
+const conversationMenu = document.querySelector("#conversationMenu");
+const copyConversationButton = document.querySelector("#copyConversation");
+const exportFromMenuButton = document.querySelector("#exportFromMenu");
+const resetFromMenuButton = document.querySelector("#resetFromMenu");
 const composerHint = document.querySelector("#composerHint");
 const toast = document.querySelector("#toast");
 const characterList = document.querySelector("#characterList");
@@ -406,9 +411,9 @@ function addMessage({ role, name, text, avatarClass, historyIndex }) {
   return { row, bubble };
 }
 
-async function copyMessage(text) {
+async function copyText(text, successMessage, emptyMessage = "没有可复制的内容") {
   if (!text.trim()) {
-    showToast("这条回复还没有内容");
+    showToast(emptyMessage);
     return;
   }
   try {
@@ -424,10 +429,22 @@ async function copyMessage(text) {
       document.execCommand("copy");
       helper.remove();
     }
-    showToast("回复已复制");
+    showToast(successMessage);
   } catch {
     showToast("复制失败，请手动选择文字");
   }
+}
+
+async function copyMessage(text) {
+  await copyText(text, "回复已复制", "这条回复还没有内容");
+}
+
+async function copyConversation() {
+  const transcript = conversationHistory.map((item) => {
+    const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
+    return `${speaker}：${item.content}`;
+  }).join("\n\n");
+  await copyText(transcript, "对话已复制", "当前还没有对话内容");
 }
 
 function renderConversation() {
@@ -961,6 +978,33 @@ document.querySelector("#focusComposer").addEventListener("click", () => {
 });
 
 document.querySelector("#exportSession").addEventListener("click", exportSession);
+
+function closeConversationMenu() {
+  conversationMenu.hidden = true;
+  conversationMenuButton.setAttribute("aria-expanded", "false");
+}
+
+conversationMenuButton.addEventListener("click", (event) => {
+  event.stopPropagation();
+  const open = conversationMenu.hidden;
+  conversationMenu.hidden = !open;
+  conversationMenuButton.setAttribute("aria-expanded", String(open));
+});
+copyConversationButton.addEventListener("click", async () => {
+  await copyConversation();
+  closeConversationMenu();
+});
+exportFromMenuButton.addEventListener("click", () => {
+  closeConversationMenu();
+  exportSession();
+});
+resetFromMenuButton.addEventListener("click", () => {
+  closeConversationMenu();
+  document.querySelector("#resetSession").click();
+});
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".conversation-tools")) closeConversationMenu();
+});
 
 function switchProject(projectId) {
   if (projectId === activeProjectId) return;
