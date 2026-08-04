@@ -68,6 +68,7 @@ let selectedCharacter = {
 let selectedMode = "续写";
 let toastTimer;
 let isSending = false;
+let streamController = null;
 const defaultConversationHistory = [
   { role: "assistant", content: "今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？" },
   { role: "user", content: "如果这一回不写离别，你想把故事带到哪里去？" },
@@ -378,9 +379,17 @@ function exportSession() {
 function setSending(value) {
   isSending = value;
   messageInput.disabled = value;
-  sendButton.disabled = value;
-  sendButton.textContent = value ? "…" : "↑";
+  sendButton.disabled = false;
+  sendButton.textContent = value ? "■" : "↑";
+  sendButton.setAttribute("aria-label", value ? "停止生成" : "发送消息");
+  sendButton.classList.toggle("stop-mode", value);
   composer.classList.toggle("is-sending", value);
+}
+
+function stopGeneration() {
+  if (!streamController) return;
+  streamController.abort();
+  showToast("已停止生成，当前内容已保留");
 }
 
 function updateProviderUI() {
@@ -429,9 +438,11 @@ async function requestModelReply() {
 }
 
 async function requestStreamReply(onDelta) {
+  streamController = new AbortController();
   const response = await fetch("/api/chat/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    signal: streamController.signal,
     body: JSON.stringify({
       provider: providerSelect.value,
       model: modelName.value.trim(),
@@ -475,6 +486,7 @@ async function requestStreamReply(onDelta) {
   }
 
   if (!answer.trim()) throw new Error("模型没有返回文本");
+  streamController = null;
   return answer.trim();
 }
 
@@ -565,7 +577,10 @@ modelName.addEventListener("change", () => {
 
 composer.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (isSending) return;
+  if (isSending) {
+    stopGeneration();
+    return;
+  }
   const text = messageInput.value.trim();
   if (!text) {
     messageInput.focus();
@@ -591,11 +606,19 @@ composer.addEventListener("submit", async (event) => {
       assistantMessage.bubble.textContent += delta;
       messages.scrollTop = messages.scrollHeight;
     });
-  } catch {
-    reply = fallbackReply();
-    assistantMessage.bubble.textContent = reply;
-    showToast("模型服务暂不可用，当前使用演示回复");
+  } catch (error) {
+    const stopped = error?.name === "AbortError";
+    reply = assistantMessage.bubble.textContent.trim();
+    if (!reply && !stopped) {
+      reply = fallbackReply();
+      assistantMessage.bubble.textContent = reply;
+      showToast("模型服务暂不可用，当前使用演示回复");
+    } else if (stopped && !reply) {
+      reply = "（生成已停止）";
+      assistantMessage.bubble.textContent = reply;
+    }
   } finally {
+    streamController = null;
     setSending(false);
   }
 
