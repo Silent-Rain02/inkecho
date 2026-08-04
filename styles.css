@@ -171,7 +171,11 @@ textarea { resize: vertical; }
 .conversation-title { display: flex; align-items: center; gap: 11px; }
 .conversation-title h2 { font-size: 19px; }
 .live-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px rgba(207, 91, 62, 0.12); }
+.conversation-tools { position: relative; }
 .more-button { font-size: 16px; letter-spacing: 2px; }
+.conversation-menu { position: absolute; top: 31px; right: 0; z-index: 10; width: 142px; padding: 5px; border: 1px solid var(--line); background: #fbfbf7; box-shadow: 0 12px 30px rgba(59, 69, 57, 0.13); }
+.conversation-menu button { display: block; width: 100%; padding: 9px 10px; border: 0; color: var(--ink-soft); background: transparent; text-align: left; font-size: 11px; }
+.conversation-menu button:hover { color: var(--accent-dark); background: #f0f5eb; }
 .mode-tabs { display: flex; gap: 22px; padding: 0 29px; border-bottom: 1px solid var(--line); }
 .mode-tab { position: relative; padding: 9px 0 13px; border: 0; background: transparent; color: var(--muted); font-size: 12px; }
 .mode-tab span { margin-left: 4px; font-size: 10px; opacity: 0; }
