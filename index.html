@@ -101,7 +101,10 @@
           <div class="model-settings">
             <div class="subheading-row">
               <span class="field-label">模型服务</span>
-              <span class="service-badge" id="providerBadge">未连接</span>
+              <span>
+                <button class="text-button" id="refreshModels" type="button">刷新模型</button>
+                <span class="service-badge" id="providerBadge">未连接</span>
+              </span>
             </div>
             <select id="providerSelect" aria-label="选择模型服务">
               <option value="custom_azure">办公网 · 自定义 Azure</option>
@@ -112,8 +115,9 @@
             </select>
             <div class="field-input model-input">
               <span>✦</span>
-              <input id="modelName" type="text" value="gpt-5-mini-2025-08-07" aria-label="模型名称" />
+              <input id="modelName" list="modelOptions" type="text" value="gpt-5-mini-2025-08-07" aria-label="模型名称" />
             </div>
+            <datalist id="modelOptions"></datalist>
             <p class="provider-description" id="providerDescription">读取 .env 中的办公网自定义端点和密钥。</p>
           </div>
 
