@@ -200,6 +200,8 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .send-button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; color: #fff; background: var(--accent); font: 17px var(--mono); transition: transform 0.2s, background 0.2s; }
 .send-button:hover { background: var(--accent-dark); transform: translateY(-2px); }
 .send-button:disabled { opacity: 0.75; cursor: wait; transform: none; }
+.send-button.stop-mode { color: #fff6ed; background: var(--ink); font-size: 11px; }
+.send-button.stop-mode:hover { background: #343b38; }
 .composer.is-sending .composer-hint { color: var(--accent); }
 .composer.is-sending .composer-hint::after { content: "  ·  模型正在回应"; color: var(--muted); }
 
