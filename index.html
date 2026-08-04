@@ -11,6 +11,12 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="aurora-field" aria-hidden="true">
+      <span class="aurora-orb orb-coral"></span>
+      <span class="aurora-orb orb-lilac"></span>
+      <span class="aurora-orb orb-sage"></span>
+      <span class="aurora-orbit"></span>
+    </div>
     <div class="grain" aria-hidden="true"></div>
     <header class="topbar">
       <a class="brand" href="#top" aria-label="InkEcho 首页">
@@ -22,6 +28,7 @@
       </a>
       <div class="topbar-actions">
         <span class="status-dot"><i></i>本地原型</span>
+        <button class="spark-button magnetic" id="focusComposer" type="button">进入创作 <span>↗</span></button>
         <button class="icon-button" id="resetSession" type="button" title="重置当前对话" aria-label="重置当前对话">↺</button>
         <button class="avatar" type="button" aria-label="用户菜单">I</button>
       </div>
@@ -189,10 +196,11 @@
             </button>
           </div>
 
-          <div class="quote-card">
+          <div class="quote-card spotlight-card">
             <span class="quote-mark">“</span>
             <p>故事不是被写完的，<br /><em>而是被继续想象的。</em></p>
             <span class="quote-author">— InkEcho</span>
+            <span class="quote-orbit" aria-hidden="true"></span>
           </div>
         </aside>
       </section>
