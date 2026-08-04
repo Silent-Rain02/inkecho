@@ -187,6 +187,52 @@ function getContext() {
   };
 }
 
+function exportSession() {
+  const context = getContext();
+  const characters = Array.from(document.querySelectorAll(".character-card")).map((card) => {
+    const name = card.dataset.character || "未命名角色";
+    const tone = card.dataset.tone || "";
+    return `- **${name}**：${tone}`;
+  });
+  const transcript = conversationHistory.map((item) => {
+    const speaker = item.role === "assistant" ? selectedCharacter.name : "我";
+    return `### ${speaker}\n\n${item.content}`;
+  });
+  const markdown = [
+    `# ${context.title || "未命名作品"} · InkEcho`,
+    "",
+    `> 导出时间：${new Date().toLocaleString("zh-CN")}`,
+    "",
+    "## 作品设定",
+    "",
+    `- **时代 / 氛围**：${context.era || "未填写"}`,
+    `- **世界观备注**：${context.world || "未填写"}`,
+    "",
+    "## 角色卡",
+    "",
+    characters.length ? characters.join("\n") : "- 暂无角色卡",
+    "",
+    "## 对话记录",
+    "",
+    transcript.join("\n\n---\n\n"),
+    "",
+    "---",
+    "由 InkEcho 导出",
+    "",
+  ].join("\n");
+  const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const safeTitle = (context.title || "inkecho-creation").replace(/[\\/:*?\"<>|\s]+/g, "-").slice(0, 60);
+  link.href = url;
+  link.download = `${safeTitle || "inkecho-creation"}.md`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast("创作已导出为 Markdown");
+}
+
 function setSending(value) {
   isSending = value;
   messageInput.disabled = value;
@@ -456,6 +502,8 @@ document.querySelector("#focusComposer").addEventListener("click", () => {
   messageInput.focus();
   document.querySelector(".conversation").scrollIntoView({ behavior: "smooth", block: "center" });
 });
+
+document.querySelector("#exportSession").addEventListener("click", exportSession);
 
 restoreServiceSettings();
 restoreWorkspace();
