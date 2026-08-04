@@ -1,6 +1,8 @@
+import os
 import unittest
+from unittest.mock import patch
 
-from server import build_messages, provider_settings
+from server import build_messages, list_provider_models, provider_settings
 
 
 class ServerConfigTests(unittest.TestCase):
@@ -26,6 +28,10 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("春日札记", messages[0]["content"])
         self.assertIn("沈砚", messages[0]["content"])
         self.assertEqual(messages[-1], {"role": "user", "content": "继续写下去"})
+
+    def test_azure_model_listing_uses_configured_deployment_without_network(self) -> None:
+        with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_MODEL": "office-model"}, clear=False):
+            self.assertEqual(list_provider_models("custom_azure"), ["office-model"])
 
 
 if __name__ == "__main__":
