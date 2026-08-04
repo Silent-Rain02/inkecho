@@ -83,6 +83,11 @@
 
           <label class="field-label" for="workReference">参考片段</label>
           <textarea id="workReference" rows="4" placeholder="粘贴原文、人物关系或本章要点……"></textarea>
+          <div class="reference-meta">
+            <span id="referenceCount">0 / 4000 字</span>
+            <button class="text-button" id="importReference" type="button">导入 .txt / .md</button>
+          </div>
+          <input id="referenceFile" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" hidden />
 
           <div class="subheading-row">
             <span class="field-label">角色卡</span>
