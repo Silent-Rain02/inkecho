@@ -6,11 +6,32 @@ const conversationTitle = document.querySelector("#conversationTitle");
 const composerHint = document.querySelector("#composerHint");
 const toast = document.querySelector("#toast");
 const characterList = document.querySelector("#characterList");
+const providerSelect = document.querySelector("#providerSelect");
+const modelName = document.querySelector("#modelName");
+const providerBadge = document.querySelector("#providerBadge");
+const providerDescription = document.querySelector("#providerDescription");
+const sendButton = document.querySelector(".send-button");
 
 const modeHints = {
   续写: "续写这一段故事……",
   改写: "告诉我想改写的情节……",
   独白: "让角色说出心里话……",
+};
+
+const providerDefaults = {
+  custom_azure: "gpt-5-mini-2025-08-07",
+  ollama: "qwen3:8b",
+  openai: "gpt-5-mini",
+  azure: "your-deployment-name",
+  compatible: "qwen3-8b",
+};
+
+const providerDescriptions = {
+  custom_azure: "读取 .env 中的办公网自定义端点和密钥。",
+  ollama: "连接本机 Ollama，可运行 Qwen3、Llama、Gemma 等模型。",
+  openai: "使用 OpenAI 官方 Chat Completions 接口。",
+  azure: "使用标准 Azure OpenAI 部署名和端点。",
+  compatible: "适用于 vLLM、LM Studio、LocalAI 等兼容服务。",
 };
 
 const replyTemplates = {
@@ -34,12 +55,18 @@ let selectedCharacter = {
 };
 let selectedMode = "续写";
 let toastTimer;
+let isSending = false;
+let conversationHistory = [
+  { role: "assistant", content: "今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？" },
+  { role: "user", content: "如果这一回不写离别，你想把故事带到哪里去？" },
+  { role: "assistant", content: "那便去看一场没有结局的雨吧。雨停之前，谁也不必急着把心事说完。" },
+];
 
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
 }
 
 function updateCount() {
@@ -50,18 +77,94 @@ function updateCount() {
 function addMessage({ role, name, text, avatarClass }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
-  const time = role === "user" ? "刚刚" : "现在";
-  const avatar = `<span class="message-avatar ${avatarClass}">${role === "user" ? "I" : name.slice(0, 1)}</span>`;
-  const content = `
-    <div class="message-content">
-      <div class="message-meta"><strong>${name}</strong><time>${time}</time></div>
-      <div class="bubble"></div>
-    </div>`;
-  row.innerHTML = role === "user" ? `${content}${avatar}` : `${avatar}${content}`;
-  row.querySelector(".bubble").textContent = text;
+
+  const avatar = document.createElement("span");
+  avatar.className = `message-avatar ${avatarClass}`;
+  avatar.textContent = role === "user" ? "I" : name.slice(0, 1);
+
+  const content = document.createElement("div");
+  content.className = "message-content";
+  const meta = document.createElement("div");
+  meta.className = "message-meta";
+  const nameElement = document.createElement("strong");
+  nameElement.textContent = name;
+  const time = document.createElement("time");
+  time.textContent = role === "user" ? "刚刚" : "现在";
+  meta.append(nameElement, time);
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;
+  content.append(meta, bubble);
+  row.append(...(role === "user" ? [content, avatar] : [avatar, content]));
   messages.appendChild(row);
   messages.scrollTop = messages.scrollHeight;
   updateCount();
+}
+
+function getContext() {
+  return {
+    title: document.querySelector("#workTitle").value,
+    era: document.querySelector("#workEra").value,
+    world: document.querySelector("#workWorld").value,
+  };
+}
+
+function setSending(value) {
+  isSending = value;
+  messageInput.disabled = value;
+  sendButton.disabled = value;
+  sendButton.textContent = value ? "…" : "↑";
+  composer.classList.toggle("is-sending", value);
+}
+
+function updateProviderUI() {
+  const provider = providerSelect.value;
+  providerDescription.textContent = providerDescriptions[provider];
+  if (!modelName.value.trim() || Object.values(providerDefaults).includes(modelName.value.trim())) {
+    modelName.value = providerDefaults[provider];
+  }
+  providerBadge.textContent = "检查中";
+  checkProviderHealth(provider);
+}
+
+async function checkProviderHealth(provider = providerSelect.value) {
+  try {
+    const response = await fetch("/api/health");
+    const payload = await response.json();
+    const configured = Boolean(payload.providers && payload.providers[provider]);
+    providerBadge.textContent = configured ? "已配置" : "待配置";
+    providerBadge.style.color = configured ? "#6f8b6a" : "#a26b46";
+  } catch {
+    providerBadge.textContent = "离线演示";
+    providerBadge.style.color = "#a26b46";
+  }
+}
+
+async function requestModelReply() {
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      provider: providerSelect.value,
+      model: modelName.value.trim(),
+      mode: selectedMode,
+      character: selectedCharacter,
+      context: getContext(),
+      messages: conversationHistory,
+    }),
+  });
+  const payload = await response.json();
+  if (!response.ok || !payload.ok || !payload.text) {
+    throw new Error("模型服务请求失败");
+  }
+  providerBadge.textContent = "已连接";
+  providerBadge.style.color = "#6f8b6a";
+  return payload.text;
+}
+
+function fallbackReply() {
+  const list = replyTemplates[selectedMode];
+  return list[Math.floor(Math.random() * list.length)];
 }
 
 function selectCharacter(card) {
@@ -100,8 +203,16 @@ document.querySelectorAll(".prompt-card").forEach((card) => {
   });
 });
 
-composer.addEventListener("submit", (event) => {
+providerSelect.addEventListener("change", () => {
+  updateProviderUI();
+  showToast(`已切换到 ${providerSelect.options[providerSelect.selectedIndex].text}`);
+});
+
+modelName.addEventListener("change", () => checkProviderHealth());
+
+composer.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (isSending) return;
   const text = messageInput.value.trim();
   if (!text) {
     messageInput.focus();
@@ -110,17 +221,27 @@ composer.addEventListener("submit", (event) => {
   }
 
   addMessage({ role: "user", name: "我", text, avatarClass: "user-avatar" });
+  conversationHistory.push({ role: "user", content: text });
   messageInput.value = "";
-  const replyList = replyTemplates[selectedMode];
-  const reply = replyList[Math.floor(Math.random() * replyList.length)];
-  window.setTimeout(() => {
-    addMessage({
-      role: "assistant",
-      name: selectedCharacter.name,
-      text: reply,
-      avatarClass: selectedCharacter.name === "贾宝玉" ? "avatar-bao" : "avatar-dai",
-    });
-  }, 500);
+  setSending(true);
+
+  let reply;
+  try {
+    reply = await requestModelReply();
+  } catch {
+    reply = fallbackReply();
+    showToast("模型服务暂不可用，当前使用演示回复");
+  } finally {
+    setSending(false);
+  }
+
+  conversationHistory.push({ role: "assistant", content: reply });
+  addMessage({
+    role: "assistant",
+    name: selectedCharacter.name,
+    text: reply,
+    avatarClass: selectedCharacter.name === "贾宝玉" ? "avatar-bao" : "avatar-dai",
+  });
 });
 
 messageInput.addEventListener("keydown", (event) => {
@@ -131,10 +252,12 @@ messageInput.addEventListener("keydown", (event) => {
 
 document.querySelector("#resetSession").addEventListener("click", () => {
   messages.innerHTML = "";
+  const greeting = `新的对话已经准备好。${selectedCharacter.name}正在等你写下第一句。`;
+  conversationHistory = [{ role: "assistant", content: greeting }];
   addMessage({
     role: "assistant",
     name: selectedCharacter.name,
-    text: `新的对话已经准备好。${selectedCharacter.name}正在等你写下第一句。`,
+    text: greeting,
     avatarClass: selectedCharacter.name === "贾宝玉" ? "avatar-bao" : "avatar-dai",
   });
   showToast("对话已重置");
@@ -143,19 +266,31 @@ document.querySelector("#resetSession").addEventListener("click", () => {
 document.querySelector("#addCharacter").addEventListener("click", () => {
   const name = window.prompt("给新角色取一个名字：");
   if (!name || !name.trim()) return;
+  const cleanName = name.trim();
   const card = document.createElement("button");
   card.type = "button";
   card.className = "character-card";
-  card.dataset.character = name.trim();
+  card.dataset.character = cleanName;
   card.dataset.tone = "性格与声音，等待你来定义。";
-  card.innerHTML = `
-    <span class="character-avatar avatar-bao">${name.trim().slice(0, 1)}</span>
-    <span><strong>${name.trim()}</strong><small>新角色 · 待设定</small></span>
-    <span class="selected-mark">✓</span>`;
+
+  const avatar = document.createElement("span");
+  avatar.className = "character-avatar avatar-bao";
+  avatar.textContent = cleanName.slice(0, 1);
+  const description = document.createElement("span");
+  const title = document.createElement("strong");
+  title.textContent = cleanName;
+  const subtitle = document.createElement("small");
+  subtitle.textContent = "新角色 · 待设定";
+  description.append(title, subtitle);
+  const mark = document.createElement("span");
+  mark.className = "selected-mark";
+  mark.textContent = "✓";
+  card.append(avatar, description, mark);
   card.addEventListener("click", () => selectCharacter(card));
   characterList.appendChild(card);
   selectCharacter(card);
-  showToast(`已添加角色 ${name.trim()}`);
+  showToast(`已添加角色 ${cleanName}`);
 });
 
+updateProviderUI();
 updateCount();
