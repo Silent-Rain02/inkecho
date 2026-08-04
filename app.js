@@ -70,9 +70,9 @@ let toastTimer;
 let isSending = false;
 let streamController = null;
 const defaultConversationHistory = [
-  { role: "assistant", content: "今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？" },
-  { role: "user", content: "如果这一回不写离别，你想把故事带到哪里去？" },
-  { role: "assistant", content: "那便去看一场没有结局的雨吧。雨停之前，谁也不必急着把心事说完。" },
+  { role: "assistant", name: "林黛玉", content: "今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？" },
+  { role: "user", name: "我", content: "如果这一回不写离别，你想把故事带到哪里去？" },
+  { role: "assistant", name: "林黛玉", content: "那便去看一场没有结局的雨吧。雨停之前，谁也不必急着把心事说完。" },
 ];
 let projects = loadProjects();
 let activeProjectId = localStorage.getItem(activeProjectStorageKey) || projects[0].id;
@@ -93,7 +93,11 @@ function createProject({ id, name, context, conversation, service, characters, s
       world: context?.world || "",
     },
     conversation: Array.isArray(conversation) && conversation.length
-      ? conversation.slice(-40)
+      ? conversation.slice(-40).map((item) => ({
+        role: item.role === "user" ? "user" : "assistant",
+        name: String(item.name || (item.role === "user" ? "我" : selectedCharacterName || "角色")),
+        content: String(item.content || ""),
+      })).filter((item) => item.content.trim())
       : defaultConversationHistory.map((item) => ({ ...item })),
     service: {
       provider: service?.provider || "custom_azure",
@@ -142,7 +146,10 @@ function loadConversation() {
   try {
     const saved = JSON.parse(localStorage.getItem(conversationStorageKey) || "null");
     if (Array.isArray(saved) && saved.length > 0) {
-      return saved.filter((item) => item && ["user", "assistant"].includes(item.role) && typeof item.content === "string").slice(-40);
+      return saved
+        .filter((item) => item && ["user", "assistant"].includes(item.role) && typeof item.content === "string")
+        .slice(-40)
+        .map((item) => ({ ...item, name: item.name || (item.role === "user" ? "我" : "林黛玉") }));
     }
   } catch {
     // Ignore malformed or unavailable local storage.
@@ -313,10 +320,10 @@ function renderConversation() {
     const assistant = item.role === "assistant";
     addMessage({
       role: item.role,
-      name: assistant ? selectedCharacter.name : "我",
+      name: item.name || (assistant ? selectedCharacter.name : "我"),
       text: item.content,
       avatarClass: assistant
-        ? selectedCharacter.name === "贾宝玉" ? "avatar-bao" : "avatar-dai"
+        ? item.name === "贾宝玉" ? "avatar-bao" : "avatar-dai"
         : "user-avatar",
     });
   });
@@ -338,7 +345,7 @@ function exportSession() {
     return `- **${name}**：${tone}`;
   });
   const transcript = conversationHistory.map((item) => {
-    const speaker = item.role === "assistant" ? selectedCharacter.name : "我";
+    const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
     return `### ${speaker}\n\n${item.content}`;
   });
   const markdown = [
@@ -520,7 +527,7 @@ function createCharacterCard(character) {
   const title = document.createElement("strong");
   title.textContent = character.name;
   const subtitle = document.createElement("small");
-  subtitle.textContent = character.name === "林黛玉" ? "清冷 · 诗意 · 敏锐" : "新角色 · 待设定";
+  subtitle.textContent = character.name === "林黛玉" ? "清冷 · 诗意 · 敏锐" : (character.tone || "新角色 · 待设定").slice(0, 18);
   description.append(title, subtitle);
   const mark = document.createElement("span");
   mark.className = "selected-mark";
@@ -589,7 +596,7 @@ composer.addEventListener("submit", async (event) => {
   }
 
   addMessage({ role: "user", name: "我", text, avatarClass: "user-avatar" });
-  conversationHistory.push({ role: "user", content: text });
+  conversationHistory.push({ role: "user", name: "我", content: text });
   saveConversation();
   messageInput.value = "";
   setSending(true);
@@ -622,7 +629,7 @@ composer.addEventListener("submit", async (event) => {
     setSending(false);
   }
 
-  conversationHistory.push({ role: "assistant", content: reply });
+  conversationHistory.push({ role: "assistant", name: selectedCharacter.name, content: reply });
   saveConversation();
 });
 
@@ -635,7 +642,7 @@ messageInput.addEventListener("keydown", (event) => {
 document.querySelector("#resetSession").addEventListener("click", () => {
   messages.innerHTML = "";
   const greeting = `新的对话已经准备好。${selectedCharacter.name}正在等你写下第一句。`;
-  conversationHistory = [{ role: "assistant", content: greeting }];
+  conversationHistory = [{ role: "assistant", name: selectedCharacter.name, content: greeting }];
   saveConversation();
   addMessage({
     role: "assistant",
@@ -650,26 +657,8 @@ document.querySelector("#addCharacter").addEventListener("click", () => {
   const name = window.prompt("给新角色取一个名字：");
   if (!name || !name.trim()) return;
   const cleanName = name.trim();
-  const card = document.createElement("button");
-  card.type = "button";
-  card.className = "character-card";
-  card.dataset.character = cleanName;
-  card.dataset.tone = "性格与声音，等待你来定义。";
-
-  const avatar = document.createElement("span");
-  avatar.className = "character-avatar avatar-bao";
-  avatar.textContent = cleanName.slice(0, 1);
-  const description = document.createElement("span");
-  const title = document.createElement("strong");
-  title.textContent = cleanName;
-  const subtitle = document.createElement("small");
-  subtitle.textContent = "新角色 · 待设定";
-  description.append(title, subtitle);
-  const mark = document.createElement("span");
-  mark.className = "selected-mark";
-  mark.textContent = "✓";
-  card.append(avatar, description, mark);
-  card.addEventListener("click", () => selectCharacter(card));
+  const tone = window.prompt("用一句话描述这个角色的性格或说话方式：", "性格与声音，等待你来定义。") || "性格与声音，等待你来定义。";
+  const card = createCharacterCard({ name: cleanName, tone: tone.trim() || "性格与声音，等待你来定义。" });
   characterList.appendChild(card);
   selectCharacter(card);
   showToast(`已添加角色 ${cleanName}`);
@@ -725,7 +714,7 @@ function createNewProject() {
     id: `project-${Date.now()}`,
     name: cleanName,
     context: { title: cleanName, era: "", world: "" },
-    conversation: [{ role: "assistant", content: `「${cleanName}」已经准备好。先写下第一句，让故事找到自己的方向。` }],
+    conversation: [{ role: "assistant", name: "林黛玉", content: `「${cleanName}」已经准备好。先写下第一句，让故事找到自己的方向。` }],
     service: { provider: providerSelect.value, model: modelName.value.trim() },
     characters: defaultCharacters,
     selectedCharacterName: "林黛玉",
