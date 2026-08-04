@@ -24,6 +24,8 @@ const providerBadge = document.querySelector("#providerBadge");
 const providerDescription = document.querySelector("#providerDescription");
 const refreshModelsButton = document.querySelector("#refreshModels");
 const modelOptions = document.querySelector("#modelOptions");
+const creativitySelect = document.querySelector("#creativitySelect");
+const creativityValue = document.querySelector("#creativityValue");
 const sendButton = document.querySelector(".send-button");
 const draftStatus = document.querySelector("#draftStatus");
 const projectSelect = document.querySelector("#projectSelect");
@@ -63,6 +65,12 @@ const providerDescriptions = {
   openai: "使用 OpenAI 官方 Chat Completions 接口。",
   azure: "使用标准 Azure OpenAI 部署名和端点。",
   compatible: "适用于 vLLM、LM Studio、LocalAI 等兼容服务。",
+};
+
+const creativityLabels = {
+  restrained: "克制叙事",
+  balanced: "平衡",
+  imaginative: "大胆想象",
 };
 
 const replyTemplates = {
@@ -124,6 +132,7 @@ function createProject({ id, name, context, conversation, service, characters, s
     service: {
       provider: service?.provider || "custom_azure",
       model: service?.model || providerDefaults.custom_azure,
+      creativity: creativityLabels[service?.creativity] ? service.creativity : "balanced",
     },
     draft: String(draft || "").slice(0, 10000),
     characters: safeCharacters,
@@ -202,6 +211,7 @@ function persistActiveProject() {
   project.conversation = conversationHistory.slice(-40);
   project.draft = messageInput.value.slice(0, 10000);
   project.service = { provider: providerSelect.value, model: modelName.value.trim() };
+  project.service.creativity = creativitySelect.value;
   project.characters = Array.from(document.querySelectorAll(".character-card")).map((card) => ({
     name: card.dataset.character || "角色",
     tone: card.dataset.tone || "待设定",
@@ -228,6 +238,8 @@ function hydrateActiveProject() {
   selectedCharacter = project.characters.find((item) => item.name === project.selectedCharacterName) || project.characters[0];
   providerSelect.value = project.service.provider;
   modelName.value = project.service.model;
+  creativitySelect.value = creativityLabels[project.service.creativity] ? project.service.creativity : "balanced";
+  creativityValue.textContent = creativityLabels[creativitySelect.value];
   conversationTitle.textContent = `与${selectedCharacter.name}对话`;
   document.querySelectorAll(".mode-tab").forEach((tab) => {
     const active = tab.dataset.mode === selectedMode;
@@ -336,6 +348,8 @@ function restoreServiceSettings() {
     const saved = JSON.parse(localStorage.getItem(serviceStorageKey) || "null");
     if (saved && providerDefaults[saved.provider]) providerSelect.value = saved.provider;
     if (saved && typeof saved.model === "string" && saved.model.trim()) modelName.value = saved.model;
+    if (saved && creativityLabels[saved.creativity]) creativitySelect.value = saved.creativity;
+    creativityValue.textContent = creativityLabels[creativitySelect.value];
   } catch {
     // Ignore malformed or unavailable local storage.
   }
@@ -343,7 +357,11 @@ function restoreServiceSettings() {
 
 function saveServiceSettings() {
   try {
-    localStorage.setItem(serviceStorageKey, JSON.stringify({ provider: providerSelect.value, model: modelName.value.trim() }));
+    localStorage.setItem(serviceStorageKey, JSON.stringify({
+      provider: providerSelect.value,
+      model: modelName.value.trim(),
+      creativity: creativitySelect.value,
+    }));
   } catch {
     // Local storage is an enhancement; the selector still works without it.
   }
@@ -592,6 +610,7 @@ async function requestModelReply() {
       provider: providerSelect.value,
       model: modelName.value.trim(),
       mode: selectedMode,
+      creativity: creativitySelect.value,
       character: selectedCharacter,
       context: getContext(),
       messages: conversationHistory,
@@ -616,6 +635,7 @@ async function requestStreamReply(onDelta, character = selectedCharacter) {
       provider: providerSelect.value,
       model: modelName.value.trim(),
       mode: selectedMode,
+      creativity: creativitySelect.value,
       character,
       context: getContext(),
       messages: conversationHistory,
@@ -873,6 +893,12 @@ modelName.addEventListener("change", () => {
   checkProviderHealth();
 });
 
+creativitySelect.addEventListener("change", () => {
+  creativityValue.textContent = creativityLabels[creativitySelect.value];
+  saveServiceSettings();
+  showToast(`创作倾向：${creativityLabels[creativitySelect.value]}`);
+});
+
 refreshModelsButton.addEventListener("click", refreshModels);
 
 ["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
@@ -1033,7 +1059,11 @@ function createNewProject() {
     name: cleanName,
     context: { title: cleanName, era: "", world: "" },
     conversation: [{ role: "assistant", name: "林黛玉", content: `「${cleanName}」已经准备好。先写下第一句，让故事找到自己的方向。` }],
-    service: { provider: providerSelect.value, model: modelName.value.trim() },
+    service: {
+      provider: providerSelect.value,
+      model: modelName.value.trim(),
+      creativity: creativitySelect.value,
+    },
     characters: defaultCharacters,
     selectedCharacterName: "林黛玉",
     mode: "续写",
