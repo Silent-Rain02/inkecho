@@ -8,7 +8,7 @@ InkEcho 是一个用于文学作品对话、续写和二次创作的项目。
 
 ## 当前状态
 
-当前已完成一个无需安装依赖的单页 MVP 原型，打开 `index.html` 即可体验。
+当前已完成一个可切换模型服务的单页 MVP 原型。
 
 ## 已实现
 
@@ -17,17 +17,42 @@ InkEcho 是一个用于文学作品对话、续写和二次创作的项目。
 - 续写、改写、角色独白三种创作模式
 - 对话消息发送、快捷键发送和会话重置
 - 创作灵感卡片，可一键填入写作提示
+- 模型服务切换：办公网自定义 Azure、Ollama、OpenAI、Azure OpenAI、OpenAI-compatible
+- Ollama 本地模型支持，可配置 `qwen3:8b` 等模型
 
-当前回复使用前端模拟数据，后续将接入真正的模型服务。
+模型服务不可用时，页面会自动回退到演示回复。
+
+## 配置模型服务
+
+复制 `.env.example` 为 `.env`，按需填写配置。真实密钥只放在本地环境变量中，不要提交到 GitHub。
+
+办公网自定义服务使用以下配置：
+
+```bash
+INK_ECHO_PROVIDER=custom_azure
+INK_ECHO_CUSTOM_AZURE_API_KEY=你的密钥
+INK_ECHO_CUSTOM_AZURE_ENDPOINT=https://aidp-i18ntt-sg.tiktok-row.net/api/modelhub/online/v2/crawl
+INK_ECHO_CUSTOM_AZURE_MODEL=gpt-5-mini-2025-08-07
+INK_ECHO_CUSTOM_AZURE_LOGID=你的logid
+```
+
+如果使用 Ollama：
+
+```bash
+INK_ECHO_PROVIDER=ollama
+INK_ECHO_OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
+INK_ECHO_OLLAMA_MODEL=qwen3:8b
+```
 
 ## 本地运行
 
-直接双击 `index.html` 即可打开。
-
-如果希望通过本地静态服务器运行，可以在项目目录执行：
+纯前端演示可以直接双击 `index.html` 打开；要连接模型服务，请启动 Python 服务：
 
 ```bash
-python3 -m http.server 5173
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 server.py
 ```
 
 然后访问 <http://localhost:5173>。
