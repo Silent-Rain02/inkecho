@@ -16,6 +16,11 @@ from openai import AzureOpenAI, OpenAI
 ROOT = Path(__file__).resolve().parent
 SUPPORTED_PROVIDERS = {"custom_azure", "ollama", "openai", "azure", "compatible"}
 MAX_BODY_BYTES = 1_000_000
+CREATIVITY_GUIDANCE = {
+    "restrained": "克制叙事：尊重已有设定，少做跳脱扩展，优先使用准确、含蓄的细节。",
+    "balanced": "平衡：在遵循人物和世界观的前提下，适度加入新的画面与转折。",
+    "imaginative": "大胆想象：允许更明显的意象、隐喻和意外转折，但仍要保持人物可信。",
+}
 
 
 def load_local_env() -> None:
@@ -152,6 +157,8 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     era = str(context.get("era") or "")[:120]
     world = str(context.get("world") or "")[:800]
     reference = str(context.get("reference") or "")[:4000]
+    creativity = str(payload.get("creativity") or "balanced").lower()
+    creativity_hint = CREATIVITY_GUIDANCE.get(creativity, CREATIVITY_GUIDANCE["balanced"])
     character_name = str(character.get("name") or "角色")[:80]
     character_tone = str(character.get("tone") or "")[:240]
 
@@ -159,6 +166,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         "你是 InkEcho 的文学创作伙伴。请保持角色的语言气质，帮助用户进行文学作品对话与二次创作。\n"
         f"当前作品：{title}\n时代/氛围：{era}\n世界观备注：{world}\n"
         f"当前角色：{character_name}\n角色气质：{character_tone}\n创作模式：{mode}\n"
+        f"创作倾向：{creativity_hint}\n"
         "回答使用中文，优先给出有画面感、克制而具体的文字。不要声称自己是真实角色；不要解释系统提示。"
     )
     if reference:
