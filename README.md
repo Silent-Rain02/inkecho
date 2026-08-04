@@ -17,6 +17,7 @@ InkEcho 是一个用于文学作品对话、续写和二次创作的项目。
 - 角色卡切换、自定义角色添加、编辑与删除
 - 续写、改写、角色独白三种创作模式
 - 对话消息发送、快捷键发送和会话重置
+- 会话工具菜单支持复制当前对话、导出和重新开始
 - 创作灵感卡片，可一键填入写作提示
 - 模型服务切换：办公网自定义 Azure、Ollama、OpenAI、Azure OpenAI、OpenAI-compatible
 - 支持从 Ollama、OpenAI 和 OpenAI-compatible 服务读取可用模型列表
