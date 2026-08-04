@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 from urllib.parse import unquote, urlparse
 
 from openai import AzureOpenAI, OpenAI
@@ -158,6 +158,32 @@ def complete_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
     return content.strip(), settings
 
 
+def stream_chat(payload: dict[str, Any]) -> tuple[ProviderSettings, Iterator[str]]:
+    settings = provider_settings(payload.get("provider"), payload.get("model"))
+    if not settings.model:
+        raise RuntimeError(f"{settings.provider} 尚未配置模型名")
+    if not settings.configured:
+        raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
+
+    client = build_client(settings)
+    response = client.chat.completions.create(
+        model=settings.model,
+        messages=build_messages(payload),
+        max_tokens=700,
+        stream=True,
+    )
+
+    def deltas() -> Iterator[str]:
+        for chunk in response:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta.content
+            if isinstance(delta, str) and delta:
+                yield delta
+
+    return settings, deltas()
+
+
 class InkEchoHandler(BaseHTTPRequestHandler):
     server_version = "InkEcho/0.2"
 
@@ -177,21 +203,53 @@ class InkEchoHandler(BaseHTTPRequestHandler):
         self.serve_static(unquote(parsed.path))
 
     def do_POST(self) -> None:  # noqa: N802
-        if urlparse(self.path).path != "/api/chat":
+        path = urlparse(self.path).path
+        if path not in {"/api/chat", "/api/chat/stream"}:
             self.send_error(HTTPStatus.NOT_FOUND, "Not found")
             return
         try:
-            length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > MAX_BODY_BYTES:
-                raise ValueError("请求体大小不合法")
-            payload = json.loads(self.rfile.read(length))
-            if not isinstance(payload, dict):
-                raise ValueError("请求格式不合法")
-            text, settings = complete_chat(payload)
-            self.send_json({"ok": True, "text": text, "provider": settings.provider, "model": settings.model})
+            payload = self.read_payload()
+            if path == "/api/chat/stream":
+                self.stream_response(payload)
+            else:
+                text, settings = complete_chat(payload)
+                self.send_json({"ok": True, "text": text, "provider": settings.provider, "model": settings.model})
         except Exception as exc:  # noqa: BLE001
             print(f"[InkEcho] request failed: {type(exc).__name__}")
-            self.send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.BAD_GATEWAY)
+            if not getattr(self, "_response_started", False):
+                self.send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.BAD_GATEWAY)
+
+    def read_payload(self) -> dict[str, Any]:
+        length = int(self.headers.get("Content-Length", "0"))
+        if length <= 0 or length > MAX_BODY_BYTES:
+            raise ValueError("请求体大小不合法")
+        payload = json.loads(self.rfile.read(length))
+        if not isinstance(payload, dict):
+            raise ValueError("请求格式不合法")
+        return payload
+
+    def stream_response(self, payload: dict[str, Any]) -> None:
+        settings, deltas = stream_chat(payload)
+        self._response_started = True
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-transform")
+        self.send_header("Connection", "close")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+        self.send_event({"type": "start", "provider": settings.provider, "model": settings.model})
+        try:
+            for delta in deltas:
+                self.send_event({"type": "delta", "delta": delta})
+            self.send_event({"type": "done"})
+        except Exception as exc:  # noqa: BLE001
+            print(f"[InkEcho] stream failed: {type(exc).__name__}")
+            self.send_event({"type": "error", "error": "模型流式响应中断"})
+
+    def send_event(self, data: dict[str, Any]) -> None:
+        body = f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
+        self.wfile.write(body)
+        self.wfile.flush()
 
     def serve_static(self, request_path: str) -> None:
         relative = request_path.lstrip("/") or "index.html"
