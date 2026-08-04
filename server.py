@@ -8,7 +8,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterator
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from openai import AzureOpenAI, OpenAI
 
@@ -105,6 +105,33 @@ def build_client(settings: ProviderSettings) -> OpenAI | AzureOpenAI:
     )
 
 
+def list_provider_models(provider: str) -> list[str]:
+    selected = provider.lower()
+    if selected not in SUPPORTED_PROVIDERS:
+        raise ValueError(f"不支持的模型服务：{selected}")
+
+    model_env = {
+        "custom_azure": "INK_ECHO_CUSTOM_AZURE_MODEL",
+        "ollama": "INK_ECHO_OLLAMA_MODEL",
+        "openai": "INK_ECHO_OPENAI_MODEL",
+        "azure": "INK_ECHO_AZURE_MODEL",
+        "compatible": "INK_ECHO_COMPATIBLE_MODEL",
+    }[selected]
+    configured_model = env(model_env)
+
+    # Azure deployments are user-defined names and the deployment list is not
+    # consistently exposed by compatible enterprise endpoints.
+    if selected in {"custom_azure", "azure"}:
+        return [configured_model] if configured_model else []
+
+    settings = provider_settings(selected, configured_model or "__probe__")
+    if not settings.configured:
+        raise RuntimeError(f"{selected} 尚未完成环境变量配置")
+    response = build_client(settings).models.list()
+    model_ids = [str(item.id) for item in getattr(response, "data", []) if getattr(item, "id", None)]
+    return sorted(set(model_ids))[:100]
+
+
 def optional_logid_header(name: str) -> dict[str, str]:
     logid = env(name)
     return {"X-TT-LOGID": logid} if logid else {}
@@ -199,6 +226,14 @@ class InkEchoHandler(BaseHTTPRequestHandler):
                     },
                 }
             )
+            return
+        if parsed.path == "/api/models":
+            provider = parse_qs(parsed.query).get("provider", [env("INK_ECHO_PROVIDER", "custom_azure")])[0]
+            try:
+                self.send_json({"ok": True, "provider": provider, "models": list_provider_models(provider)})
+            except Exception as exc:  # noqa: BLE001
+                print(f"[InkEcho] model listing failed: {type(exc).__name__}")
+                self.send_json({"ok": False, "provider": provider, "models": [], "error": "无法读取模型列表"}, status=HTTPStatus.BAD_GATEWAY)
             return
         self.serve_static(unquote(parsed.path))
 
