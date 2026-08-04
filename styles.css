@@ -204,6 +204,7 @@ textarea { resize: vertical; }
 .user .bubble { border-color: #d5dfd0; border-radius: 13px 2px 13px 13px; background: #edf3e9; }
 .message-actions { display: flex; gap: 8px; min-height: 18px; padding: 4px 2px 0; opacity: 0; transition: opacity 0.2s; }
 .message-row:hover .message-actions, .message-actions:focus-within { opacity: 1; }
+.message-row.user .message-actions { justify-content: flex-end; }
 .message-action { padding: 0; border: 0; color: var(--muted); background: transparent; font: 9px var(--mono); }
 .message-action:hover { color: var(--accent); }
 .composer { margin: 0 18px 18px; padding: 14px 15px 11px; border: 1px solid #d9ded4; background: rgba(250, 251, 246, 0.9); transition: border-color 0.2s, box-shadow 0.2s; }
