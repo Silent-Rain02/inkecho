@@ -39,6 +39,11 @@ class ServerConfigTests(unittest.TestCase):
         with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_MODEL": "office-model"}, clear=False):
             self.assertEqual(list_provider_models("custom_azure"), ["office-model"])
 
+    def test_reference_is_capped_before_prompt_construction(self) -> None:
+        reference = "雨" * 5000
+        system_prompt = build_messages({"context": {"reference": reference}})[0]["content"]
+        self.assertEqual(system_prompt.count("雨"), 4000)
+
 
 if __name__ == "__main__":
     unittest.main()
