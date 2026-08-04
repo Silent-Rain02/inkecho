@@ -11,9 +11,18 @@ const modelName = document.querySelector("#modelName");
 const providerBadge = document.querySelector("#providerBadge");
 const providerDescription = document.querySelector("#providerDescription");
 const sendButton = document.querySelector(".send-button");
+const projectSelect = document.querySelector("#projectSelect");
+const newProjectButton = document.querySelector("#newProject");
+const deleteProjectButton = document.querySelector("#deleteProject");
 const conversationStorageKey = "inkecho.conversation.v1";
 const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
+const projectsStorageKey = "inkecho.projects.v1";
+const activeProjectStorageKey = "inkecho.active-project.v1";
+const defaultCharacters = [
+  { name: "林黛玉", tone: "清冷、敏锐，却藏着很深的真心。" },
+  { name: "贾宝玉", tone: "真挚、叛逆，对世俗规矩总有自己的看法。" },
+];
 
 const modeHints = {
   续写: "续写这一段故事……",
@@ -64,7 +73,69 @@ const defaultConversationHistory = [
   { role: "user", content: "如果这一回不写离别，你想把故事带到哪里去？" },
   { role: "assistant", content: "那便去看一场没有结局的雨吧。雨停之前，谁也不必急着把心事说完。" },
 ];
+let projects = loadProjects();
+let activeProjectId = localStorage.getItem(activeProjectStorageKey) || projects[0].id;
+if (!projects.some((project) => project.id === activeProjectId)) activeProjectId = projects[0].id;
 let conversationHistory = loadConversation();
+
+function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode }) {
+  const safeCharacters = Array.isArray(characters) && characters.length
+    ? characters.map((item) => ({ name: String(item.name || "角色"), tone: String(item.tone || "待设定") }))
+    : defaultCharacters.map((item) => ({ ...item }));
+  const selected = safeCharacters.find((item) => item.name === selectedCharacterName) || safeCharacters[0];
+  return {
+    id,
+    name: name || context?.title || "未命名作品",
+    context: {
+      title: context?.title || name || "未命名作品",
+      era: context?.era || "",
+      world: context?.world || "",
+    },
+    conversation: Array.isArray(conversation) && conversation.length
+      ? conversation.slice(-40)
+      : defaultConversationHistory.map((item) => ({ ...item })),
+    service: {
+      provider: service?.provider || "custom_azure",
+      model: service?.model || providerDefaults.custom_azure,
+    },
+    characters: safeCharacters,
+    selectedCharacterName: selected.name,
+    mode: mode || "续写",
+    updatedAt: Date.now(),
+  };
+}
+
+function loadProjects() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(projectsStorageKey) || "null");
+    if (Array.isArray(saved) && saved.length) {
+      return saved.map((project) => createProject(project));
+    }
+  } catch {
+    // Fall through to the legacy single-project migration.
+  }
+
+  let context = { title: "红楼梦", era: "清代 · 金陵", world: "大观园里的春日将尽，人物在礼法与真心之间周旋。" };
+  let service = { provider: "custom_azure", model: providerDefaults.custom_azure };
+  try {
+    const savedContext = JSON.parse(localStorage.getItem(workspaceStorageKey) || "null");
+    if (savedContext) context = { ...context, ...savedContext };
+    const savedService = JSON.parse(localStorage.getItem(serviceStorageKey) || "null");
+    if (savedService) service = { ...service, ...savedService };
+  } catch {
+    // Use the default project when legacy storage is unavailable.
+  }
+  return [createProject({
+    id: `project-${Date.now()}`,
+    name: context.title,
+    context,
+    conversation: loadConversation(),
+    service,
+    characters: defaultCharacters,
+    selectedCharacterName: "林黛玉",
+    mode: "续写",
+  })];
+}
 
 function loadConversation() {
   try {
@@ -78,12 +149,80 @@ function loadConversation() {
   return defaultConversationHistory.map((item) => ({ ...item }));
 }
 
+function getActiveProject() {
+  return projects.find((project) => project.id === activeProjectId) || projects[0];
+}
+
+function persistProjects() {
+  try {
+    localStorage.setItem(projectsStorageKey, JSON.stringify(projects));
+    localStorage.setItem(activeProjectStorageKey, activeProjectId);
+  } catch {
+    // Local storage is an enhancement; the project still works in memory.
+  }
+}
+
+function persistActiveProject() {
+  const project = getActiveProject();
+  if (!project) return;
+  const context = getContext();
+  project.name = context.title || project.name || "未命名作品";
+  project.context = context;
+  project.conversation = conversationHistory.slice(-40);
+  project.service = { provider: providerSelect.value, model: modelName.value.trim() };
+  project.characters = Array.from(document.querySelectorAll(".character-card")).map((card) => ({
+    name: card.dataset.character || "角色",
+    tone: card.dataset.tone || "待设定",
+  }));
+  project.selectedCharacterName = selectedCharacter.name;
+  project.mode = selectedMode;
+  project.updatedAt = Date.now();
+  persistProjects();
+  renderProjectSelect();
+}
+
+function hydrateActiveProject() {
+  const project = getActiveProject();
+  if (!project) return;
+  document.querySelector("#workTitle").value = project.context.title;
+  document.querySelector("#workEra").value = project.context.era;
+  document.querySelector("#workWorld").value = project.context.world;
+  conversationHistory = project.conversation.map((item) => ({ ...item }));
+  selectedMode = project.mode || "续写";
+  selectedCharacter = project.characters.find((item) => item.name === project.selectedCharacterName) || project.characters[0];
+  providerSelect.value = project.service.provider;
+  modelName.value = project.service.model;
+  conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+  document.querySelectorAll(".mode-tab").forEach((tab) => {
+    const active = tab.dataset.mode === selectedMode;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+  });
+  composerHint.textContent = modeHints[selectedMode];
+}
+
+function renderProjectSelect() {
+  const active = getActiveProject();
+  projectSelect.innerHTML = "";
+  projects
+    .slice()
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+    .forEach((project) => {
+      const option = document.createElement("option");
+      option.value = project.id;
+      option.textContent = project.name || "未命名作品";
+      projectSelect.appendChild(option);
+    });
+  if (active) projectSelect.value = active.id;
+}
+
 function saveConversation() {
   try {
     localStorage.setItem(conversationStorageKey, JSON.stringify(conversationHistory.slice(-40)));
   } catch {
     // Local storage is an enhancement; the conversation still works without it.
   }
+  persistActiveProject();
 }
 
 function restoreWorkspace() {
@@ -96,6 +235,7 @@ function restoreWorkspace() {
   } catch {
     // Ignore malformed or unavailable local storage.
   }
+  persistActiveProject();
 }
 
 function saveWorkspace() {
@@ -104,6 +244,7 @@ function saveWorkspace() {
   } catch {
     // Local storage is an enhancement; the workspace still works without it.
   }
+  persistActiveProject();
 }
 
 function restoreServiceSettings() {
@@ -122,6 +263,7 @@ function saveServiceSettings() {
   } catch {
     // Local storage is an enhancement; the selector still works without it.
   }
+  persistActiveProject();
 }
 
 function showToast(message) {
@@ -349,12 +491,40 @@ function selectCharacter(card) {
     tone: card.dataset.tone,
   };
   conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+  persistActiveProject();
   showToast(`已切换至 ${selectedCharacter.name}`);
 }
 
-document.querySelectorAll(".character-card").forEach((card) => {
+function createCharacterCard(character) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "character-card";
+  card.dataset.character = character.name;
+  card.dataset.tone = character.tone;
+  const avatar = document.createElement("span");
+  avatar.className = `character-avatar ${character.name === "林黛玉" ? "avatar-dai" : "avatar-bao"}`;
+  avatar.textContent = character.name.slice(0, 1);
+  const description = document.createElement("span");
+  const title = document.createElement("strong");
+  title.textContent = character.name;
+  const subtitle = document.createElement("small");
+  subtitle.textContent = character.name === "林黛玉" ? "清冷 · 诗意 · 敏锐" : "新角色 · 待设定";
+  description.append(title, subtitle);
+  const mark = document.createElement("span");
+  mark.className = "selected-mark";
+  mark.textContent = "✓";
+  card.append(avatar, description, mark);
+  card.classList.toggle("active", character.name === selectedCharacter.name);
   card.addEventListener("click", () => selectCharacter(card));
-});
+  return card;
+}
+
+function renderCharacters() {
+  characterList.innerHTML = "";
+  getActiveProject().characters.forEach((character) => {
+    characterList.appendChild(createCharacterCard(character));
+  });
+}
 
 document.querySelectorAll(".mode-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
@@ -365,6 +535,7 @@ document.querySelectorAll(".mode-tab").forEach((tab) => {
       item.setAttribute("aria-selected", String(active));
     });
     composerHint.textContent = modeHints[selectedMode];
+    persistActiveProject();
     showToast(`已切换到「${selectedMode}」模式`);
   });
 });
@@ -505,8 +676,74 @@ document.querySelector("#focusComposer").addEventListener("click", () => {
 
 document.querySelector("#exportSession").addEventListener("click", exportSession);
 
-restoreServiceSettings();
-restoreWorkspace();
+function switchProject(projectId) {
+  if (projectId === activeProjectId) return;
+  if (isSending) {
+    projectSelect.value = activeProjectId;
+    showToast("模型回复完成后再切换项目");
+    return;
+  }
+  persistActiveProject();
+  activeProjectId = projectId;
+  persistProjects();
+  hydrateActiveProject();
+  renderProjectSelect();
+  renderCharacters();
+  renderConversation();
+  updateProviderUI();
+  showToast(`已切换到「${getActiveProject().name}」`);
+}
+
+function createNewProject() {
+  const name = window.prompt("给新的创作项目取一个名字：", "未命名新章");
+  if (!name || !name.trim()) return;
+  const cleanName = name.trim();
+  const project = createProject({
+    id: `project-${Date.now()}`,
+    name: cleanName,
+    context: { title: cleanName, era: "", world: "" },
+    conversation: [{ role: "assistant", content: `「${cleanName}」已经准备好。先写下第一句，让故事找到自己的方向。` }],
+    service: { provider: providerSelect.value, model: modelName.value.trim() },
+    characters: defaultCharacters,
+    selectedCharacterName: "林黛玉",
+    mode: "续写",
+  });
+  projects.push(project);
+  activeProjectId = project.id;
+  persistProjects();
+  hydrateActiveProject();
+  renderProjectSelect();
+  renderCharacters();
+  renderConversation();
+  updateProviderUI();
+  showToast(`已创建「${cleanName}」`);
+}
+
+function deleteCurrentProject() {
+  if (projects.length <= 1) {
+    showToast("至少保留一个创作项目");
+    return;
+  }
+  const current = getActiveProject();
+  if (!window.confirm(`确定删除「${current.name}」吗？其中的对话和设定会一并删除。`)) return;
+  projects = projects.filter((project) => project.id !== activeProjectId);
+  activeProjectId = projects[0].id;
+  persistProjects();
+  hydrateActiveProject();
+  renderProjectSelect();
+  renderCharacters();
+  renderConversation();
+  updateProviderUI();
+  showToast("项目已删除");
+}
+
+projectSelect.addEventListener("change", () => switchProject(projectSelect.value));
+newProjectButton.addEventListener("click", createNewProject);
+deleteProjectButton.addEventListener("click", deleteCurrentProject);
+
+hydrateActiveProject();
+renderProjectSelect();
+renderCharacters();
 renderConversation();
 updateProviderUI();
 updateCount();
