@@ -67,7 +67,7 @@ def provider_settings(provider: str | None = None, requested_model: str | None =
 
     defaults = {
         "custom_azure": ("INK_ECHO_CUSTOM_AZURE_MODEL", ("INK_ECHO_CUSTOM_AZURE_API_KEY", "INK_ECHO_CUSTOM_AZURE_ENDPOINT")),
-        "ollama": ("INK_ECHO_OLLAMA_MODEL", ("INK_ECHO_OLLAMA_BASE_URL",)),
+        "ollama": ("INK_ECHO_OLLAMA_MODEL", ()),
         "openai": ("INK_ECHO_OPENAI_MODEL", ("INK_ECHO_OPENAI_API_KEY",)),
         "azure": ("INK_ECHO_AZURE_MODEL", ("INK_ECHO_AZURE_API_KEY", "INK_ECHO_AZURE_ENDPOINT")),
         "compatible": ("INK_ECHO_COMPATIBLE_MODEL", ("INK_ECHO_COMPATIBLE_API_KEY", "INK_ECHO_COMPATIBLE_BASE_URL")),
