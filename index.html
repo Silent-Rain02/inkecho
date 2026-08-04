@@ -147,7 +147,14 @@
                 <h2 id="conversationTitle">与林黛玉对话</h2>
               </div>
             </div>
-            <button class="more-button" type="button" aria-label="更多选项">•••</button>
+            <div class="conversation-tools">
+              <button class="more-button" id="conversationMenuButton" type="button" aria-label="更多选项" aria-expanded="false" aria-controls="conversationMenu">•••</button>
+              <div class="conversation-menu" id="conversationMenu" hidden>
+                <button type="button" id="copyConversation">复制当前对话</button>
+                <button type="button" id="exportFromMenu">导出 Markdown</button>
+                <button type="button" id="resetFromMenu">重新开始</button>
+              </div>
+            </div>
           </div>
 
           <div class="mode-tabs" role="tablist" aria-label="创作模式">
