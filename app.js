@@ -13,6 +13,7 @@ const providerDescription = document.querySelector("#providerDescription");
 const refreshModelsButton = document.querySelector("#refreshModels");
 const modelOptions = document.querySelector("#modelOptions");
 const sendButton = document.querySelector(".send-button");
+const draftStatus = document.querySelector("#draftStatus");
 const projectSelect = document.querySelector("#projectSelect");
 const newProjectButton = document.querySelector("#newProject");
 const deleteProjectButton = document.querySelector("#deleteProject");
@@ -73,6 +74,7 @@ let selectedCharacter = {
 };
 let selectedMode = "续写";
 let toastTimer;
+let draftTimer;
 let isSending = false;
 let streamController = null;
 const defaultConversationHistory = [
@@ -85,7 +87,7 @@ let activeProjectId = localStorage.getItem(activeProjectStorageKey) || projects[
 if (!projects.some((project) => project.id === activeProjectId)) activeProjectId = projects[0].id;
 let conversationHistory = loadConversation();
 
-function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode }) {
+function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft }) {
   const safeCharacters = Array.isArray(characters) && characters.length
     ? characters.map((item) => ({ name: String(item.name || "角色"), tone: String(item.tone || "待设定") }))
     : defaultCharacters.map((item) => ({ ...item }));
@@ -110,6 +112,7 @@ function createProject({ id, name, context, conversation, service, characters, s
       provider: service?.provider || "custom_azure",
       model: service?.model || providerDefaults.custom_azure,
     },
+    draft: String(draft || "").slice(0, 10000),
     characters: safeCharacters,
     selectedCharacterName: selected.name,
     mode: mode || "续写",
@@ -184,6 +187,7 @@ function persistActiveProject() {
   project.name = context.title || project.name || "未命名作品";
   project.context = context;
   project.conversation = conversationHistory.slice(-40);
+  project.draft = messageInput.value.slice(0, 10000);
   project.service = { provider: providerSelect.value, model: modelName.value.trim() };
   project.characters = Array.from(document.querySelectorAll(".character-card")).map((card) => ({
     name: card.dataset.character || "角色",
@@ -204,6 +208,8 @@ function hydrateActiveProject() {
   document.querySelector("#workWorld").value = project.context.world;
   workReference.value = project.context.reference || "";
   updateReferenceCount();
+  messageInput.value = project.draft || "";
+  draftStatus.textContent = messageInput.value ? "草稿已恢复" : "草稿自动保存";
   conversationHistory = project.conversation.map((item) => ({ ...item }));
   selectedMode = project.mode || "续写";
   selectedCharacter = project.characters.find((item) => item.name === project.selectedCharacterName) || project.characters[0];
@@ -264,6 +270,26 @@ function saveWorkspace() {
     // Local storage is an enhancement; the workspace still works without it.
   }
   persistActiveProject();
+}
+
+function saveDraft() {
+  const project = getActiveProject();
+  if (!project) return;
+  project.draft = messageInput.value.slice(0, 10000);
+  draftStatus.textContent = "正在保存草稿";
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => {
+    persistProjects();
+    draftStatus.textContent = project.draft ? "草稿已保存" : "草稿自动保存";
+  }, 180);
+}
+
+function flushDraft() {
+  clearTimeout(draftTimer);
+  const project = getActiveProject();
+  if (!project) return;
+  project.draft = messageInput.value.slice(0, 10000);
+  persistProjects();
 }
 
 function updateReferenceCount() {
@@ -762,6 +788,7 @@ workReference.addEventListener("input", () => {
 });
 importReferenceButton.addEventListener("click", () => referenceFile.click());
 referenceFile.addEventListener("change", importReferenceFile);
+messageInput.addEventListener("input", saveDraft);
 
 composer.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -778,8 +805,9 @@ composer.addEventListener("submit", async (event) => {
 
   addMessage({ role: "user", name: "我", text, avatarClass: "user-avatar" });
   conversationHistory.push({ role: "user", name: "我", content: text });
-  saveConversation();
   messageInput.value = "";
+  saveDraft();
+  saveConversation();
   const character = { ...selectedCharacter };
 
   const assistantMessage = addMessage({
@@ -801,8 +829,12 @@ messageInput.addEventListener("keydown", (event) => {
   }
 });
 
+window.addEventListener("pagehide", flushDraft);
+
 document.querySelector("#resetSession").addEventListener("click", () => {
   messages.innerHTML = "";
+  messageInput.value = "";
+  saveDraft();
   const greeting = `新的对话已经准备好。${selectedCharacter.name}正在等你写下第一句。`;
   conversationHistory = [{ role: "assistant", name: selectedCharacter.name, content: greeting }];
   saveConversation();
