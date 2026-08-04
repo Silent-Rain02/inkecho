@@ -10,6 +10,8 @@ const providerSelect = document.querySelector("#providerSelect");
 const modelName = document.querySelector("#modelName");
 const providerBadge = document.querySelector("#providerBadge");
 const providerDescription = document.querySelector("#providerDescription");
+const refreshModelsButton = document.querySelector("#refreshModels");
+const modelOptions = document.querySelector("#modelOptions");
 const sendButton = document.querySelector(".send-button");
 const projectSelect = document.querySelector("#projectSelect");
 const newProjectButton = document.querySelector("#newProject");
@@ -422,6 +424,32 @@ async function checkProviderHealth(provider = providerSelect.value) {
   }
 }
 
+async function refreshModels() {
+  refreshModelsButton.disabled = true;
+  refreshModelsButton.textContent = "读取中";
+  try {
+    const response = await fetch(`/api/models?provider=${encodeURIComponent(providerSelect.value)}`);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error("模型列表不可用");
+    modelOptions.innerHTML = "";
+    payload.models.forEach((model) => {
+      const option = document.createElement("option");
+      option.value = model;
+      modelOptions.appendChild(option);
+    });
+    if (!modelName.value.trim() && payload.models[0]) {
+      modelName.value = payload.models[0];
+      saveServiceSettings();
+    }
+    showToast(payload.models.length ? `已找到 ${payload.models.length} 个模型` : "当前服务未返回模型列表");
+  } catch {
+    showToast("无法读取模型列表，请检查服务配置");
+  } finally {
+    refreshModelsButton.disabled = false;
+    refreshModelsButton.textContent = "刷新模型";
+  }
+}
+
 async function requestModelReply() {
   const response = await fetch("/api/chat", {
     method: "POST",
@@ -577,6 +605,8 @@ modelName.addEventListener("change", () => {
   saveServiceSettings();
   checkProviderHealth();
 });
+
+refreshModelsButton.addEventListener("click", refreshModels);
 
 ["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
   document.querySelector(selector).addEventListener("input", saveWorkspace);
