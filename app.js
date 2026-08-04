@@ -6,6 +6,13 @@ const conversationTitle = document.querySelector("#conversationTitle");
 const composerHint = document.querySelector("#composerHint");
 const toast = document.querySelector("#toast");
 const characterList = document.querySelector("#characterList");
+const manageCharacterButton = document.querySelector("#manageCharacter");
+const characterDialog = document.querySelector("#characterDialog");
+const characterForm = document.querySelector("#characterForm");
+const characterNameInput = document.querySelector("#characterNameInput");
+const characterToneInput = document.querySelector("#characterToneInput");
+const deleteCharacterButton = document.querySelector("#deleteCharacter");
+const cancelCharacterButton = document.querySelector("#cancelCharacter");
 const providerSelect = document.querySelector("#providerSelect");
 const modelName = document.querySelector("#modelName");
 const providerBadge = document.querySelector("#providerBadge");
@@ -77,6 +84,7 @@ let toastTimer;
 let draftTimer;
 let isSending = false;
 let streamController = null;
+let editingCharacterName = null;
 const defaultConversationHistory = [
   { role: "assistant", name: "林黛玉", content: "今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？" },
   { role: "user", name: "我", content: "如果这一回不写离别，你想把故事带到哪里去？" },
@@ -738,6 +746,79 @@ function renderCharacters() {
   });
 }
 
+function getDisplayedCharacters() {
+  return Array.from(characterList.querySelectorAll(".character-card")).map((card) => ({
+    name: card.dataset.character || "角色",
+    tone: card.dataset.tone || "待设定",
+  }));
+}
+
+function openCharacterEditor(character = null) {
+  editingCharacterName = character?.name || null;
+  characterDialog.querySelector("#characterDialogTitle").textContent = character ? "编辑角色" : "添加角色";
+  characterNameInput.value = character?.name || "";
+  characterToneInput.value = character?.tone || "性格与声音，等待你来定义。";
+  deleteCharacterButton.hidden = !character;
+  characterDialog.showModal();
+  characterNameInput.focus();
+}
+
+function closeCharacterEditor() {
+  editingCharacterName = null;
+  characterDialog.close();
+}
+
+function saveCharacter(event) {
+  event.preventDefault();
+  const name = characterNameInput.value.trim();
+  const tone = characterToneInput.value.trim() || "性格与声音，等待你来定义。";
+  if (!name) return;
+  const wasEditing = Boolean(editingCharacterName);
+  const characters = getDisplayedCharacters();
+  const duplicate = characters.some((character) => character.name === name && character.name !== editingCharacterName);
+  if (duplicate) {
+    showToast("已经有同名角色了");
+    return;
+  }
+
+  if (editingCharacterName) {
+    const target = characters.find((character) => character.name === editingCharacterName);
+    if (!target) return;
+    target.name = name;
+    target.tone = tone;
+    if (selectedCharacter.name === editingCharacterName) {
+      selectedCharacter = { name, tone };
+    }
+  } else {
+    characters.push({ name, tone });
+    selectedCharacter = { name, tone };
+  }
+  getActiveProject().characters = characters;
+  renderCharacters();
+  conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+  persistActiveProject();
+  closeCharacterEditor();
+  showToast(wasEditing ? `已更新角色 ${name}` : `已添加角色 ${name}`);
+}
+
+function deleteCharacter() {
+  if (!editingCharacterName) return;
+  const characters = getDisplayedCharacters();
+  if (characters.length <= 1) {
+    showToast("至少保留一个角色");
+    return;
+  }
+  if (!window.confirm(`确定删除「${editingCharacterName}」吗？`)) return;
+  const remaining = characters.filter((character) => character.name !== editingCharacterName);
+  if (selectedCharacter.name === editingCharacterName) selectedCharacter = { ...remaining[0] };
+  getActiveProject().characters = remaining;
+  renderCharacters();
+  conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+  persistActiveProject();
+  closeCharacterEditor();
+  showToast("角色已删除");
+}
+
 document.querySelectorAll(".mode-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
     selectedMode = tab.dataset.mode;
@@ -848,15 +929,13 @@ document.querySelector("#resetSession").addEventListener("click", () => {
   showToast("对话已重置");
 });
 
-document.querySelector("#addCharacter").addEventListener("click", () => {
-  const name = window.prompt("给新角色取一个名字：");
-  if (!name || !name.trim()) return;
-  const cleanName = name.trim();
-  const tone = window.prompt("用一句话描述这个角色的性格或说话方式：", "性格与声音，等待你来定义。") || "性格与声音，等待你来定义。";
-  const card = createCharacterCard({ name: cleanName, tone: tone.trim() || "性格与声音，等待你来定义。" });
-  characterList.appendChild(card);
-  selectCharacter(card);
-  showToast(`已添加角色 ${cleanName}`);
+manageCharacterButton.addEventListener("click", () => openCharacterEditor(selectedCharacter));
+document.querySelector("#addCharacter").addEventListener("click", () => openCharacterEditor());
+characterForm.addEventListener("submit", saveCharacter);
+deleteCharacterButton.addEventListener("click", deleteCharacter);
+cancelCharacterButton.addEventListener("click", closeCharacterEditor);
+characterDialog.addEventListener("click", (event) => {
+  if (event.target === characterDialog) closeCharacterEditor();
 });
 
 document.addEventListener("pointermove", (event) => {
