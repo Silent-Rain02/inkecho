@@ -421,6 +421,17 @@ function addMessage({ role, name, text, avatarClass, historyIndex }) {
       actions.appendChild(retryButton);
     }
     content.appendChild(actions);
+  } else if (Number.isInteger(historyIndex)) {
+    const actions = document.createElement("div");
+    actions.className = "message-actions";
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "message-action";
+    editButton.textContent = "编辑";
+    editButton.setAttribute("aria-label", "编辑这条提问");
+    editButton.addEventListener("click", () => editMessage(historyIndex));
+    actions.appendChild(editButton);
+    content.appendChild(actions);
   }
   row.append(...(role === "user" ? [content, avatar] : [avatar, content]));
   messages.appendChild(row);
@@ -463,6 +474,27 @@ async function copyConversation() {
     return `${speaker}：${item.content}`;
   }).join("\n\n");
   await copyText(transcript, "对话已复制", "当前还没有对话内容");
+}
+
+function editMessage(historyIndex) {
+  if (isSending) {
+    showToast("请先停止当前生成");
+    return;
+  }
+  const isLatestQuestion = historyIndex === conversationHistory.length - 2
+    && conversationHistory[historyIndex]?.role === "user"
+    && conversationHistory.at(-1)?.role === "assistant";
+  if (!isLatestQuestion) {
+    showToast("请编辑最后一轮提问");
+    return;
+  }
+  messageInput.value = conversationHistory[historyIndex].content;
+  conversationHistory = conversationHistory.slice(0, historyIndex);
+  saveDraft();
+  saveConversation();
+  renderConversation();
+  messageInput.focus();
+  showToast("已将提问放回输入框，修改后重新发送");
 }
 
 function renderConversation() {
@@ -927,7 +959,7 @@ composer.addEventListener("submit", async (event) => {
     return;
   }
 
-  addMessage({ role: "user", name: "我", text, avatarClass: "user-avatar" });
+  addMessage({ role: "user", name: "我", text, historyIndex: conversationHistory.length, avatarClass: "user-avatar" });
   conversationHistory.push({ role: "user", name: "我", content: text });
   messageInput.value = "";
   saveDraft();
