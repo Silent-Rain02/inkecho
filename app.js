@@ -17,6 +17,9 @@ const projectSelect = document.querySelector("#projectSelect");
 const newProjectButton = document.querySelector("#newProject");
 const deleteProjectButton = document.querySelector("#deleteProject");
 const workReference = document.querySelector("#workReference");
+const referenceCount = document.querySelector("#referenceCount");
+const importReferenceButton = document.querySelector("#importReference");
+const referenceFile = document.querySelector("#referenceFile");
 const conversationStorageKey = "inkecho.conversation.v1";
 const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
@@ -94,7 +97,7 @@ function createProject({ id, name, context, conversation, service, characters, s
       title: context?.title || name || "未命名作品",
       era: context?.era || "",
       world: context?.world || "",
-      reference: context?.reference || "",
+      reference: String(context?.reference || "").slice(0, 4000),
     },
     conversation: Array.isArray(conversation) && conversation.length
       ? conversation.slice(-40).map((item) => ({
@@ -200,6 +203,7 @@ function hydrateActiveProject() {
   document.querySelector("#workEra").value = project.context.era;
   document.querySelector("#workWorld").value = project.context.world;
   workReference.value = project.context.reference || "";
+  updateReferenceCount();
   conversationHistory = project.conversation.map((item) => ({ ...item }));
   selectedMode = project.mode || "续写";
   selectedCharacter = project.characters.find((item) => item.name === project.selectedCharacterName) || project.characters[0];
@@ -246,6 +250,7 @@ function restoreWorkspace() {
     if (typeof saved.era === "string") document.querySelector("#workEra").value = saved.era;
     if (typeof saved.world === "string") document.querySelector("#workWorld").value = saved.world;
     if (typeof saved.reference === "string") workReference.value = saved.reference;
+    updateReferenceCount();
   } catch {
     // Ignore malformed or unavailable local storage.
   }
@@ -259,6 +264,32 @@ function saveWorkspace() {
     // Local storage is an enhancement; the workspace still works without it.
   }
   persistActiveProject();
+}
+
+function updateReferenceCount() {
+  referenceCount.textContent = `${workReference.value.length} / 4000 字`;
+}
+
+async function importReferenceFile() {
+  const file = referenceFile.files?.[0];
+  if (!file) return;
+  if (file.size > 2_000_000) {
+    showToast("文件超过 2MB，请先整理后再导入");
+    referenceFile.value = "";
+    return;
+  }
+  try {
+    const content = await file.text();
+    const truncated = content.length > 4000;
+    workReference.value = content.slice(0, 4000);
+    updateReferenceCount();
+    saveWorkspace();
+    showToast(truncated ? "文件已导入前 4000 字" : `已导入 ${file.name}`);
+  } catch {
+    showToast("文件读取失败，请改用复制粘贴");
+  } finally {
+    referenceFile.value = "";
+  }
 }
 
 function restoreServiceSettings() {
@@ -704,9 +735,7 @@ document.querySelectorAll(".prompt-card").forEach((card) => {
 });
 
 document.querySelector(".composer-tools button").addEventListener("click", () => {
-  workReference.focus();
-  workReference.scrollIntoView({ behavior: "smooth", block: "center" });
-  showToast("已定位到参考片段，可粘贴原文或本章要点");
+  referenceFile.click();
 });
 
 providerSelect.addEventListener("change", () => {
@@ -722,9 +751,17 @@ modelName.addEventListener("change", () => {
 
 refreshModelsButton.addEventListener("click", refreshModels);
 
-["#workTitle", "#workEra", "#workWorld", "#workReference"].forEach((selector) => {
+["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
   document.querySelector(selector).addEventListener("input", saveWorkspace);
 });
+
+workReference.addEventListener("input", () => {
+  if (workReference.value.length > 4000) workReference.value = workReference.value.slice(0, 4000);
+  updateReferenceCount();
+  saveWorkspace();
+});
+importReferenceButton.addEventListener("click", () => referenceFile.click());
+referenceFile.addEventListener("change", importReferenceFile);
 
 composer.addEventListener("submit", async (event) => {
   event.preventDefault();
