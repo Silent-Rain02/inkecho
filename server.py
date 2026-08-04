@@ -48,6 +48,13 @@ def env(name: str, default: str = "") -> str:
     return os.getenv(name, default).strip()
 
 
+def public_error(exc: Exception) -> str:
+    """Return a useful client error without exposing provider SDK details."""
+    if isinstance(exc, ValueError):
+        return str(exc)[:160]
+    return "模型服务请求失败，请检查服务配置或连接"
+
+
 def provider_settings(provider: str | None = None, requested_model: str | None = None) -> ProviderSettings:
     selected = (provider or env("INK_ECHO_PROVIDER", "custom_azure")).lower()
     if selected not in SUPPORTED_PROVIDERS:
@@ -258,7 +265,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
         except Exception as exc:  # noqa: BLE001
             print(f"[InkEcho] request failed: {type(exc).__name__}")
             if not getattr(self, "_response_started", False):
-                self.send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.BAD_GATEWAY)
+                self.send_json({"ok": False, "error": public_error(exc)}, status=HTTPStatus.BAD_GATEWAY)
 
     def read_payload(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", "0"))
