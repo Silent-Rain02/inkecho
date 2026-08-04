@@ -203,6 +203,7 @@ textarea { resize: vertical; }
 .composer textarea { display: block; min-height: 42px; padding: 9px 0 4px; font-size: 13px; line-height: 1.6; }
 .composer textarea::placeholder { color: #a6aba3; }
 .composer-bottom { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font: 9px var(--mono); }
+.draft-status { margin-left: auto; margin-right: 12px; color: #8f9b8b; }
 kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9px var(--mono); }
 .send-button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; color: #fff; background: var(--accent); font: 17px var(--mono); transition: transform 0.2s, background 0.2s; }
 .send-button:hover { background: var(--accent-dark); transform: translateY(-2px); }
