@@ -26,6 +26,11 @@ const contextDialog = document.querySelector("#contextDialog");
 const contextPreviewStats = document.querySelector("#contextPreviewStats");
 const contextPreviewText = document.querySelector("#contextPreviewText");
 const copyContextPreviewButton = document.querySelector("#copyContextPreview");
+const sceneOutcomePreviewDialog = document.querySelector("#sceneOutcomePreviewDialog");
+const sceneOutcomePreviewStats = document.querySelector("#sceneOutcomePreviewStats");
+const currentSceneOutcomePreview = document.querySelector("#currentSceneOutcomePreview");
+const nextSceneOutcomePreview = document.querySelector("#nextSceneOutcomePreview");
+const applySceneOutcomePreviewButton = document.querySelector("#applySceneOutcomePreview");
 const summaryPreviewDialog = document.querySelector("#summaryPreviewDialog");
 const summaryPreviewStats = document.querySelector("#summaryPreviewStats");
 const currentSummaryPreview = document.querySelector("#currentSummaryPreview");
@@ -334,6 +339,7 @@ let draftTimer;
 let projectPersistTimer;
 let isSending = false;
 let isSummarizing = false;
+let pendingSceneOutcomePreview = null;
 let pendingSummaryPreview = null;
 let streamController = null;
 let providerHealthRequestId = 0;
@@ -2859,6 +2865,50 @@ function applySummaryPreview() {
   showToast("剧情摘要已更新");
 }
 
+function openSceneOutcomePreview(outcome, projectId, beatId, outcomeThrough) {
+  const project = getActiveProject();
+  const beat = project?.beats.find((item) => item.id === beatId);
+  if (!beat) return;
+  const current = beat.outcome?.trim() || "";
+  pendingSceneOutcomePreview = { outcome, projectId, beatId, outcomeThrough };
+  sceneOutcomePreviewStats.textContent = `当前记录 ${current.length} 字 · 新结果 ${outcome.length} 字 · 场景「${beat.title}」`;
+  currentSceneOutcomePreview.textContent = current || "暂无本幕结果";
+  nextSceneOutcomePreview.textContent = outcome || "暂无本幕结果";
+  sceneOutcomePreviewDialog.showModal();
+}
+
+function applySceneOutcomePreview() {
+  const pending = pendingSceneOutcomePreview;
+  if (!pending) {
+    sceneOutcomePreviewDialog.close();
+    return;
+  }
+  if (activeProjectId !== pending.projectId) {
+    pendingSceneOutcomePreview = null;
+    sceneOutcomePreviewDialog.close();
+    showToast("当前项目已切换，本幕结果未写入");
+    return;
+  }
+  const project = getActiveProject();
+  const beat = project?.beats.find((item) => item.id === pending.beatId);
+  if (!beat) {
+    pendingSceneOutcomePreview = null;
+    sceneOutcomePreviewDialog.close();
+    showToast("当前场景已不存在，本幕结果未写入");
+    return;
+  }
+  beat.outcome = pending.outcome;
+  beat.outcomeThrough = pending.outcomeThrough;
+  beatOutcomeInput.value = beat.outcome;
+  setProviderBadge("已连接", "#6f8b6a");
+  persistActiveProject();
+  renderActiveBeat();
+  renderSceneBeats();
+  pendingSceneOutcomePreview = null;
+  sceneOutcomePreviewDialog.close();
+  showToast("本幕结果已更新");
+}
+
 async function summarizeConversation() {
   if (isSummarizing) {
     showToast("摘要正在提炼中，请稍候");
@@ -2957,15 +3007,10 @@ async function summarizeCurrentSceneOutcome() {
       showToast("当前项目或场景已切换，结果未写入");
       return;
     }
-    if (currentBeat.outcome && !window.confirm("用模型提炼的新结果替换当前记录吗？")) return;
-    currentBeat.outcome = payload.summary.slice(0, 600);
-    currentBeat.outcomeThrough = highlightKey(getConversationForDisplay(currentProject).at(-1));
-    beatOutcomeInput.value = currentBeat.outcome;
+    const nextOutcome = payload.summary.slice(0, 600);
+    const outcomeThrough = highlightKey(getConversationForDisplay(currentProject).at(-1));
     setProviderBadge("已连接", "#6f8b6a");
-    persistActiveProject();
-    renderActiveBeat();
-    renderSceneBeats();
-    showToast("本幕结果已更新");
+    openSceneOutcomePreview(nextOutcome, projectId, beatId, outcomeThrough);
   } catch (error) {
     showToast(error?.name === "AbortError" ? "本幕结果提炼超时，请检查服务状态" : (error?.userMessage || "本幕结果提炼失败"));
   } finally {
@@ -3693,6 +3738,13 @@ summaryPreviewDialog.addEventListener("click", (event) => {
 });
 summaryPreviewDialog.addEventListener("close", () => {
   pendingSummaryPreview = null;
+});
+applySceneOutcomePreviewButton.addEventListener("click", applySceneOutcomePreview);
+sceneOutcomePreviewDialog.addEventListener("click", (event) => {
+  if (event.target === sceneOutcomePreviewDialog) sceneOutcomePreviewDialog.close();
+});
+sceneOutcomePreviewDialog.addEventListener("close", () => {
+  pendingSceneOutcomePreview = null;
 });
 
 ["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
