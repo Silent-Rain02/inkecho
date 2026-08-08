@@ -21,6 +21,7 @@ from server import (
     response_length_settings,
     SECURITY_HEADERS,
     STATIC_FILES,
+    MAX_HISTORY_CHARS,
     static_asset_path,
 )
 
@@ -181,6 +182,17 @@ class ServerConfigTests(unittest.TestCase):
         self.assertNotIn("题" * 121, system_prompt)
         self.assertNotIn("时" * 121, system_prompt)
         self.assertNotIn("世" * 801, system_prompt)
+
+    def test_history_budget_keeps_the_most_recent_messages(self) -> None:
+        history = [
+            {"role": "user", "content": f"消息{i}-" + "字" * 3990}
+            for i in range(20)
+        ]
+        messages = build_messages({"messages": history})
+        selected = messages[1:]
+        self.assertLessEqual(sum(len(item["content"]) for item in selected), MAX_HISTORY_CHARS)
+        self.assertIn("消息19-", selected[-1]["content"])
+        self.assertNotIn("消息0-", "\n".join(item["content"] for item in selected))
 
     def test_instructions_are_capped_before_prompt_construction(self) -> None:
         instructions = "要求" * 800
