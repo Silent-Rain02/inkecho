@@ -24,7 +24,7 @@ python3 server.py
 
 ## 服务端接口
 
-- `GET /api/health`：读取当前服务配置状态，不发起模型请求
+- `GET /api/health`：读取当前服务配置、历史预算和请求超时状态，不发起模型请求
 - `GET /api/models`：读取模型列表；Azure 类型端点只返回配置中的部署名，并标记为非实际探测
 - `POST /api/probe`：用最小请求验证当前服务的密钥、端点和模型部署
 - `POST /api/summarize`：用当前模型把最近对话整理为可复用的剧情摘要
