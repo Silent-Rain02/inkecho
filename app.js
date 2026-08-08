@@ -106,6 +106,7 @@ const maxProjects = 50;
 const maxPrompts = 12;
 const maxHighlights = 30;
 const providerRequestTimeout = 12000;
+const streamIdleTimeout = 90000;
 
 const replyTemplates = {
   续写: [
@@ -1037,6 +1038,20 @@ async function fetchWithTimeout(url, options = {}, timeout = providerRequestTime
   }
 }
 
+function withAbortTimeout(promise, controller, timeout, message) {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      const error = new Error(message);
+      error.name = "StreamTimeoutError";
+      error.userMessage = message;
+      reject(error);
+    }, timeout);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
 async function checkProviderHealth(provider = providerSelect.value) {
   const requestId = ++providerHealthRequestId;
   try {
@@ -1111,11 +1126,12 @@ async function requestModelReply() {
 }
 
 async function requestStreamReply(onDelta, character = selectedCharacter) {
-  streamController = new AbortController();
-  const response = await fetch("/api/chat/stream", {
+  const controller = new AbortController();
+  streamController = controller;
+  const response = await withAbortTimeout(fetch("/api/chat/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    signal: streamController.signal,
+    signal: controller.signal,
     body: JSON.stringify({
       provider: providerSelect.value,
       model: modelName.value.trim(),
@@ -1126,7 +1142,7 @@ async function requestStreamReply(onDelta, character = selectedCharacter) {
       context: getContext(),
       messages: conversationHistory,
     }),
-  });
+  }), controller, streamIdleTimeout, "模型长时间没有响应，请检查服务状态");
   if (!response.ok || !response.body) {
     let message = "流式服务不可用";
     try {
@@ -1147,7 +1163,12 @@ async function requestStreamReply(onDelta, character = selectedCharacter) {
   let finished = false;
 
   while (!finished) {
-    const { value, done } = await reader.read();
+    const { value, done } = await withAbortTimeout(
+      reader.read(),
+      controller,
+      streamIdleTimeout,
+      "模型输出长时间没有更新，请检查服务状态",
+    );
     buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
     const events = buffer.split("\n\n");
     buffer = events.pop() || "";
@@ -1191,7 +1212,8 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
       messages.scrollTop = messages.scrollHeight;
     }, character);
   } catch (error) {
-    const stopped = error?.name === "AbortError";
+    const timedOut = error?.name === "StreamTimeoutError";
+    const stopped = error?.name === "AbortError" && !timedOut;
     reply = assistantMessage.bubble.textContent.trim();
     if (!stopped) setProviderBadge("连接失败", "#a26b46");
     if (!reply && !stopped) {
