@@ -54,6 +54,7 @@ const duplicateProjectButton = document.querySelector("#duplicateProject");
 const exportProjectsButton = document.querySelector("#exportProjects");
 const importProjectsButton = document.querySelector("#importProjects");
 const projectBackupFile = document.querySelector("#projectBackupFile");
+const storageStatus = document.querySelector("#storageStatus");
 const deleteProjectButton = document.querySelector("#deleteProject");
 const workChapter = document.querySelector("#workChapter");
 const workReference = document.querySelector("#workReference");
@@ -550,12 +551,35 @@ function notifyStorageIssue() {
   showToast("本地保存不可用或空间不足，请先导出项目 JSON 备份");
 }
 
+function updateStorageStatus(failed = false) {
+  if (!storageStatus) return;
+  storageStatus.classList.remove("is-warning", "is-error");
+  if (failed) {
+    storageStatus.textContent = "本地保存失败 · 请立即导出 JSON 备份";
+    storageStatus.classList.add("is-error");
+    return;
+  }
+  try {
+    const bytes = new Blob([JSON.stringify(projects)]).size;
+    const size = bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1000))} KB`;
+    storageStatus.textContent = `本地数据约 ${size}`;
+    if (bytes >= 3_500_000) {
+      storageStatus.textContent += " · 建议导出备份";
+      storageStatus.classList.add("is-warning");
+    }
+  } catch {
+    storageStatus.textContent = "本地数据用量暂不可读";
+  }
+}
+
 function persistProjects() {
   try {
     localStorage.setItem(projectsStorageKey, JSON.stringify(projects));
     localStorage.setItem(activeProjectStorageKey, activeProjectId);
     storageWarningShown = false;
+    updateStorageStatus();
   } catch {
+    updateStorageStatus(true);
     notifyStorageIssue();
   }
 }
@@ -3248,4 +3272,5 @@ renderCharacters();
 renderConversation();
 updateProviderUI();
 updateCount();
+updateStorageStatus();
 restoreFocusMode();
