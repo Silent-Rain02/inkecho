@@ -57,6 +57,16 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(snapshot["provider_details"]["ollama"]["missing"], [])
         self.assertIn("模型名", snapshot["provider_details"]["custom_azure"]["missing"])
 
+    def test_health_snapshot_exposes_missing_env_keys_without_values(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            snapshot = provider_health_snapshot("custom_azure", "office-model")
+        details = snapshot["provider_details"]["custom_azure"]
+        self.assertEqual(
+            details["missing_keys"],
+            ["INK_ECHO_CUSTOM_AZURE_API_KEY", "INK_ECHO_CUSTOM_AZURE_ENDPOINT"],
+        )
+        self.assertNotIn("replace_with_your_key", json.dumps(snapshot, ensure_ascii=False))
+
     def test_unknown_provider_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             provider_settings("not-a-provider", "demo")
