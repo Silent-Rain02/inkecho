@@ -193,7 +193,9 @@ textarea { resize: vertical; }
 
 .conversation-header { padding: 27px 29px 18px; }
 .conversation-title { display: flex; align-items: center; gap: 11px; }
+.conversation-title > div { min-width: 0; }
 .conversation-title h2 { font-size: 19px; }
+.conversation-context { display: block; max-width: 310px; margin-top: 5px; overflow: hidden; color: var(--muted); font: 9px var(--mono); text-overflow: ellipsis; white-space: nowrap; }
 .live-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px rgba(207, 91, 62, 0.12); }
 .conversation-tools { position: relative; }
 .conversation-tool-buttons { display: flex; align-items: center; gap: 8px; }
