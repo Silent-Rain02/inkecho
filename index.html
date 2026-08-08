@@ -249,7 +249,7 @@
               <span class="section-kicker">03 / PROMPTS</span>
               <h2>创作灵感</h2>
             </div>
-            <span class="panel-icon">✦</span>
+            <span class="panel-icon prompt-heading-actions"><button class="text-button" id="addPrompt" type="button">+ 自定义</button> ✦</span>
           </div>
           <p class="panel-description">不知道从哪里开始？试试这些切入点。</p>
           <div class="prompt-list" id="promptList">
@@ -297,6 +297,22 @@
           <span></span>
           <button class="dialog-cancel" id="cancelCharacter" type="button">取消</button>
           <button class="dialog-save" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog" id="promptDialog" aria-labelledby="promptDialogTitle">
+      <form id="promptForm">
+        <span class="section-kicker">CUSTOM PROMPT</span>
+        <h2 id="promptDialogTitle">添加灵感</h2>
+        <label class="field-label" for="promptTitleInput">灵感名称</label>
+        <input class="dialog-input" id="promptTitleInput" type="text" maxlength="32" required placeholder="例如：一场迟到的重逢" />
+        <label class="field-label" for="promptTextInput">写作提示</label>
+        <textarea class="dialog-textarea" id="promptTextInput" rows="5" maxlength="500" required placeholder="写下希望角色或故事尝试的方向……"></textarea>
+        <div class="dialog-actions prompt-dialog-actions">
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" id="cancelPrompt" type="button">取消</button>
+          <button class="dialog-save" type="submit">保存灵感</button>
         </div>
       </form>
     </dialog>
