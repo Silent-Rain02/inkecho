@@ -46,6 +46,7 @@ class FrontendContractTests(unittest.TestCase):
             "beatProgressText",
             "beatProgressBar",
             "checkpointDialog",
+            "characterDetailsInput",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -62,6 +63,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("const source = fullHistory", self.javascript)
         self.assertIn("现有项目不会被覆盖", self.javascript)
         self.assertIn("provider_details", self.javascript)
+        self.assertIn("characterDetailsInput", self.javascript)
+        self.assertIn("dataset.details", self.javascript)
 
 
 if __name__ == "__main__":
