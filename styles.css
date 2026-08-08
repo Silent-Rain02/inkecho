@@ -178,10 +178,20 @@ textarea { resize: vertical; }
 .conversation-title h2 { font-size: 19px; }
 .live-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px rgba(207, 91, 62, 0.12); }
 .conversation-tools { position: relative; }
+.conversation-tool-buttons { display: flex; align-items: center; gap: 8px; }
 .more-button { font-size: 16px; letter-spacing: 2px; }
+.search-button { font-size: 20px; letter-spacing: 0; }
 .conversation-menu { position: absolute; top: 31px; right: 0; z-index: 10; width: 142px; padding: 5px; border: 1px solid var(--line); background: #fbfbf7; box-shadow: 0 12px 30px rgba(59, 69, 57, 0.13); }
 .conversation-menu button { display: block; width: 100%; padding: 9px 10px; border: 0; color: var(--ink-soft); background: transparent; text-align: left; font-size: 11px; }
 .conversation-menu button:hover { color: var(--accent-dark); background: #f0f5eb; }
+.conversation-search { display: flex; align-items: center; gap: 8px; margin: 0 29px 14px; padding: 7px 9px; border: 1px solid var(--line); background: rgba(250, 251, 246, 0.86); animation: appear 0.2s ease both; }
+.conversation-search:focus-within { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
+.search-icon { color: var(--accent); font: 18px var(--mono); line-height: 1; }
+.conversation-search input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 11px; }
+.conversation-search input::placeholder { color: #a6aba3; }
+.search-count { flex: none; color: var(--muted); font: 9px var(--mono); }
+.search-clear { flex: none; padding: 0 2px; border: 0; color: var(--muted); background: transparent; font: 17px var(--mono); line-height: 1; }
+.search-clear:hover { color: var(--accent); }
 .mode-tabs { display: flex; gap: 22px; padding: 0 29px; border-bottom: 1px solid var(--line); }
 .mode-tab { position: relative; padding: 9px 0 13px; border: 0; background: transparent; color: var(--muted); font-size: 12px; }
 .mode-tab span { margin-left: 4px; font-size: 10px; opacity: 0; }
@@ -301,6 +311,7 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 
 @media (max-width: 480px) {
   .conversation-header, .messages { padding-left: 18px; padding-right: 18px; }
+  .conversation-search { margin-left: 18px; margin-right: 18px; }
   .mode-tabs { padding-left: 18px; padding-right: 18px; gap: 15px; }
   .message-row { max-width: 96%; }
   .rightbar .prompt-list { display: block; }
