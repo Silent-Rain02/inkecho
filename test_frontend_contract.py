@@ -110,6 +110,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function clearArchivedHistory", self.javascript)
         self.assertIn("建议先导出 JSON 备份", self.javascript)
         self.assertIn("function getCheckpointMessageCount", self.javascript)
+        self.assertIn("checkpoint-preview", self.javascript)
+        self.assertIn("基础设定快照", self.javascript)
         self.assertIn("function branchFromCheckpoint", self.javascript)
         self.assertIn("checkpoint-branch", self.javascript)
         self.assertIn("从这一刻创建一条安全的剧情支线", self.html)
