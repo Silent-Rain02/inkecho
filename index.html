@@ -63,8 +63,11 @@
             <div class="project-actions">
               <button class="mini-button" id="newProject" type="button" title="新建创作项目" aria-label="新建创作项目">＋</button>
               <button class="mini-button" id="duplicateProject" type="button" title="复制当前项目" aria-label="复制当前项目">⧉</button>
+              <button class="mini-button" id="exportProjects" type="button" title="备份全部项目" aria-label="备份全部项目">⇩</button>
+              <button class="mini-button" id="importProjects" type="button" title="导入项目备份" aria-label="导入项目备份">⇧</button>
               <button class="mini-button" id="deleteProject" type="button" title="删除当前项目" aria-label="删除当前项目">−</button>
             </div>
+            <input id="projectBackupFile" type="file" accept="application/json,.json" hidden />
           </div>
 
           <label class="field-label" for="workTitle">作品名称</label>
