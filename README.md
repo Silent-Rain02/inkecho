@@ -52,6 +52,8 @@ INK_ECHO_CUSTOM_AZURE_LOGID=你的logid
 
 如果使用 Ollama：
 
+`INK_ECHO_OLLAMA_BASE_URL` 可以省略，默认连接本机 `http://127.0.0.1:11434/v1`。
+
 ```bash
 INK_ECHO_PROVIDER=ollama
 INK_ECHO_OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
