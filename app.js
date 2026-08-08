@@ -277,6 +277,7 @@ let selectedCharacter = {
 let selectedMode = "续写";
 let toastTimer;
 let draftTimer;
+let projectPersistTimer;
 let isSending = false;
 let isSummarizing = false;
 let streamController = null;
@@ -549,7 +550,15 @@ function persistProjects() {
   }
 }
 
-function persistActiveProject() {
+function scheduleProjectPersist() {
+  clearTimeout(projectPersistTimer);
+  projectPersistTimer = setTimeout(() => {
+    projectPersistTimer = null;
+    persistProjects();
+  }, 220);
+}
+
+function persistActiveProject({ defer = false } = {}) {
   const project = getActiveProject();
   if (!project) return;
   const context = getContext();
@@ -573,7 +582,13 @@ function persistActiveProject() {
   project.selectedCharacterName = selectedCharacter.name;
   project.mode = selectedMode;
   project.updatedAt = Date.now();
-  persistProjects();
+  if (defer) {
+    scheduleProjectPersist();
+  } else {
+    clearTimeout(projectPersistTimer);
+    projectPersistTimer = null;
+    persistProjects();
+  }
   renderProjectSelect();
 }
 
@@ -710,7 +725,7 @@ function saveWorkspace() {
   } catch {
     notifyStorageIssue();
   }
-  persistActiveProject();
+  persistActiveProject({ defer: true });
   updateContextUsage();
 }
 
@@ -728,6 +743,8 @@ function saveDraft() {
 
 function flushDraft() {
   clearTimeout(draftTimer);
+  clearTimeout(projectPersistTimer);
+  projectPersistTimer = null;
   const project = getActiveProject();
   if (!project) return;
   project.draft = messageInput.value.slice(0, 10000);
