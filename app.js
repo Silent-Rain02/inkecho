@@ -82,6 +82,7 @@ const creativityLabels = {
   balanced: "平衡",
   imaginative: "大胆想象",
 };
+const maxProjects = 50;
 
 const replyTemplates = {
   续写: [
@@ -118,38 +119,60 @@ let activeProjectId = localStorage.getItem(activeProjectStorageKey) || projects[
 if (!projects.some((project) => project.id === activeProjectId)) activeProjectId = projects[0].id;
 let conversationHistory = loadConversation();
 
-function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft }) {
+function safeText(value, fallback = "", maxLength = 240) {
+  const text = typeof value === "string" ? value : value == null ? "" : String(value);
+  return text.trim().slice(0, maxLength) || fallback;
+}
+
+function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt }) {
+  const safeContext = context && typeof context === "object" ? context : {};
+  const safeService = service && typeof service === "object" ? service : {};
+  const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
+    ? safeService.provider
+    : "custom_azure";
   const safeCharacters = Array.isArray(characters) && characters.length
-    ? characters.map((item) => ({ name: String(item.name || "角色"), tone: String(item.tone || "待设定") }))
+    ? characters.map((item) => {
+      const source = item && typeof item === "object" ? item : {};
+      return {
+        name: safeText(source.name, "角色", 40),
+        tone: safeText(source.tone, "待设定", 240),
+      };
+    }).filter((item, index, list) => list.findIndex((candidate) => candidate.name === item.name) === index)
     : defaultCharacters.map((item) => ({ ...item }));
   const selected = safeCharacters.find((item) => item.name === selectedCharacterName) || safeCharacters[0];
+  const safeName = safeText(name || safeContext.title, "未命名作品", 80);
+  const safeTitle = safeText(safeContext.title || safeName, safeName, 120);
+  const safeConversation = Array.isArray(conversation) && conversation.length
+    ? conversation.slice(-40).map((item) => {
+      const source = item && typeof item === "object" ? item : {};
+      return {
+        role: source.role === "user" ? "user" : "assistant",
+        name: safeText(source.name, source.role === "user" ? "我" : selected.name || "角色", 40),
+        content: safeText(source.content, "", 4000),
+      };
+    }).filter((item) => item.content)
+    : defaultConversationHistory.map((item) => ({ ...item }));
   return {
-    id,
-    name: name || context?.title || "未命名作品",
+    id: safeText(id, `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+    name: safeName,
     context: {
-      title: context?.title || name || "未命名作品",
-      era: context?.era || "",
-      world: context?.world || "",
-      reference: String(context?.reference || "").slice(0, 4000),
-      summary: String(context?.summary || "").slice(0, 2000),
+      title: safeTitle,
+      era: safeText(safeContext.era, "", 120),
+      world: safeText(safeContext.world, "", 800),
+      reference: safeText(safeContext.reference, "", 4000),
+      summary: safeText(safeContext.summary, "", 2000),
     },
-    conversation: Array.isArray(conversation) && conversation.length
-      ? conversation.slice(-40).map((item) => ({
-        role: item.role === "user" ? "user" : "assistant",
-        name: String(item.name || (item.role === "user" ? "我" : selectedCharacterName || "角色")),
-        content: String(item.content || ""),
-      })).filter((item) => item.content.trim())
-      : defaultConversationHistory.map((item) => ({ ...item })),
+    conversation: safeConversation,
     service: {
-      provider: service?.provider || "custom_azure",
-      model: service?.model || providerDefaults.custom_azure,
-      creativity: creativityLabels[service?.creativity] ? service.creativity : "balanced",
+      provider: selectedProvider,
+      model: safeText(safeService.model, providerDefaults[selectedProvider], 160),
+      creativity: creativityLabels[safeService.creativity] ? safeService.creativity : "balanced",
     },
-    draft: String(draft || "").slice(0, 10000),
+    draft: safeText(draft, "", 10000),
     characters: safeCharacters,
     selectedCharacterName: selected.name,
-    mode: mode || "续写",
-    updatedAt: Date.now(),
+    mode: modeHints[mode] ? mode : "续写",
+    updatedAt: Number.isFinite(Number(updatedAt)) ? Number(updatedAt) : Date.now(),
   };
 }
 
@@ -157,7 +180,9 @@ function loadProjects() {
   try {
     const saved = JSON.parse(localStorage.getItem(projectsStorageKey) || "null");
     if (Array.isArray(saved) && saved.length) {
-      return saved.map((project) => createProject(project));
+      return saved.slice(0, maxProjects).map((project) => createProject(
+        project && typeof project === "object" ? project : {},
+      ));
     }
   } catch {
     // Fall through to the legacy single-project migration.
@@ -658,11 +683,19 @@ async function importProjectsBackup() {
     if (backup?.format !== "inkecho-projects" || !Array.isArray(backup.projects)) {
       throw new Error("invalid backup");
     }
-    const imported = backup.projects.slice(0, 50).map((project, index) => createProject({
-      ...project,
-      id: `project-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
-      name: `${project.name || "未命名作品"} · 导入`,
-    }));
+    const slots = Math.max(0, maxProjects - projects.length);
+    if (!slots) {
+      showToast(`项目数量已达到上限（${maxProjects} 个）`);
+      return;
+    }
+    const imported = backup.projects.slice(0, slots).map((project, index) => {
+      const source = project && typeof project === "object" ? project : {};
+      return createProject({
+        ...source,
+        id: `project-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+        name: `${safeText(source.name, "未命名作品", 80)} · 导入`,
+      });
+    });
     if (!imported.length) throw new Error("empty backup");
     projects.push(...imported);
     activeProjectId = imported[0].id;
@@ -708,7 +741,8 @@ function updateProviderUI() {
 
 async function checkProviderHealth(provider = providerSelect.value) {
   try {
-    const response = await fetch("/api/health");
+    const params = new URLSearchParams({ provider, model: modelName.value.trim() });
+    const response = await fetch(`/api/health?${params.toString()}`);
     const payload = await response.json();
     const configured = Boolean(payload.providers && payload.providers[provider]);
     providerBadge.textContent = configured ? "已配置" : "待配置";
