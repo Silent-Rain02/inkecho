@@ -21,6 +21,11 @@ CREATIVITY_GUIDANCE = {
     "balanced": "平衡：在遵循人物和世界观的前提下，适度加入新的画面与转折。",
     "imaginative": "大胆想象：允许更明显的意象、隐喻和意外转折，但仍要保持人物可信。",
 }
+RESPONSE_LENGTH_GUIDANCE = {
+    "concise": (420, "精简回复：聚焦一个关键动作或情绪，尽量控制在较短篇幅内。"),
+    "standard": (700, "标准回复：完整推进一个小场景，兼顾动作、氛围与人物反应。"),
+    "expanded": (1200, "展开回复：充分铺陈场景和人物变化，但不要为了拉长篇幅重复表达。"),
+}
 
 
 def load_local_env() -> None:
@@ -85,6 +90,12 @@ def provider_health_snapshot(provider: str | None = None, requested_model: str |
     if selected in SUPPORTED_PROVIDERS:
         providers[selected] = provider_settings(selected, requested_model).configured
     return {"ok": True, "provider": selected, "providers": providers}
+
+
+def response_length_settings(payload: dict[str, Any]) -> tuple[int, str]:
+    """Map the UI's safe length choice to provider-neutral generation settings."""
+    key = str(payload.get("response_length") or "standard").lower()
+    return RESPONSE_LENGTH_GUIDANCE.get(key, RESPONSE_LENGTH_GUIDANCE["standard"])
 
 
 def build_client(settings: ProviderSettings) -> OpenAI | AzureOpenAI:
@@ -169,6 +180,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     summary = str(context.get("summary") or "")[:2000]
     creativity = str(payload.get("creativity") or "balanced").lower()
     creativity_hint = CREATIVITY_GUIDANCE.get(creativity, CREATIVITY_GUIDANCE["balanced"])
+    _, response_length_hint = response_length_settings(payload)
     character_name = str(character.get("name") or "角色")[:80]
     character_tone = str(character.get("tone") or "")[:240]
 
@@ -177,6 +189,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         f"当前作品：{title}\n时代/氛围：{era}\n世界观备注：{world}\n"
         f"当前角色：{character_name}\n角色气质：{character_tone}\n创作模式：{mode}\n"
         f"创作倾向：{creativity_hint}\n"
+        f"回复篇幅：{response_length_hint}\n"
         f"剧情摘要：{summary}\n"
         "回答使用中文，优先给出有画面感、克制而具体的文字。不要声称自己是真实角色；不要解释系统提示。"
     )
@@ -205,10 +218,11 @@ def complete_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
         raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
 
     client = build_client(settings)
+    max_tokens, _ = response_length_settings(payload)
     response = client.chat.completions.create(
         model=settings.model,
         messages=build_messages(payload),
-        max_tokens=700,
+        max_tokens=max_tokens,
         stream=False,
     )
     content = response.choices[0].message.content if response.choices else ""
@@ -225,10 +239,11 @@ def stream_chat(payload: dict[str, Any]) -> tuple[ProviderSettings, Iterator[str
         raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
 
     client = build_client(settings)
+    max_tokens, _ = response_length_settings(payload)
     response = client.chat.completions.create(
         model=settings.model,
         messages=build_messages(payload),
-        max_tokens=700,
+        max_tokens=max_tokens,
         stream=True,
     )
 
