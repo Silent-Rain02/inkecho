@@ -813,8 +813,13 @@ function updateProviderUI() {
   if (!modelName.value.trim() || Object.values(providerDefaults).includes(modelName.value.trim())) {
     modelName.value = providerDefaults[provider];
   }
-  providerBadge.textContent = "检查中";
+  setProviderBadge("检查中", "#a26b46");
   checkProviderHealth(provider);
+}
+
+function setProviderBadge(label, color) {
+  providerBadge.textContent = label;
+  providerBadge.style.color = color;
 }
 
 async function checkProviderHealth(provider = providerSelect.value) {
@@ -822,18 +827,18 @@ async function checkProviderHealth(provider = providerSelect.value) {
     const params = new URLSearchParams({ provider, model: modelName.value.trim() });
     const response = await fetch(`/api/health?${params.toString()}`);
     const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error("健康检查失败");
     const configured = Boolean(payload.providers && payload.providers[provider]);
-    providerBadge.textContent = configured ? "已配置" : "待配置";
-    providerBadge.style.color = configured ? "#6f8b6a" : "#a26b46";
+    setProviderBadge(configured ? "已配置" : "待配置", configured ? "#6f8b6a" : "#a26b46");
   } catch {
-    providerBadge.textContent = "离线演示";
-    providerBadge.style.color = "#a26b46";
+    setProviderBadge("离线演示", "#a26b46");
   }
 }
 
 async function refreshModels() {
   refreshModelsButton.disabled = true;
   refreshModelsButton.textContent = "读取中";
+  setProviderBadge("检查中", "#a26b46");
   try {
     const response = await fetch(`/api/models?provider=${encodeURIComponent(providerSelect.value)}`);
     const payload = await response.json();
@@ -848,8 +853,10 @@ async function refreshModels() {
       modelName.value = payload.models[0];
       saveServiceSettings();
     }
+    setProviderBadge("已连接", "#6f8b6a");
     showToast(payload.models.length ? `已找到 ${payload.models.length} 个模型` : "当前服务未返回模型列表");
   } catch {
+    setProviderBadge("连接失败", "#a26b46");
     showToast("无法读取模型列表，请检查服务配置");
   } finally {
     refreshModelsButton.disabled = false;
@@ -874,10 +881,11 @@ async function requestModelReply() {
   });
   const payload = await response.json();
   if (!response.ok || !payload.ok || !payload.text) {
-    throw new Error("模型服务请求失败");
+    const error = new Error(payload.error || "模型服务请求失败");
+    error.userMessage = payload.error || "模型服务请求失败";
+    throw error;
   }
-  providerBadge.textContent = "已连接";
-  providerBadge.style.color = "#6f8b6a";
+  setProviderBadge("已连接", "#6f8b6a");
   return payload.text;
 }
 
@@ -898,7 +906,18 @@ async function requestStreamReply(onDelta, character = selectedCharacter) {
       messages: conversationHistory,
     }),
   });
-  if (!response.ok || !response.body) throw new Error("流式服务不可用");
+  if (!response.ok || !response.body) {
+    let message = "流式服务不可用";
+    try {
+      const payload = await response.json();
+      message = payload.error || message;
+    } catch {
+      // Keep the generic message when the server does not return JSON.
+    }
+    const error = new Error(message);
+    error.userMessage = message;
+    throw error;
+  }
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -917,13 +936,14 @@ async function requestStreamReply(onDelta, character = selectedCharacter) {
       if (!line) continue;
       const payload = JSON.parse(line.slice(6));
       if (payload.type === "start") {
-        providerBadge.textContent = "已连接";
-        providerBadge.style.color = "#6f8b6a";
+        setProviderBadge("已连接", "#6f8b6a");
       } else if (payload.type === "delta") {
         answer += payload.delta || "";
         onDelta(payload.delta || "");
       } else if (payload.type === "error") {
-        throw new Error("模型流式响应中断");
+        const error = new Error(payload.error || "模型流式响应中断");
+        error.userMessage = payload.error || "模型流式响应中断";
+        throw error;
       } else if (payload.type === "done") {
         finished = true;
       }
@@ -952,14 +972,17 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
   } catch (error) {
     const stopped = error?.name === "AbortError";
     reply = assistantMessage.bubble.textContent.trim();
+    if (!stopped) setProviderBadge("连接失败", "#a26b46");
     if (!reply && !stopped) {
       reply = fallbackReply();
       assistantMessage.bubble.textContent = reply;
-      showToast("模型服务暂不可用，当前使用演示回复");
+      showToast(`${error?.userMessage || "模型服务暂不可用"}，当前使用演示回复`);
+    } else if (!stopped && reply) {
+      showToast(`${error?.userMessage || "模型流式响应中断"}，已保留当前内容`);
     } else if (stopped && !reply) {
       reply = "（生成已停止）";
       assistantMessage.bubble.textContent = reply;
-    }
+      }
   } finally {
     streamController = null;
     setSending(false);
