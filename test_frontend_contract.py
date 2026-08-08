@@ -120,6 +120,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function resetCurrentConversation", self.javascript)
         self.assertIn("project.conversationArchive = []", self.javascript)
         self.assertIn("旧归档不会再进入上下文", self.javascript)
+        self.assertIn("function flushDraft", self.javascript)
+        self.assertIn("persistActiveProject();", self.javascript)
         self.assertIn("归档引用", self.javascript)
         self.assertIn("查看归档历史", self.javascript)
         self.assertIn("function clearArchivedHistory", self.javascript)
