@@ -1776,9 +1776,14 @@ async function checkProviderHealth(provider = providerSelect.value) {
       serverRequestTimeout = Math.max(5000, Math.min(Number(payload.request_timeout) * 1000, 120000));
     }
     const configured = Boolean(payload.providers && payload.providers[provider]);
+    const missing = payload.provider_details?.[provider]?.missing;
+    providerDescription.textContent = !configured && Array.isArray(missing) && missing.length
+      ? `${providerDescriptions[provider]} 缺少：${missing.join("、")}`
+      : providerDescriptions[provider];
     setProviderBadge(configured ? "配置完整" : "待配置", configured ? "#6f8b6a" : "#a26b46");
   } catch (error) {
     if (requestId !== providerHealthRequestId) return;
+    providerDescription.textContent = providerDescriptions[provider];
     setProviderBadge(error?.name === "AbortError" ? "连接超时" : "离线演示", "#a26b46");
   }
 }
