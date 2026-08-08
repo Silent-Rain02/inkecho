@@ -48,6 +48,7 @@ const exportProjectsButton = document.querySelector("#exportProjects");
 const importProjectsButton = document.querySelector("#importProjects");
 const projectBackupFile = document.querySelector("#projectBackupFile");
 const deleteProjectButton = document.querySelector("#deleteProject");
+const workChapter = document.querySelector("#workChapter");
 const workReference = document.querySelector("#workReference");
 const workSummary = document.querySelector("#workSummary");
 const workInstructions = document.querySelector("#workInstructions");
@@ -255,6 +256,7 @@ function createProject({ id, name, context, conversation, service, characters, s
     name: safeName,
     context: {
       title: safeTitle,
+      chapter: safeText(safeContext.chapter, "", 120),
       era: safeText(safeContext.era, "", 120),
       world: safeText(safeContext.world, "", 800),
       reference: safeText(safeContext.reference, "", 4000),
@@ -412,6 +414,7 @@ function hydrateActiveProject() {
   const project = getActiveProject();
   if (!project) return;
   document.querySelector("#workTitle").value = project.context.title;
+  workChapter.value = project.context.chapter || "";
   document.querySelector("#workEra").value = project.context.era;
   document.querySelector("#workWorld").value = project.context.world;
   workReference.value = project.context.reference || "";
@@ -1098,6 +1101,7 @@ function renderConversation() {
 function getContext() {
   return {
     title: safeText(document.querySelector("#workTitle").value, "", 120),
+    chapter: safeText(workChapter.value, "", 120),
     era: safeText(document.querySelector("#workEra").value, "", 120),
     world: safeText(document.querySelector("#workWorld").value, "", 800),
     reference: safeText(workReference.value, "", 4000),
@@ -1127,6 +1131,7 @@ function exportSession() {
     "## 作品设定",
     "",
     `- **时代 / 氛围**：${context.era || "未填写"}`,
+    `- **当前章节 / 场景**：${context.chapter || "未填写"}`,
     `- **世界观备注**：${context.world || "未填写"}`,
     context.reference ? `- **参考片段**：\n\n${context.reference}` : "",
     context.summary ? `- **剧情摘要**：\n\n${context.summary}` : "",
@@ -1925,7 +1930,7 @@ refreshModelsButton.addEventListener("click", refreshModels);
 testProviderButton.addEventListener("click", testProviderConnection);
 generateSummaryButton.addEventListener("click", summarizeConversation);
 
-["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
+["#workTitle", "#workChapter", "#workEra", "#workWorld"].forEach((selector) => {
   document.querySelector(selector).addEventListener("input", saveWorkspace);
 });
 
