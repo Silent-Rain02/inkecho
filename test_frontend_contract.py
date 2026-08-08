@@ -102,6 +102,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("sourceTemplates", self.javascript)
         self.assertIn("function renderArchiveHistory", self.javascript)
         self.assertIn("function openArchiveHistory", self.javascript)
+        self.assertIn("function quoteArchiveMessage", self.javascript)
+        self.assertIn("归档引用", self.javascript)
         self.assertIn("查看归档历史", self.javascript)
         self.assertIn("function clearArchivedHistory", self.javascript)
         self.assertIn("建议先导出 JSON 备份", self.javascript)
