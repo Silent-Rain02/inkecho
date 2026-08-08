@@ -118,7 +118,6 @@ const maxPrompts = 12;
 const maxHighlights = 30;
 const maxCheckpoints = 12;
 const providerRequestTimeout = 12000;
-const providerProbeTimeout = 30000;
 const summaryRequestTimeout = 45000;
 const streamIdleTimeout = 90000;
 
@@ -149,6 +148,7 @@ let isSummarizing = false;
 let streamController = null;
 let providerHealthRequestId = 0;
 let serverHistoryBudget = 48000;
+let serverRequestTimeout = 120000;
 let editingCharacterName = null;
 let editingPromptIndex = null;
 let storageWarningShown = false;
@@ -1337,6 +1337,10 @@ function withAbortTimeout(promise, controller, timeout, message) {
   return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
 }
 
+function clientModelRequestTimeout(minimum = 30000) {
+  return Math.max(minimum, Math.min(serverRequestTimeout, 120000));
+}
+
 async function checkProviderHealth(provider = providerSelect.value) {
   const requestId = ++providerHealthRequestId;
   try {
@@ -1348,6 +1352,9 @@ async function checkProviderHealth(provider = providerSelect.value) {
     if (Number.isFinite(Number(payload.history_budget))) {
       serverHistoryBudget = Math.max(8000, Math.min(Number(payload.history_budget), 120000));
       updateContextUsage();
+    }
+    if (Number.isFinite(Number(payload.request_timeout))) {
+      serverRequestTimeout = Math.max(5000, Math.min(Number(payload.request_timeout) * 1000, 120000));
     }
     const configured = Boolean(payload.providers && payload.providers[provider]);
     setProviderBadge(configured ? "配置完整" : "待配置", configured ? "#6f8b6a" : "#a26b46");
@@ -1411,7 +1418,7 @@ async function testProviderConnection() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ provider, model }),
-    }, providerProbeTimeout);
+    }, clientModelRequestTimeout());
     const payload = await response.json();
     if (!response.ok || !payload.ok) {
       const error = new Error(payload.error || "模型服务测试失败");
@@ -1460,7 +1467,7 @@ async function summarizeConversation() {
         context: getContext(),
         messages: conversationHistory,
       }),
-    }, summaryRequestTimeout);
+    }, clientModelRequestTimeout(summaryRequestTimeout));
     const payload = await response.json();
     if (!response.ok || !payload.ok || !payload.summary) {
       const error = new Error(payload.error || "剧情摘要生成失败");
