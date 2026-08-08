@@ -988,6 +988,7 @@ function restoreCheckpoint(checkpointId) {
   if (!checkpoint) return;
   if (!window.confirm(`恢复「${checkpoint.name}」？当前未保存的对话状态会被替换。`)) return;
   Object.assign(project, cloneProjectState(checkpoint));
+  project.name = project.context.title || project.name || "未命名作品";
   project.updatedAt = Date.now();
   persistProjects();
   hydrateActiveProject();
