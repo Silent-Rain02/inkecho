@@ -71,6 +71,13 @@ class ServerConfigTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             provider_settings("not-a-provider", "demo")
 
+    def test_unconfigured_provider_is_reported_as_client_configuration_error(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(ValueError) as context:
+                complete_chat({"provider": "custom_azure", "model": "office-model", "messages": []})
+        self.assertIn("尚未完成环境变量配置", str(context.exception))
+        self.assertEqual(error_status(context.exception).value, 400)
+
     def test_prompt_contains_creation_context_and_history(self) -> None:
         messages = build_messages(
             {
@@ -475,6 +482,15 @@ class HttpRouteTests(unittest.TestCase):
         status, payload = handler.responses[0]
         self.assertEqual(status, 400)
         self.assertFalse(payload["ok"])
+
+    def test_chat_route_reports_missing_provider_configuration_as_bad_request(self) -> None:
+        body = json.dumps({"provider": "custom_azure", "model": "office-model", "messages": []}).encode("utf-8")
+        handler = CaptureHandler("/api/chat", body)
+        with patch.dict(os.environ, {}, clear=True):
+            handler.do_POST()
+        status, payload = handler.responses[0]
+        self.assertEqual(status, 400)
+        self.assertIn("尚未完成环境变量配置", payload["error"])
 
     def test_probe_route_returns_selected_provider_and_model(self) -> None:
         body = json.dumps({"provider": "ollama", "model": "qwen3:8b"}).encode("utf-8")
