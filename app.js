@@ -87,6 +87,7 @@ const beatForm = document.querySelector("#beatForm");
 const beatDialogTitle = document.querySelector("#beatDialogTitle");
 const beatTitleInput = document.querySelector("#beatTitleInput");
 const beatGoalInput = document.querySelector("#beatGoalInput");
+const beatOutcomeInput = document.querySelector("#beatOutcomeInput");
 const beatStatusInput = document.querySelector("#beatStatusInput");
 const beatList = document.querySelector("#beatList");
 const cancelBeatButton = document.querySelector("#cancelBeat");
@@ -360,6 +361,7 @@ function createProject({ id, name, context, conversation, service, characters, s
         id: safeText(source.id, `beat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
         title: safeText(source.title, "未命名场景", 80),
         goal: safeText(source.goal, "", 280),
+        outcome: safeText(source.outcome, "", 600),
         status,
       };
     }).filter((item, index, list) => item.title && list.findIndex((candidate) => candidate.id === item.id) === index)
@@ -1441,7 +1443,7 @@ function getContext() {
   const chapter = safeText(workChapter.value, "", 120);
   const activeBeat = getActiveSceneBeat();
   const scenePlan = (getActiveProject()?.beats || [])
-    .map((beat, index) => `${index + 1}. [${sceneBeatStatusLabels[beat.status]}] ${beat.title}${beat.goal ? `：${beat.goal}` : ""}`)
+    .map((beat, index) => `${index + 1}. [${sceneBeatStatusLabels[beat.status]}] ${beat.title}${beat.goal ? `：${beat.goal}` : ""}${beat.outcome ? ` · 已发生 / 线索：${beat.outcome}` : ""}`)
     .join("\n")
     .slice(0, 2000);
   return {
@@ -1494,7 +1496,7 @@ function exportSession() {
     "## 场景计划",
     "",
     sceneBeats.length
-      ? sceneBeats.map((beat) => `- **${beat.title}**（${sceneBeatStatusLabels[beat.status]}）${beat.id === getActiveProject()?.activeBeatId ? " · 当前" : ""}${beat.goal ? `：${beat.goal}` : ""}`).join("\n")
+      ? sceneBeats.map((beat) => `- **${beat.title}**（${sceneBeatStatusLabels[beat.status]}）${beat.id === getActiveProject()?.activeBeatId ? " · 当前" : ""}${beat.goal ? `：${beat.goal}` : ""}${beat.outcome ? ` · 已发生 / 线索：${beat.outcome}` : ""}`).join("\n")
       : "暂无场景卡",
     "",
     "## 对话记录",
@@ -2625,6 +2627,7 @@ function resetBeatEditor() {
   beatDialogTitle.textContent = "添加场景卡";
   beatTitleInput.value = "";
   beatGoalInput.value = "";
+  beatOutcomeInput.value = "";
   beatStatusInput.value = "planned";
 }
 
@@ -2652,7 +2655,10 @@ function renderSceneBeats() {
     status.textContent = sceneBeatStatusLabels[beat.status];
     head.append(title, status);
     const goal = document.createElement("p");
-    goal.textContent = beat.goal || "这一幕暂未写下明确目标。";
+    goal.textContent = [
+      beat.goal,
+      beat.outcome ? `已发生 / 线索：${beat.outcome}` : "",
+    ].filter(Boolean).join("\n") || "这一幕暂未写下明确目标。";
     const actions = document.createElement("div");
     actions.className = "beat-card-actions";
     const moveUp = document.createElement("button");
@@ -2708,6 +2714,7 @@ function openBeatEditor(beatId) {
   beatDialogTitle.textContent = "编辑场景卡";
   beatTitleInput.value = beat.title;
   beatGoalInput.value = beat.goal;
+  beatOutcomeInput.value = beat.outcome || "";
   beatStatusInput.value = beat.status;
   beatTitleInput.focus();
 }
@@ -2722,6 +2729,7 @@ function saveSceneBeat(event) {
   if (preventWorkspaceMutation("保存场景")) return;
   const title = safeText(beatTitleInput.value, "", 80);
   const goal = safeText(beatGoalInput.value, "", 280);
+  const outcome = safeText(beatOutcomeInput.value, "", 600);
   if (!title) return;
   const project = getActiveProject();
   const status = Object.prototype.hasOwnProperty.call(sceneBeatStatusLabels, beatStatusInput.value)
@@ -2734,6 +2742,7 @@ function saveSceneBeat(event) {
     if (!beat) return;
     beat.title = title;
     beat.goal = goal;
+    beat.outcome = outcome;
     beat.status = status;
     if (project.activeBeatId === beat.id) workChapter.value = title;
   } else {
@@ -2745,6 +2754,7 @@ function saveSceneBeat(event) {
       id: `beat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       title,
       goal,
+      outcome,
       status,
     };
     project.beats.push(beat);
