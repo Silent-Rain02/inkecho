@@ -47,6 +47,7 @@ class FrontendContractTests(unittest.TestCase):
             "beatProgressBar",
             "checkpointDialog",
             "characterDetailsInput",
+            "summaryFreshness",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -69,6 +70,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("const characterChars", self.javascript)
         self.assertIn("创作倾向：${creativityLabels", self.javascript)
         self.assertIn("回复长度：${responseLengthLabels", self.javascript)
+        self.assertIn("function renderSummaryFreshness", self.javascript)
+        self.assertIn("摘要后新增", self.javascript)
 
 
 if __name__ == "__main__":
