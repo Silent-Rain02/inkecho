@@ -51,6 +51,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("captureSceneOutcome", self.javascript)
         self.assertIn("function activateSceneBeat", self.javascript)
         self.assertIn("beat.status === \"active\" ? \"planned\"", self.javascript)
+        self.assertIn("function scheduleProjectPersist", self.javascript)
+        self.assertIn("persistActiveProject({ defer: true })", self.javascript)
         self.assertIn("记为结果", self.javascript)
         self.assertIn("sourceActiveProjectId", self.javascript)
         self.assertIn("selectedImported", self.javascript)
