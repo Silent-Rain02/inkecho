@@ -221,6 +221,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     mode = str(payload.get("mode") or "续写")[:20]
     mode_hint = MODE_GUIDANCE.get(mode, MODE_GUIDANCE["续写"])
     title = str(context.get("title") or "未命名作品")[:120]
+    chapter = str(context.get("chapter") or "")[:120]
     era = str(context.get("era") or "")[:120]
     world = str(context.get("world") or "")[:800]
     reference = str(context.get("reference") or "")[:4000]
@@ -234,7 +235,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
 
     system = (
         "你是 InkEcho 的文学创作伙伴。请保持角色的语言气质，帮助用户进行文学作品对话与二次创作。\n"
-        f"当前作品：{title}\n时代/氛围：{era}\n世界观备注：{world}\n"
+        f"当前作品：{title}\n当前章节/场景：{chapter}\n时代/氛围：{era}\n世界观备注：{world}\n"
         f"当前角色：{character_name}\n角色气质：{character_tone}\n创作模式：{mode}\n"
         f"模式要求：{mode_hint}\n"
         f"创作倾向：{creativity_hint}\n"
