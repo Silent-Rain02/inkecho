@@ -584,6 +584,7 @@ function createProject({ id, name, context, conversation, conversationArchive, s
         title: safeText(source.title, "未命名场景", 80),
         goal: safeText(source.goal, "", 280),
         outcome: safeText(source.outcome, "", 600),
+        outcomeThrough: safeText(source.outcomeThrough, "", 8000),
         status,
       };
     }).filter((item, index, list) => item.title && list.findIndex((candidate) => candidate.id === item.id) === index)
@@ -1499,6 +1500,17 @@ function highlightKey(item) {
   return [item.role || "assistant", item.name || "角色", item.content].join("\u0000");
 }
 
+function cloneBeatsForBranch(beats, branchKeys) {
+  return (beats || []).map((beat) => {
+    const clone = { ...beat };
+    if (clone.outcome && (!clone.outcomeThrough || !branchKeys.has(clone.outcomeThrough))) {
+      clone.outcome = "";
+      if (clone.status === "done") clone.status = "planned";
+    }
+    return clone;
+  });
+}
+
 function isHighlighted(item) {
   const key = highlightKey(item);
   return Boolean(key && getActiveProject()?.highlights.some((highlight) => highlightKey(highlight) === key));
@@ -1602,6 +1614,7 @@ function captureSceneOutcome(historyIndex) {
     const previousCapacity = Math.max(0, 599 - record.length);
     beat.outcome = previousCapacity ? `${beat.outcome.slice(0, previousCapacity)}\n${record}` : record;
   }
+  beat.outcomeThrough = highlightKey(message);
   persistActiveProject();
   renderActiveBeat();
   renderSceneBeats();
@@ -1978,7 +1991,7 @@ function branchFromArchiveMessage(item) {
       .filter((highlight) => branchKeys.has(highlightKey(highlight)))
       .map((highlight) => ({ ...highlight })),
     checkpoints: branchCheckpoints,
-    beats: current.beats.map((beat) => ({ ...beat })),
+    beats: cloneBeatsForBranch(current.beats, branchKeys),
     activeBeatId: current.activeBeatId,
     contextMode: "full",
     summaryMessageCount: 0,
@@ -2606,6 +2619,7 @@ async function summarizeCurrentSceneOutcome() {
     }
     if (currentBeat.outcome && !window.confirm("用模型提炼的新结果替换当前记录吗？")) return;
     currentBeat.outcome = payload.summary.slice(0, 600);
+    currentBeat.outcomeThrough = highlightKey(getConversationForDisplay(currentProject).at(-1));
     beatOutcomeInput.value = currentBeat.outcome;
     setProviderBadge("已连接", "#6f8b6a");
     persistActiveProject();
@@ -3872,9 +3886,13 @@ function saveSceneBeat(event) {
   if (editingBeatId) {
     beat = project.beats.find((item) => item.id === editingBeatId);
     if (!beat) return;
+    const outcomeChanged = beat.outcome !== outcome;
     beat.title = title;
     beat.goal = goal;
     beat.outcome = outcome;
+    if (outcomeChanged) {
+      beat.outcomeThrough = outcome ? highlightKey(getConversationForDisplay(project).at(-1)) : "";
+    }
     beat.status = status;
     if (project.activeBeatId === beat.id) workChapter.value = title;
   } else {
@@ -3887,6 +3905,7 @@ function saveSceneBeat(event) {
       title,
       goal,
       outcome,
+      outcomeThrough: outcome ? highlightKey(getConversationForDisplay(project).at(-1)) : "",
       status,
     };
     project.beats.push(beat);
@@ -4066,32 +4085,40 @@ function branchFromMessage(historyIndex) {
     ...item,
     ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
   }));
-  const branchKeys = new Set(branchConversation.map((item) => highlightKey(item)).filter(Boolean));
+  const branchArchive = current.conversationArchive.map((item) => ({
+    ...item,
+    ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
+  }));
+  const branchMessages = [...branchArchive, ...branchConversation];
+  const branchKeys = new Set(branchMessages.map((item) => highlightKey(item)).filter(Boolean));
   const branchCheckpoints = current.checkpoints
-    .filter((checkpoint) => checkpoint.conversation.every((item) => branchKeys.has(highlightKey(item))))
+    .filter((checkpoint) => [
+      ...(checkpoint.conversationArchive || []),
+      ...(checkpoint.conversation || []),
+    ].every((item) => branchKeys.has(highlightKey(item))))
     .map(cloneCheckpoint);
   const cleanName = name.trim();
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: cleanName,
-    context: { ...current.context, title: cleanName },
+    context: { ...current.context, title: cleanName, summary: "" },
     conversation: branchConversation,
-    conversationArchive: current.conversationArchive.map((item) => ({ ...item })),
+    conversationArchive: branchArchive,
     service: { ...current.service },
     characters: current.characters.map((item) => ({ ...item })),
     selectedCharacterName: current.selectedCharacterName,
     mode: current.mode,
-    draft: messageInput.value,
+    draft: "",
     prompts: current.prompts.map((item) => ({ ...item })),
     highlights: current.highlights
       .filter((highlight) => branchKeys.has(highlightKey(highlight)))
       .map((item) => ({ ...item })),
     checkpoints: branchCheckpoints,
-    beats: current.beats.map((item) => ({ ...item })),
+    beats: cloneBeatsForBranch(current.beats, branchKeys),
     activeBeatId: current.activeBeatId,
-    contextMode: current.contextMode,
-    summaryMessageCount: current.summaryMessageCount,
-    summaryUpdatedAt: current.summaryUpdatedAt,
+    contextMode: "full",
+    summaryMessageCount: 0,
+    summaryUpdatedAt: 0,
   });
   projects.push(project);
   activeProjectId = project.id;
