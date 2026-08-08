@@ -11,6 +11,11 @@ const exportFromMenuButton = document.querySelector("#exportFromMenu");
 const exportProjectJsonButton = document.querySelector("#exportProjectJson");
 const copyProjectHandoffButton = document.querySelector("#copyProjectHandoff");
 const downloadProjectHandoffButton = document.querySelector("#downloadProjectHandoff");
+const openCommandPaletteButton = document.querySelector("#openCommandPalette");
+const commandPaletteDialog = document.querySelector("#commandPaletteDialog");
+const commandPaletteSearch = document.querySelector("#commandPaletteSearch");
+const commandPaletteList = document.querySelector("#commandPaletteList");
+const commandPaletteHint = document.querySelector("#commandPaletteHint");
 const resetFromMenuButton = document.querySelector("#resetFromMenu");
 const saveCheckpointFromMenuButton = document.querySelector("#saveCheckpointFromMenu");
 const openCheckpointsButton = document.querySelector("#openCheckpoints");
@@ -187,6 +192,22 @@ const projectStatusLabels = {
   outcome: "结果待更新",
   draft: "有草稿",
 };
+
+const commandPaletteCommands = [
+  { id: "new-project", label: "新建创作项目", hint: "开始一条新的叙事线", keywords: "项目 新建 创作", run: () => createNewProject() },
+  { id: "save-checkpoint", label: "快速保存检查点", hint: "保存当前对话、设定和草稿", keywords: "检查点 保存 快照", run: () => saveCheckpoint({ quick: true }) },
+  { id: "open-scene-plan", label: "打开场景计划", hint: "查看、编辑和推进场景卡", keywords: "场景 计划 幕", run: () => openScenePlanner() },
+  { id: "open-archive", label: "查看归档历史", hint: "搜索较早消息并创建支线", keywords: "归档 历史 搜索 支线", run: () => openArchiveHistory() },
+  { id: "open-context", label: "预览模型上下文", hint: "核对本次实际发送的设定和对话", keywords: "上下文 预览 模型", run: () => openContextPreview() },
+  { id: "open-diagnostics", label: "打开连接诊断", hint: "查看模型服务配置和缺少字段", keywords: "模型 服务 连接 诊断", run: () => openProviderDiagnostics() },
+  { id: "focus-attention", label: "处理当前项目状态", hint: "定位摘要、场景结果或草稿", keywords: "状态 待处理 摘要 草稿", run: () => focusProjectAttention() },
+  { id: "export-markdown", label: "导出当前创作", hint: "下载 Markdown 对话和设定", keywords: "导出 markdown 下载", run: () => exportSession() },
+  { id: "clear-project-filters", label: "清除项目搜索和筛选", hint: "恢复显示全部项目", keywords: "项目 搜索 筛选 清除 全部", run: () => clearProjectFilters() },
+  { id: "focus-mode", label: "切换专注模式", hint: "隐藏两侧面板，放大对话区", keywords: "专注 模式 focus", run: () => {
+    setFocusMode(!document.body.classList.contains("focus-mode"));
+    showToast(document.body.classList.contains("focus-mode") ? "已进入专注模式" : "已退出专注模式");
+  } },
+];
 
 const providerDefaults = {
   custom_azure: "gpt-5-mini-2025-08-07",
@@ -1188,6 +1209,13 @@ function focusProjectAttention() {
   showToast("当前项目暂无待处理状态");
 }
 
+function clearProjectFilters() {
+  projectSearchInput.value = "";
+  projectStatusFilter.value = "all";
+  renderProjectSelect();
+  showToast("已显示全部项目");
+}
+
 function saveConversation() {
   const archived = archiveConversationOverflow();
   try {
@@ -1352,6 +1380,65 @@ function showToast(message) {
   toast.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+
+function getCommandPaletteMatches() {
+  const query = commandPaletteSearch?.value.trim().toLocaleLowerCase() || "";
+  return commandPaletteCommands.filter((command) => !query || `${command.label} ${command.hint} ${command.keywords}`.toLocaleLowerCase().includes(query));
+}
+
+function renderCommandPalette() {
+  if (!commandPaletteList) return;
+  const matches = getCommandPaletteMatches();
+  commandPaletteActiveIndex = Math.max(0, Math.min(commandPaletteActiveIndex, matches.length - 1));
+  commandPaletteList.innerHTML = "";
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.className = "command-palette-empty";
+    empty.textContent = "没有匹配的操作。试试搜索“检查点”或“场景”。";
+    commandPaletteList.appendChild(empty);
+    if (commandPaletteHint) commandPaletteHint.textContent = "按 Esc 关闭";
+    return;
+  }
+  matches.forEach((command, index) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "command-palette-item";
+    item.classList.toggle("is-active", index === commandPaletteActiveIndex);
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", String(index === commandPaletteActiveIndex));
+    const title = document.createElement("strong");
+    title.textContent = command.label;
+    const hint = document.createElement("small");
+    hint.textContent = command.hint;
+    item.append(title, hint);
+    item.addEventListener("click", () => executeCommandPaletteCommand(command.id));
+    commandPaletteList.appendChild(item);
+  });
+  if (commandPaletteHint) commandPaletteHint.textContent = `${matches.length} 个操作 · ↑↓ 选择 · Enter 执行 · Esc 关闭`;
+}
+
+function openCommandPalette() {
+  if (!commandPaletteDialog) return;
+  commandPaletteActiveIndex = 0;
+  commandPaletteSearch.value = "";
+  renderCommandPalette();
+  commandPaletteDialog.showModal();
+  commandPaletteSearch.focus();
+}
+
+function executeCommandPaletteCommand(commandId) {
+  const command = commandPaletteCommands.find((item) => item.id === commandId);
+  if (!command) return;
+  commandPaletteDialog.close();
+  command.run();
+}
+
+function moveCommandPaletteSelection(delta) {
+  const matches = getCommandPaletteMatches();
+  if (!matches.length) return;
+  commandPaletteActiveIndex = (commandPaletteActiveIndex + delta + matches.length) % matches.length;
+  renderCommandPalette();
 }
 
 function setFocusMode(enabled, persist = true) {
@@ -4298,6 +4385,15 @@ document.querySelector("#focusComposer").addEventListener("click", () => {
   document.querySelector(".conversation").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
+openCommandPaletteButton.addEventListener("click", openCommandPalette);
+commandPaletteSearch.addEventListener("input", () => {
+  commandPaletteActiveIndex = 0;
+  renderCommandPalette();
+});
+commandPaletteDialog.addEventListener("click", (event) => {
+  if (event.target === commandPaletteDialog) commandPaletteDialog.close();
+});
+
 toggleFocusModeButton.addEventListener("click", () => {
   setFocusMode(!document.body.classList.contains("focus-mode"));
   showToast(document.body.classList.contains("focus-mode") ? "已进入专注模式" : "已退出专注模式");
@@ -4368,6 +4464,32 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    if (commandPaletteDialog.open) commandPaletteDialog.close();
+    else openCommandPalette();
+    return;
+  }
+  if (commandPaletteDialog.open) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveCommandPaletteSelection(1);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveCommandPaletteSelection(-1);
+      return;
+    }
+    if (event.key === "Enter") {
+      const matches = getCommandPaletteMatches();
+      if (matches[commandPaletteActiveIndex]) {
+        event.preventDefault();
+        executeCommandPaletteCommand(matches[commandPaletteActiveIndex].id);
+      }
+      return;
+    }
+  }
   if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "s") {
     event.preventDefault();
     saveCheckpoint({ quick: true });
