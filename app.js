@@ -143,6 +143,7 @@ const responseLengthLabels = {
   expanded: "展开",
 };
 const maxProjects = 50;
+const maxConversationMessages = 120;
 const maxPrompts = 12;
 const maxHighlights = 30;
 const maxCheckpoints = 12;
@@ -376,7 +377,7 @@ function createProject({ id, name, context, conversation, service, characters, s
     ? checkpoints.slice(-maxCheckpoints).map((item) => normalizeCheckpoint(item))
     : [];
   const safeConversation = Array.isArray(conversation) && conversation.length
-    ? conversation.slice(-40).map((item) => {
+    ? conversation.slice(-maxConversationMessages).map((item) => {
       const source = item && typeof item === "object" ? item : {};
       const content = safeText(source.content, "", 4000);
       const savedVersions = Array.isArray(source.versions)
@@ -513,7 +514,7 @@ function loadConversation() {
     if (Array.isArray(saved) && saved.length > 0) {
       return saved
         .filter((item) => item && ["user", "assistant"].includes(item.role) && typeof item.content === "string")
-        .slice(-40)
+        .slice(-maxConversationMessages)
         .map((item) => ({ ...item, name: item.name || (item.role === "user" ? "我" : "林黛玉") }));
     }
   } catch {
@@ -548,7 +549,7 @@ function persistActiveProject() {
   const context = getContext();
   project.name = context.title || project.name || "未命名作品";
   project.context = context;
-  project.conversation = conversationHistory.slice(-40);
+  project.conversation = conversationHistory.slice(-maxConversationMessages);
   project.draft = messageInput.value.slice(0, 10000);
   const provider = providerSelect.value;
   const model = modelName.value.trim() || providerDefaults[provider];
@@ -662,7 +663,7 @@ function renderProjectSelect() {
 
 function saveConversation() {
   try {
-    localStorage.setItem(conversationStorageKey, JSON.stringify(conversationHistory.slice(-40)));
+    localStorage.setItem(conversationStorageKey, JSON.stringify(conversationHistory.slice(-maxConversationMessages)));
   } catch {
     notifyStorageIssue();
   }
@@ -824,7 +825,11 @@ function isSummaryContextMode() {
 }
 
 function getModelMessages({ fullHistory = false } = {}) {
-  const source = !fullHistory && isSummaryContextMode() ? conversationHistory.slice(-4) : conversationHistory.slice(-20);
+  const source = fullHistory
+    ? conversationHistory.slice(-maxConversationMessages)
+    : isSummaryContextMode()
+      ? conversationHistory.slice(-4)
+      : conversationHistory.slice(-20);
   const selected = [];
   let historyChars = 0;
   for (const item of [...source].reverse()) {
