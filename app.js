@@ -1065,6 +1065,7 @@ function getContext() {
 function exportSession() {
   const context = getContext();
   const highlights = getActiveProject()?.highlights || [];
+  const checkpoints = getActiveProject()?.checkpoints || [];
   const characters = Array.from(document.querySelectorAll(".character-card")).map((card) => {
     const name = card.dataset.character || "未命名角色";
     const tone = card.dataset.tone || "";
@@ -1100,6 +1101,12 @@ function exportSession() {
     highlights.length
       ? highlights.map((highlight) => `- **${highlight.name}**：${highlight.content}`).join("\n")
       : "暂无摘录",
+    "",
+    "## 对话检查点",
+    "",
+    checkpoints.length
+      ? checkpoints.map((checkpoint) => `- **${checkpoint.name}**：${formatCheckpointDate(checkpoint.createdAt)} · ${checkpoint.conversation.length} 条消息`).join("\n")
+      : "暂无检查点",
     "",
     "---",
     "由 InkEcho 导出",
