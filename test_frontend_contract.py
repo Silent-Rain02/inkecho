@@ -45,6 +45,9 @@ class FrontendContractTests(unittest.TestCase):
             "generateBeatOutcome",
             "beatProgressText",
             "beatProgressBar",
+            "beatSearchInput",
+            "beatStatusFilter",
+            "beatListCount",
             "checkpointDialog",
             "checkpointSearchInput",
             "checkpointCount",
@@ -81,6 +84,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
         self.assertIn("function activateSceneBeat", self.javascript)
+        self.assertIn('const statusFilter = beatStatusFilter?.value || "all"', self.javascript)
+        self.assertIn("没有匹配的场景卡。试试清除搜索或切换状态。", self.javascript)
+        self.assertIn('beatSearchInput.addEventListener("input", renderSceneBeats)', self.javascript)
         self.assertIn("beat.status === \"active\" ? \"planned\"", self.javascript)
         self.assertIn("function scheduleProjectPersist", self.javascript)
         self.assertIn("persistActiveProject({ defer: true })", self.javascript)
