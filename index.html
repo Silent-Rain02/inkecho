@@ -191,6 +191,8 @@
               <div class="conversation-menu" id="conversationMenu" hidden>
                 <button type="button" id="copyConversation">复制当前对话</button>
                 <button type="button" id="exportFromMenu">导出 Markdown</button>
+                <button type="button" id="saveCheckpointFromMenu">保存当前检查点</button>
+                <button type="button" id="openCheckpoints">查看检查点</button>
                 <button type="button" id="resetFromMenu">重新开始</button>
               </div>
             </div>
@@ -330,6 +332,20 @@
           <span></span>
           <button class="dialog-cancel" id="cancelPrompt" type="button">取消</button>
           <button class="dialog-save" type="submit">保存灵感</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog checkpoint-dialog" id="checkpointDialog" aria-labelledby="checkpointDialogTitle">
+      <form method="dialog">
+        <span class="section-kicker">SCENE CHECKPOINTS</span>
+        <h2 id="checkpointDialogTitle">对话检查点</h2>
+        <p class="checkpoint-description">保存当前对话、设定和草稿，之后可以回到这一刻继续。</p>
+        <div class="checkpoint-list" id="checkpointList"></div>
+        <div class="dialog-actions checkpoint-dialog-actions">
+          <span></span>
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" id="closeCheckpoint" type="button">关闭</button>
         </div>
       </form>
     </dialog>
