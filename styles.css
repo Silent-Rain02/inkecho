@@ -138,6 +138,8 @@ h2 { margin: 7px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.06em
 .project-lineage.is-branch { color: var(--accent); }
 .project-health { grid-column: 1 / -1; min-height: 12px; margin: -1px 0 0; color: #7b8b78; font: 8px var(--mono); line-height: 1.5; overflow-wrap: anywhere; }
 .project-health.is-warning { color: var(--accent); }
+.project-health-action { grid-column: 1 / -1; justify-self: start; padding: 0; border: 0; color: var(--accent); background: transparent; font: 8px var(--mono); }
+.project-health-action:hover { color: var(--accent-dark); }
 .storage-status { grid-column: 1 / -1; margin: 0; color: var(--muted); font: 8px var(--mono); }
 .storage-status.is-warning { color: var(--accent); }
 .storage-status.is-error { color: #a24f3e; }
