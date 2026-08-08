@@ -30,6 +30,7 @@ const sendButton = document.querySelector(".send-button");
 const draftStatus = document.querySelector("#draftStatus");
 const projectSelect = document.querySelector("#projectSelect");
 const newProjectButton = document.querySelector("#newProject");
+const duplicateProjectButton = document.querySelector("#duplicateProject");
 const deleteProjectButton = document.querySelector("#deleteProject");
 const workReference = document.querySelector("#workReference");
 const referenceCount = document.querySelector("#referenceCount");
@@ -1111,6 +1112,38 @@ function createNewProject() {
   showToast(`已创建「${cleanName}」`);
 }
 
+function duplicateCurrentProject() {
+  if (isSending) {
+    showToast("模型回复完成后再复制项目");
+    return;
+  }
+  persistActiveProject();
+  const current = getActiveProject();
+  const name = window.prompt("给这条创作支线取一个名字：", `${current.name} · 分支`);
+  if (!name || !name.trim()) return;
+  const cleanName = name.trim();
+  const project = createProject({
+    id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name: cleanName,
+    context: { ...current.context },
+    conversation: current.conversation.map((item) => ({ ...item })),
+    service: { ...current.service },
+    characters: current.characters.map((item) => ({ ...item })),
+    selectedCharacterName: current.selectedCharacterName,
+    mode: current.mode,
+    draft: current.draft,
+  });
+  projects.push(project);
+  activeProjectId = project.id;
+  persistProjects();
+  hydrateActiveProject();
+  renderProjectSelect();
+  renderCharacters();
+  renderConversation();
+  updateProviderUI();
+  showToast(`已复制为「${cleanName}」`);
+}
+
 function deleteCurrentProject() {
   if (projects.length <= 1) {
     showToast("至少保留一个创作项目");
@@ -1131,6 +1164,7 @@ function deleteCurrentProject() {
 
 projectSelect.addEventListener("change", () => switchProject(projectSelect.value));
 newProjectButton.addEventListener("click", createNewProject);
+duplicateProjectButton.addEventListener("click", duplicateCurrentProject);
 deleteProjectButton.addEventListener("click", deleteCurrentProject);
 
 hydrateActiveProject();
