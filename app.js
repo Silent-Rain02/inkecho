@@ -443,14 +443,23 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   const versionIndex = versions.length
     ? Math.max(0, Math.min(requestedIndex < 0 ? 0 : requestedIndex, versions.length - 1))
     : 0;
+  const savedSources = Array.isArray(source.sources)
+    ? source.sources.map((value) => value === "demo" ? "demo" : "")
+    : [];
+  const currentSource = source.source === "demo" || savedSources[versionIndex] === "demo" ? "demo" : "";
   const normalized = {
     role: source.role === "user" ? "user" : "assistant",
     name: safeText(source.name, source.role === "user" ? "我" : fallbackAssistantName, 40),
     content: versions[versionIndex] || content,
   };
+  if (normalized.role === "assistant" && currentSource) normalized.source = currentSource;
   if (normalized.role === "assistant" && versions.length > 1) {
     normalized.versions = versions;
     normalized.versionIndex = versionIndex;
+    const normalizedSources = versions.map((version, index) => (
+      savedSources[index] === "demo" || (version === content && source.source === "demo") ? "demo" : ""
+    ));
+    if (normalizedSources.some(Boolean)) normalized.sources = normalizedSources;
   }
   return normalized;
 }
@@ -1578,7 +1587,11 @@ function getContextPreviewText() {
   const context = getContext();
   const modelMessages = getModelMessages();
   const conversation = modelMessages.length
-    ? modelMessages.map((message) => `${message.role === "assistant" ? (message.name || selectedCharacter.name) : "我"}：${message.content}`).join("\n\n")
+    ? modelMessages.map((message) => {
+      const speaker = message.role === "assistant" ? (message.name || selectedCharacter.name) : "我";
+      const sourceNote = getMessageSourceLabel(message);
+      return `${speaker}${sourceNote ? `（${sourceNote}）` : ""}：${message.content}`;
+    }).join("\n\n")
     : "暂无对话消息";
   return [
     "InkEcho · 模型上下文预览",
@@ -1662,13 +1675,26 @@ function renderAssistantMarkdown(text) {
     .join("<br>");
 }
 
+function getMessageSourceLabel(item) {
+  return item?.source === "demo" ? "演示回复 · 模型服务未返回，本地模板生成" : "";
+}
+
+function appendDemoSourceBadge(meta) {
+  if (!meta || meta.querySelector(".message-source-badge")) return;
+  const sourceBadge = document.createElement("span");
+  sourceBadge.className = "message-source-badge";
+  sourceBadge.textContent = "演示回复";
+  sourceBadge.title = "模型服务未返回内容，本段由本地模板生成";
+  meta.appendChild(sourceBadge);
+}
+
 function setAssistantBubbleText(bubble, text) {
   const rawText = String(text ?? "");
   bubble.dataset.rawText = rawText;
   bubble.innerHTML = renderAssistantMarkdown(rawText);
 }
 
-function addMessage({ role, name, text, avatarClass, historyIndex, versions, versionIndex = 0 }) {
+function addMessage({ role, name, text, avatarClass, historyIndex, versions, sources, source, versionIndex = 0 }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
   if (Number.isInteger(historyIndex)) row.dataset.historyIndex = String(historyIndex);
@@ -1686,6 +1712,8 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, ver
   const time = document.createElement("time");
   time.textContent = role === "user" ? "刚刚" : "现在";
   meta.append(nameElement, time);
+  const currentSource = source === "demo" || sources?.[versionIndex] === "demo" ? "demo" : "";
+  if (role === "assistant" && currentSource) appendDemoSourceBadge(meta);
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   if (role === "assistant") setAssistantBubbleText(bubble, text);
@@ -1777,7 +1805,7 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, ver
   messages.scrollTop = messages.scrollHeight;
   updateCount();
   filterConversationMessages();
-  return { row, bubble };
+  return { row, bubble, meta };
 }
 
 function filterConversationMessages() {
@@ -1806,6 +1834,8 @@ function switchMessageVersion(historyIndex, nextVersion) {
   if (!message || !Array.isArray(message.versions) || !message.versions[nextVersion]) return;
   message.versionIndex = nextVersion;
   message.content = message.versions[nextVersion];
+  if (message.sources?.[nextVersion] === "demo") message.source = "demo";
+  else delete message.source;
   saveConversation();
   renderConversation();
   showToast(`已切换到第 ${nextVersion + 1} 版回复`);
@@ -1887,7 +1917,8 @@ function formatProjectHandoff() {
     const rawContent = String(item.content || "");
     const content = rawContent.slice(0, 1200);
     const suffix = rawContent.length > 1200 ? "\n（本段已截取前 1200 字）" : "";
-    return `### ${speaker}\n${content}${suffix}`;
+    const sourceNote = getMessageSourceLabel(item);
+    return `### ${speaker}\n${sourceNote ? `> ⚠️ ${sourceNote}\n` : ""}${content}${suffix}`;
   });
   const highlights = (project.highlights || []).slice(-8).map((item) => `- **${item.name || "摘录"}**：${item.content}`);
   const checkpoints = (project.checkpoints || []).slice().reverse().slice(0, 6).map(
@@ -1989,7 +2020,8 @@ function formatConversationForExport() {
         ...alternatives.map((version, index) => `> ${index + 1}. ${version.replace(/\r?\n/g, "\n> ")}`),
       ].join("\n")
       : "";
-    return [`### ${speaker}`, item.content, alternativeBlock].filter(Boolean).join("\n\n");
+    const sourceNote = getMessageSourceLabel(item);
+    return [`### ${speaker}`, sourceNote ? `> ⚠️ ${sourceNote}` : "", item.content, alternativeBlock].filter(Boolean).join("\n\n");
   }).join("\n\n---\n\n");
 }
 
@@ -2512,7 +2544,8 @@ function renderArchiveHistory() {
     const speaker = document.createElement("strong");
     speaker.textContent = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
     const role = document.createElement("span");
-    role.textContent = item.role === "assistant" ? "角色回复" : "我的提问";
+    role.textContent = getMessageSourceLabel(item) ? "演示回复" : item.role === "assistant" ? "角色回复" : "我的提问";
+    role.title = getMessageSourceLabel(item);
     meta.append(speaker, role);
     const content = document.createElement("p");
     content.textContent = item.content;
@@ -2713,6 +2746,8 @@ function renderConversation() {
         ? item.name === "贾宝玉" ? "avatar-bao" : "avatar-dai"
         : "user-avatar",
       versions: item.versions,
+      sources: item.sources,
+      source: item.source,
       versionIndex: item.versionIndex,
     });
   });
@@ -3608,6 +3643,7 @@ function fallbackReply() {
 
 async function generateAssistantReply(assistantMessage, character = selectedCharacter) {
   setSending(true);
+  delete assistantMessage.bubble.dataset.source;
   let reply = "";
   try {
     reply = await requestStreamReply((delta) => {
@@ -3622,6 +3658,8 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
     if (!stopped) setProviderBadge("连接失败", "#a26b46");
     if (!reply && !stopped) {
       reply = fallbackReply();
+      assistantMessage.bubble.dataset.source = "demo";
+      appendDemoSourceBadge(assistantMessage.meta);
       setAssistantBubbleText(assistantMessage.bubble, reply);
       showToast(`${error?.userMessage || "模型服务暂不可用"}，当前使用演示回复`);
     } else if (!stopped && reply) {
@@ -3664,11 +3702,21 @@ async function retryMessage(historyIndex) {
   });
   const reply = await generateAssistantReply(assistantMessage, character);
   const versions = Array.from(new Set([...previousVersions, reply].filter(Boolean)));
+  const currentSource = assistantMessage.bubble.dataset.source === "demo" ? "demo" : "";
+  const previousSources = Array.isArray(previousReply.sources)
+    ? previousReply.sources
+    : previousVersions.map(() => previousReply.source === "demo" ? "demo" : "");
+  const versionSources = versions.map((version) => {
+    if (version === reply) return currentSource;
+    const previousIndex = previousVersions.indexOf(version);
+    return previousIndex >= 0 && previousSources[previousIndex] === "demo" ? "demo" : "";
+  });
   conversationHistory.push({
     role: "assistant",
     name: speaker,
     content: reply,
-    ...(versions.length > 1 ? { versions, versionIndex: versions.indexOf(reply) } : {}),
+    ...(currentSource ? { source: currentSource } : {}),
+    ...(versions.length > 1 ? { versions, sources: versionSources, versionIndex: versions.indexOf(reply) } : {}),
   });
   saveConversation();
   renderConversation();
@@ -4300,7 +4348,13 @@ composer.addEventListener("submit", async (event) => {
   });
   const reply = await generateAssistantReply(assistantMessage, character);
 
-  conversationHistory.push({ role: "assistant", name: character.name, content: reply });
+  const source = assistantMessage.bubble.dataset.source === "demo" ? "demo" : "";
+  conversationHistory.push({
+    role: "assistant",
+    name: character.name,
+    content: reply,
+    ...(source ? { source } : {}),
+  });
   saveConversation();
 });
 
