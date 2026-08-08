@@ -1267,6 +1267,7 @@ async function importProjectsBackup() {
       });
     });
     if (!imported.length) throw new Error("empty backup");
+    persistActiveProject();
     projects.push(...imported);
     activeProjectId = imported[0].id;
     persistProjects();
