@@ -114,6 +114,7 @@ const archiveSearchInput = document.querySelector("#archiveSearchInput");
 const archiveCount = document.querySelector("#archiveCount");
 const archiveList = document.querySelector("#archiveList");
 const closeArchiveButton = document.querySelector("#closeArchive");
+const clearArchiveButton = document.querySelector("#clearArchive");
 const conversationStorageKey = "inkecho.conversation.v1";
 const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
@@ -1738,6 +1739,7 @@ function renderArchiveHistory() {
     return `${speaker} ${item.content}`.toLocaleLowerCase().includes(query);
   });
   archiveCount.textContent = query ? `${matches.length} / ${archive.length} 条归档` : `${archive.length} 条归档`;
+  clearArchiveButton.disabled = !archive.length;
   archiveList.innerHTML = "";
   if (!matches.length) {
     const empty = document.createElement("p");
@@ -1784,6 +1786,24 @@ function openArchiveHistory() {
 
 function closeArchiveHistory() {
   archiveDialog.close();
+}
+
+function clearArchivedHistory() {
+  if (preventWorkspaceMutation("清理归档")) return;
+  const project = getActiveProject();
+  const count = project?.conversationArchive?.length || 0;
+  if (!count) {
+    showToast("当前项目没有可清理的归档");
+    return;
+  }
+  if (!window.confirm(`将清理 ${count} 条归档消息，当前工作区消息和剧情摘要会保留。建议先导出 JSON 备份，确定继续吗？`)) return;
+  project.conversationArchive = [];
+  persistActiveProject();
+  archiveSearchInput.value = "";
+  renderArchiveHistory();
+  updateCount();
+  updateStorageStatus();
+  showToast(`已清理 ${count} 条归档消息`);
 }
 
 function restoreCheckpoint(checkpointId) {
@@ -3078,6 +3098,7 @@ openArchiveHistoryButton.addEventListener("click", () => {
 });
 archiveSearchInput.addEventListener("input", renderArchiveHistory);
 closeArchiveButton.addEventListener("click", closeArchiveHistory);
+clearArchiveButton.addEventListener("click", clearArchivedHistory);
 archiveDialog.addEventListener("click", (event) => {
   if (event.target === archiveDialog) closeArchiveHistory();
 });
