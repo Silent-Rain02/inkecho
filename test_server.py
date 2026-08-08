@@ -67,6 +67,12 @@ class ServerConfigTests(unittest.TestCase):
         system_prompt = build_messages({"response_length": "expanded"})[0]["content"]
         self.assertIn("充分铺陈场景", system_prompt)
 
+    def test_modes_have_distinct_writing_guidance(self) -> None:
+        rewrite_prompt = build_messages({"mode": "改写"})[0]["content"]
+        monologue_prompt = build_messages({"mode": "独白"})[0]["content"]
+        self.assertIn("不只给建议", rewrite_prompt)
+        self.assertIn("第一人称内心独白", monologue_prompt)
+
     def test_complete_chat_passes_selected_length_to_provider(self) -> None:
         class FakeCompletions:
             def __init__(self) -> None:
