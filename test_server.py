@@ -352,9 +352,17 @@ class ServerConfigTests(unittest.TestCase):
         class APITimeoutError(Exception):
             pass
 
+        class NotFoundError(Exception):
+            pass
+
+        class InternalServerError(Exception):
+            pass
+
         self.assertEqual(error_status(AuthenticationError()).value, 401)
         self.assertEqual(error_status(RateLimitError()).value, 429)
         self.assertEqual(error_status(APITimeoutError()).value, 504)
+        self.assertEqual(error_status(NotFoundError()).value, 404)
+        self.assertEqual(error_status(InternalServerError()).value, 502)
 
     def test_client_input_errors_use_bad_request_status(self) -> None:
         self.assertEqual(error_status(ValueError("bad json")).value, 400)
