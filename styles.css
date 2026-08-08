@@ -175,6 +175,9 @@ textarea { resize: vertical; }
 .creativity-control select { width: 100%; height: 31px; padding: 0 8px; border: 1px solid var(--line); outline: 0; color: var(--ink-soft); background: rgba(250, 250, 245, 0.75); font-size: 10px; }
 .creativity-control select:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
 .sidebar-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; margin-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font: 9px var(--mono); }
+.sidebar-footer > span { display: grid; gap: 4px; }
+.context-usage { color: #a1aaa0; font: 8px var(--mono); }
+.context-usage.is-heavy { color: var(--accent); }
 .sidebar-footer strong { color: var(--ink-soft); font-weight: 400; }
 
 .conversation-header { padding: 27px 29px 18px; }
