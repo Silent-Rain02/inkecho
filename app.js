@@ -851,6 +851,20 @@ function formatProjectHealth(project = getActiveProject()) {
   return parts.join(" · ");
 }
 
+function getContextFreshnessNotices(project = getActiveProject()) {
+  const health = getProjectHealth(project);
+  const notices = [];
+  if (!health.hasSummary) notices.push("剧情摘要尚未建立");
+  else if (health.summaryNewMessages > 0) notices.push(`摘要后新增 ${health.summaryNewMessages} 条消息`);
+  if (health.staleOutcomes > 0) notices.push(`${health.staleOutcomes} 个场景结果待更新`);
+  return notices;
+}
+
+function formatContextFreshnessNotices(project = getActiveProject()) {
+  const notices = getContextFreshnessNotices(project);
+  return notices.length ? notices.join(" · ") : "摘要和场景结果均已覆盖当前历史";
+}
+
 function matchesProjectStatus(project, filter = "all") {
   if (filter === "all") return true;
   const health = getProjectHealth(project);
@@ -1435,6 +1449,7 @@ function updateContextUsage() {
 }
 
 function getContextPreviewText() {
+  const project = getActiveProject();
   const context = getContext();
   const modelMessages = getModelMessages();
   const conversation = modelMessages.length
@@ -1447,6 +1462,8 @@ function getContextPreviewText() {
     `创作倾向：${creativityLabels[creativitySelect.value] || "平衡"}`,
     `回复长度：${responseLengthLabels[responseLengthSelect.value] || "标准"}`,
     `上下文策略：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : "完整对话"}`,
+    `项目状态：${formatProjectHealth(project)}`,
+    `新鲜度提醒：${formatContextFreshnessNotices(project)}`,
     "",
     "【作品设定】",
     `作品：${context.title || "未填写"}`,
@@ -1473,7 +1490,7 @@ function openContextPreview() {
   updateContextUsage();
   const modelMessages = getModelMessages();
   const breakdown = getContextUsageBreakdown();
-  contextPreviewStats.textContent = `${modelMessages.length} 条对话 · ${formatContextUsageBreakdown(breakdown)} · ${isSummaryContextMode() ? "完整历史仍保留" : "按服务端历史预算发送"}`;
+  contextPreviewStats.textContent = `${modelMessages.length} 条对话 · ${formatContextUsageBreakdown(breakdown)} · ${isSummaryContextMode() ? "完整历史仍保留" : "按服务端历史预算发送"} · ${formatContextFreshnessNotices()}`;
   contextPreviewText.textContent = getContextPreviewText();
   contextDialog.showModal();
 }
