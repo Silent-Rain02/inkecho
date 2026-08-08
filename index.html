@@ -28,6 +28,7 @@
       </a>
       <div class="topbar-actions">
         <span class="status-dot"><i></i>本地原型</span>
+        <button class="icon-button command-palette-button" id="openCommandPalette" type="button" title="打开命令面板 · ⌘ / Ctrl + K" aria-label="打开命令面板">⌘K</button>
         <button class="spark-button magnetic" id="focusComposer" type="button">进入创作 <span>↗</span></button>
         <button class="icon-button" id="exportSession" type="button" title="导出当前创作" aria-label="导出当前创作">⇩</button>
         <button class="icon-button" id="resetSession" type="button" title="重置当前对话" aria-label="重置当前对话">↺</button>
@@ -611,6 +612,21 @@
           <span></span>
           <button class="dialog-cancel" id="closeArchive" type="button">关闭</button>
         </div>
+      </form>
+    </dialog>
+    <dialog class="command-palette-dialog" id="commandPaletteDialog" aria-labelledby="commandPaletteTitle">
+      <form class="command-palette-form" method="dialog">
+        <div class="command-palette-head">
+          <div>
+            <span class="section-kicker">QUICK ACTIONS</span>
+            <h2 id="commandPaletteTitle">命令面板</h2>
+          </div>
+          <button class="command-palette-close" type="submit" aria-label="关闭命令面板">×</button>
+        </div>
+        <p class="template-description">搜索一个操作，或用键盘快速跳转。按 ⌘ / Ctrl + K 随时打开。</p>
+        <input class="command-palette-search" id="commandPaletteSearch" type="search" placeholder="搜索操作……" aria-label="搜索命令面板操作" autocomplete="off" />
+        <div class="command-palette-list" id="commandPaletteList" role="listbox"></div>
+        <p class="command-palette-hint" id="commandPaletteHint">按 Esc 关闭</p>
       </form>
     </dialog>
     <div class="toast" id="toast" role="status"></div>
