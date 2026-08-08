@@ -1886,6 +1886,15 @@ function renderArchiveHistory() {
     content.textContent = item.content;
     const actions = document.createElement("div");
     actions.className = "archive-actions";
+    if (item.role === "assistant") {
+      const branch = document.createElement("button");
+      branch.type = "button";
+      branch.className = "message-action archive-branch";
+      branch.textContent = "支线";
+      branch.setAttribute("aria-label", `从${speaker.textContent}的归档消息创建支线`);
+      branch.addEventListener("click", () => branchFromArchiveMessage(item));
+      actions.appendChild(branch);
+    }
     const quote = document.createElement("button");
     quote.type = "button";
     quote.className = "message-action archive-quote";
@@ -1919,6 +1928,72 @@ function openArchiveHistory() {
 
 function closeArchiveHistory() {
   archiveDialog.close();
+}
+
+function branchFromArchiveMessage(item) {
+  if (projects.length >= maxProjects) {
+    showToast(`项目数量已达到上限（${maxProjects} 个）`);
+    return;
+  }
+  if (preventWorkspaceMutation("创建支线")) return;
+  if (!item || item.role !== "assistant") {
+    showToast("只能从角色回复创建支线");
+    return;
+  }
+  persistActiveProject();
+  const current = getActiveProject();
+  const archive = current.conversationArchive || [];
+  const sourceIndex = archive.findIndex((candidate) => candidate === item || highlightKey(candidate) === highlightKey(item));
+  if (sourceIndex < 0) return;
+  const branchMessages = archive.slice(0, sourceIndex + 1).map((message) => ({
+    ...message,
+    ...(Array.isArray(message.versions) ? { versions: [...message.versions] } : {}),
+  }));
+  const branchArchive = branchMessages.slice(0, -maxConversationMessages);
+  const branchConversation = branchMessages.slice(-maxConversationMessages);
+  const branchKeys = new Set(branchMessages.map((message) => highlightKey(message)).filter(Boolean));
+  const branchCheckpoints = current.checkpoints
+    .filter((checkpoint) => [
+      ...(checkpoint.conversationArchive || []),
+      ...(checkpoint.conversation || []),
+    ].every((message) => branchKeys.has(highlightKey(message))))
+    .map(cloneCheckpoint);
+  const speaker = item.name || selectedCharacter.name;
+  const name = window.prompt("给这条归档支线取一个名字：", `${current.name} · ${speaker}处分支`);
+  if (!name || !name.trim()) return;
+  const cleanName = name.trim().slice(0, 80);
+  const project = createProject({
+    id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name: cleanName,
+    context: { ...current.context, title: cleanName, summary: "" },
+    conversation: branchConversation,
+    conversationArchive: branchArchive,
+    service: { ...current.service },
+    characters: current.characters.map((character) => ({ ...character })),
+    selectedCharacterName: current.selectedCharacterName,
+    mode: current.mode,
+    draft: "",
+    prompts: current.prompts.map((prompt) => ({ ...prompt })),
+    highlights: current.highlights
+      .filter((highlight) => branchKeys.has(highlightKey(highlight)))
+      .map((highlight) => ({ ...highlight })),
+    checkpoints: branchCheckpoints,
+    beats: current.beats.map((beat) => ({ ...beat })),
+    activeBeatId: current.activeBeatId,
+    contextMode: "full",
+    summaryMessageCount: 0,
+    summaryUpdatedAt: 0,
+  });
+  projects.push(project);
+  activeProjectId = project.id;
+  persistProjects();
+  hydrateActiveProject();
+  renderProjectSelect();
+  renderCharacters();
+  renderConversation();
+  updateProviderUI();
+  closeArchiveHistory();
+  showToast(`已从归档回复创建支线「${cleanName}」`);
 }
 
 function clearArchivedHistory() {
