@@ -104,6 +104,11 @@ class FrontendContractTests(unittest.TestCase):
             "projectHealth",
             "projectStatusFilter",
             "projectHealthAction",
+            "openCommandPalette",
+            "commandPaletteDialog",
+            "commandPaletteSearch",
+            "commandPaletteList",
+            "commandPaletteHint",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -250,6 +255,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("已定位到待更新的剧情摘要", self.javascript)
         self.assertIn("已打开场景计划，请处理待更新的本幕结果", self.javascript)
         self.assertIn("projectHealthAction.addEventListener(\"click\", focusProjectAttention)", self.javascript)
+        self.assertIn("function renderCommandPalette", self.javascript)
+        self.assertIn("function executeCommandPaletteCommand", self.javascript)
+        self.assertIn("function moveCommandPaletteSelection", self.javascript)
+        self.assertIn("打开命令面板", self.html)
+        self.assertIn("event.key.toLowerCase() === \"k\"", self.javascript)
+        self.assertIn("快速保存检查点", self.javascript)
         self.assertIn("有 ${health.staleOutcomes} 个场景结果没有覆盖最新剧情", self.javascript)
         self.assertIn("仍会发送这些结果", self.javascript)
         self.assertIn("function getContextFreshnessNotices", self.javascript)
