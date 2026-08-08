@@ -195,6 +195,7 @@ const maxPrompts = 12;
 const maxHighlights = 30;
 const maxCheckpoints = 12;
 const maxSceneBeats = 24;
+const scenePlanContextLimit = 2000;
 const sceneBeatStatusLabels = {
   planned: "待写",
   active: "进行中",
@@ -2360,13 +2361,42 @@ function resetCurrentConversation() {
   showToast("已开始新对话，旧归档不会再进入上下文");
 }
 
+function formatSceneBeatForContext(beat, index, activeBeatId) {
+  return `${index + 1}. [${sceneBeatStatusLabels[beat.status] || "待写"}] ${beat.title}${beat.id === activeBeatId ? " · 当前" : ""}${beat.goal ? `：${beat.goal}` : ""}${beat.outcome ? ` · 已发生 / 线索：${beat.outcome}` : ""}`;
+}
+
+function getScenePlanForContext(project = getActiveProject()) {
+  const beats = project?.beats || [];
+  if (!beats.length) return "";
+  const fullPlan = beats.map((beat, index) => formatSceneBeatForContext(beat, index, project.activeBeatId)).join("\n");
+  if (fullPlan.length <= scenePlanContextLimit) return fullPlan;
+
+  const activeIndex = beats.findIndex((beat) => beat.id === project.activeBeatId);
+  const selectedIndexes = new Set([0, 1, beats.length - 2, beats.length - 1]);
+  if (activeIndex >= 0) {
+    for (let index = Math.max(0, activeIndex - 2); index <= Math.min(beats.length - 1, activeIndex + 2); index += 1) {
+      selectedIndexes.add(index);
+    }
+  }
+  const orderedIndexes = [...selectedIndexes].filter((index) => index >= 0 && index < beats.length).sort((a, b) => a - b);
+  const activeLine = activeIndex >= 0 ? formatSceneBeatForContext(beats[activeIndex], activeIndex, project.activeBeatId) : "";
+  const otherLines = orderedIndexes
+    .filter((index) => index !== activeIndex)
+    .map((index) => formatSceneBeatForContext(beats[index], index, project.activeBeatId));
+  const omitted = beats.length - orderedIndexes.length;
+  return [
+    activeLine ? `当前场景优先：${activeLine}` : "当前场景优先：尚未选择",
+    "附近与计划锚点：",
+    ...otherLines,
+    omitted > 0 ? `（中间省略 ${omitted} 张场景卡；完整计划仍保存在本地）` : "",
+  ].filter(Boolean).join("\n").slice(0, scenePlanContextLimit);
+}
+
 function getContext() {
+  const project = getActiveProject();
   const chapter = safeText(workChapter.value, "", 120);
-  const activeBeat = getActiveSceneBeat();
-  const scenePlan = (getActiveProject()?.beats || [])
-    .map((beat, index) => `${index + 1}. [${sceneBeatStatusLabels[beat.status]}] ${beat.title}${beat.goal ? `：${beat.goal}` : ""}${beat.outcome ? ` · 已发生 / 线索：${beat.outcome}` : ""}`)
-    .join("\n")
-    .slice(0, 2000);
+  const activeBeat = getActiveSceneBeat(project);
+  const scenePlan = getScenePlanForContext(project);
   return {
     title: safeText(document.querySelector("#workTitle").value, "", 120),
     chapter,
