@@ -399,6 +399,13 @@
           <button class="dialog-cancel" id="cancelBeat" type="button">关闭</button>
           <button class="dialog-save" type="submit">保存场景</button>
         </div>
+        <div class="beat-progress" id="beatProgress" role="status" aria-live="polite">
+          <div class="beat-progress-head">
+            <span id="beatProgressText">还没有场景卡</span>
+            <span class="beat-progress-percent" id="beatProgressPercent">0%</span>
+          </div>
+          <div class="beat-progress-track" aria-hidden="true"><span id="beatProgressBar"></span></div>
+        </div>
         <div class="beat-list" id="beatList"></div>
       </form>
     </dialog>
