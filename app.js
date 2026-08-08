@@ -103,6 +103,12 @@ const cancelBeatButton = document.querySelector("#cancelBeat");
 const checkpointDialog = document.querySelector("#checkpointDialog");
 const checkpointList = document.querySelector("#checkpointList");
 const closeCheckpointButton = document.querySelector("#closeCheckpoint");
+const openArchiveHistoryButton = document.querySelector("#openArchiveHistory");
+const archiveDialog = document.querySelector("#archiveDialog");
+const archiveSearchInput = document.querySelector("#archiveSearchInput");
+const archiveCount = document.querySelector("#archiveCount");
+const archiveList = document.querySelector("#archiveList");
+const closeArchiveButton = document.querySelector("#closeArchive");
 const conversationStorageKey = "inkecho.conversation.v1";
 const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
@@ -1606,6 +1612,10 @@ function formatCheckpointDate(timestamp) {
   return date.toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function getCheckpointMessageCount(checkpoint) {
+  return (checkpoint?.conversationArchive?.length || 0) + (checkpoint?.conversation?.length || 0);
+}
+
 function renderCheckpoints() {
   if (!checkpointList) return;
   const checkpoints = getActiveProject()?.checkpoints || [];
@@ -1626,7 +1636,7 @@ function renderCheckpoints() {
     title.textContent = checkpoint.name;
     const meta = document.createElement("small");
     meta.className = "checkpoint-meta";
-    meta.textContent = `${formatCheckpointDate(checkpoint.createdAt)} · ${checkpoint.conversation.length} 条消息`;
+    meta.textContent = `${formatCheckpointDate(checkpoint.createdAt)} · ${getCheckpointMessageCount(checkpoint)} 条消息`;
     main.append(title, meta);
     const actions = document.createElement("div");
     actions.className = "checkpoint-actions";
@@ -1675,6 +1685,64 @@ function openCheckpointDialog() {
 
 function closeCheckpointDialog() {
   checkpointDialog.close();
+}
+
+function renderArchiveHistory() {
+  if (!archiveList || !archiveCount) return;
+  const archive = getActiveProject()?.conversationArchive || [];
+  const query = archiveSearchInput.value.trim().toLocaleLowerCase();
+  const matches = archive.filter((item) => {
+    if (!query) return true;
+    const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
+    return `${speaker} ${item.content}`.toLocaleLowerCase().includes(query);
+  });
+  archiveCount.textContent = query ? `${matches.length} / ${archive.length} 条归档` : `${archive.length} 条归档`;
+  archiveList.innerHTML = "";
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.className = "archive-empty";
+    empty.textContent = archive.length ? "没有匹配的归档消息" : "还没有归档消息";
+    archiveList.appendChild(empty);
+    return;
+  }
+  matches.slice().reverse().forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "archive-card";
+    const meta = document.createElement("div");
+    meta.className = "archive-card-meta";
+    const speaker = document.createElement("strong");
+    speaker.textContent = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
+    const role = document.createElement("span");
+    role.textContent = item.role === "assistant" ? "角色回复" : "我的提问";
+    meta.append(speaker, role);
+    const content = document.createElement("p");
+    content.textContent = item.content;
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.className = "message-action archive-copy";
+    copy.textContent = "复制";
+    copy.setAttribute("aria-label", `复制${speaker.textContent}的归档消息`);
+    copy.addEventListener("click", () => copyText(item.content, "归档消息已复制"));
+    card.append(meta, content, copy);
+    archiveList.appendChild(card);
+  });
+}
+
+function openArchiveHistory() {
+  if (preventWorkspaceMutation("查看归档历史")) return;
+  const archive = getActiveProject()?.conversationArchive || [];
+  if (!archive.length) {
+    showToast("当前项目还没有归档消息");
+    return;
+  }
+  archiveSearchInput.value = "";
+  renderArchiveHistory();
+  archiveDialog.showModal();
+  archiveSearchInput.focus();
+}
+
+function closeArchiveHistory() {
+  archiveDialog.close();
 }
 
 function restoreCheckpoint(checkpointId) {
@@ -1816,7 +1884,7 @@ function exportSession() {
     "## 对话检查点",
     "",
     checkpoints.length
-      ? checkpoints.map((checkpoint) => `- **${checkpoint.name}**：${formatCheckpointDate(checkpoint.createdAt)} · ${checkpoint.conversation.length} 条消息`).join("\n")
+      ? checkpoints.map((checkpoint) => `- **${checkpoint.name}**：${formatCheckpointDate(checkpoint.createdAt)} · ${getCheckpointMessageCount(checkpoint)} 条消息`).join("\n")
       : "暂无检查点",
     "",
     "---",
@@ -2844,6 +2912,15 @@ advanceBeatButton.addEventListener("click", advanceCurrentBeat);
 closeCheckpointButton.addEventListener("click", closeCheckpointDialog);
 checkpointDialog.addEventListener("click", (event) => {
   if (event.target === checkpointDialog) closeCheckpointDialog();
+});
+openArchiveHistoryButton.addEventListener("click", () => {
+  closeConversationMenu();
+  openArchiveHistory();
+});
+archiveSearchInput.addEventListener("input", renderArchiveHistory);
+closeArchiveButton.addEventListener("click", closeArchiveHistory);
+archiveDialog.addEventListener("click", (event) => {
+  if (event.target === archiveDialog) closeArchiveHistory();
 });
 
 document.addEventListener("pointermove", (event) => {
