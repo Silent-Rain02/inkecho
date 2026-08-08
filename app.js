@@ -61,6 +61,7 @@ const refreshModelsButton = document.querySelector("#refreshModels");
 const testProviderButton = document.querySelector("#testProvider");
 const modelOptions = document.querySelector("#modelOptions");
 const openProviderDiagnosticsButton = document.querySelector("#openProviderDiagnostics");
+const copyProviderConfigKeysButton = document.querySelector("#copyProviderConfigKeys");
 const providerDiagnosticsDialog = document.querySelector("#providerDiagnosticsDialog");
 const providerDiagnosticsStats = document.querySelector("#providerDiagnosticsStats");
 const providerDiagnosticsText = document.querySelector("#providerDiagnosticsText");
@@ -351,6 +352,7 @@ let pendingSummaryPreview = null;
 let summaryEditPending = false;
 let streamController = null;
 let providerHealthRequestId = 0;
+let providerMissingKeys = [];
 let serverHistoryBudget = 48000;
 let serverRequestTimeout = 120000;
 let editingCharacterName = null;
@@ -2773,6 +2775,8 @@ function stopGeneration() {
 
 function updateProviderUI() {
   const provider = providerSelect.value;
+  providerMissingKeys = [];
+  copyProviderConfigKeysButton.hidden = true;
   providerDescription.textContent = providerDescriptions[provider];
   if (!modelName.value.trim() || Object.values(providerDefaults).includes(modelName.value.trim())) {
     modelName.value = providerDefaults[provider];
@@ -2798,6 +2802,21 @@ async function fetchWithTimeout(url, options = {}, timeout = providerRequestTime
 
 function providerDisplayName(provider) {
   return providerSelect.querySelector(`option[value="${provider}"]`)?.textContent || provider;
+}
+
+async function copyProviderConfigKeys() {
+  if (!providerMissingKeys.length) {
+    showToast("当前服务没有缺少的配置键名");
+    return;
+  }
+  const text = [
+    `InkEcho · ${providerDisplayName(providerSelect.value)} 配置键名`,
+    "",
+    ...providerMissingKeys.map((key) => `- ${key}`),
+    "",
+    "仅包含环境变量名称，不包含任何密钥、端点或请求头值。",
+  ].join("\n");
+  await copyText(text, "配置键名已复制");
 }
 
 function formatProviderDiagnostics(payload, provider, model) {
@@ -2889,6 +2908,8 @@ async function checkProviderHealth(provider = providerSelect.value) {
     const configured = Boolean(payload.providers && payload.providers[provider]);
     const missing = payload.provider_details?.[provider]?.missing;
     const missingKeys = payload.provider_details?.[provider]?.missing_keys;
+    providerMissingKeys = Array.isArray(missingKeys) ? missingKeys : [];
+    copyProviderConfigKeysButton.hidden = !providerMissingKeys.length;
     const missingFieldsText = Array.isArray(missing) && missing.length ? `缺少：${missing.join("、")}` : "";
     const missingKeysText = Array.isArray(missingKeys) && missingKeys.length ? `请补：${missingKeys.join("、")}` : "";
     const missingHint = [missingFieldsText, missingKeysText].filter(Boolean).join("；");
@@ -3873,6 +3894,7 @@ responseLengthSelect.addEventListener("change", () => {
 refreshModelsButton.addEventListener("click", refreshModels);
 testProviderButton.addEventListener("click", testProviderConnection);
 openProviderDiagnosticsButton.addEventListener("click", openProviderDiagnostics);
+copyProviderConfigKeysButton.addEventListener("click", copyProviderConfigKeys);
 copyProviderDiagnosticsButton.addEventListener("click", () => copyText(providerDiagnosticsText.textContent, "连接诊断已复制"));
 providerDiagnosticsDialog.addEventListener("click", (event) => {
   if (event.target === providerDiagnosticsDialog) providerDiagnosticsDialog.close();
