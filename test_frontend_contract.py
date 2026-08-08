@@ -95,6 +95,7 @@ class FrontendContractTests(unittest.TestCase):
             "searchArchivedMessages",
             "copyScenePlan",
             "copyProjectHandoff",
+            "downloadProjectHandoff",
             "projectSearchCount",
         }
         self.assertTrue(required.issubset(ids))
@@ -165,6 +166,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("场景计划已复制", self.javascript)
         self.assertIn("function formatProjectHandoff", self.javascript)
         self.assertIn("function copyProjectHandoff", self.javascript)
+        self.assertIn("function downloadProjectHandoff", self.javascript)
+        self.assertIn("项目交接摘要已下载", self.javascript)
         self.assertIn("项目交接摘要已复制", self.javascript)
         self.assertIn("不包含 API key、端点或其他敏感配置", self.javascript)
         self.assertIn('"## 参考片段"', self.javascript)
