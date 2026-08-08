@@ -33,6 +33,11 @@ const characterToneInput = document.querySelector("#characterToneInput");
 const characterDetailsInput = document.querySelector("#characterDetailsInput");
 const deleteCharacterButton = document.querySelector("#deleteCharacter");
 const cancelCharacterButton = document.querySelector("#cancelCharacter");
+const openCharacterLibraryButton = document.querySelector("#openCharacterLibrary");
+const characterLibraryDialog = document.querySelector("#characterLibraryDialog");
+const characterLibraryList = document.querySelector("#characterLibraryList");
+const saveSelectedCharacterButton = document.querySelector("#saveSelectedCharacter");
+const closeCharacterLibraryButton = document.querySelector("#closeCharacterLibrary");
 const providerSelect = document.querySelector("#providerSelect");
 const modelName = document.querySelector("#modelName");
 const providerBadge = document.querySelector("#providerBadge");
@@ -114,6 +119,7 @@ const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
 const projectsStorageKey = "inkecho.projects.v1";
 const customTemplatesStorageKey = "inkecho.templates.v1";
+const characterLibraryStorageKey = "inkecho.character-library.v1";
 const activeProjectStorageKey = "inkecho.active-project.v1";
 const focusModeStorageKey = "inkecho.focus-mode.v1";
 const defaultCharacters = [
@@ -155,6 +161,7 @@ const responseLengthLabels = {
 };
 const maxProjects = 50;
 const maxCustomTemplates = 12;
+const maxLibraryCharacters = 24;
 const maxConversationMessages = 120;
 const maxArchivedMessages = 360;
 const maxStoredConversationMessages = maxConversationMessages + maxArchivedMessages;
@@ -310,6 +317,7 @@ const defaultConversationHistory = [
 ];
 let projects = loadProjects();
 let customTemplates = loadCustomTemplates();
+let characterLibrary = loadCharacterLibrary();
 let activeProjectId = projects[0].id;
 try {
   activeProjectId = localStorage.getItem(activeProjectStorageKey) || projects[0].id;
@@ -419,6 +427,39 @@ function loadCustomTemplates() {
     // Use the built-in starters when custom templates are unavailable.
   }
   return [];
+}
+
+function normalizeLibraryCharacter(item, fallbackName = "角色") {
+  const source = item && typeof item === "object" ? item : {};
+  return {
+    id: safeText(source.id, `library-character-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+    name: safeText(source.name, fallbackName, 40),
+    tone: safeText(source.tone, "待设定", 240),
+    details: safeText(source.details, "", 500),
+  };
+}
+
+function loadCharacterLibrary() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(characterLibraryStorageKey) || "null");
+    if (Array.isArray(saved)) {
+      return saved.slice(0, maxLibraryCharacters)
+        .map((item) => normalizeLibraryCharacter(item))
+        .filter((item, index, list) => list.findIndex((candidate) => candidate.name === item.name) === index);
+    }
+  } catch {
+    // Keep the library empty when local storage is unavailable.
+  }
+  return [];
+}
+
+function persistCharacterLibrary() {
+  try {
+    localStorage.setItem(characterLibraryStorageKey, JSON.stringify(characterLibrary));
+    updateStorageStatus();
+  } catch {
+    notifyStorageIssue();
+  }
 }
 
 function persistCustomTemplates() {
@@ -684,7 +725,7 @@ function updateStorageStatus(failed = false) {
     return;
   }
   try {
-    const bytes = new Blob([JSON.stringify({ projects, customTemplates })]).size;
+    const bytes = new Blob([JSON.stringify({ projects, customTemplates, characterLibrary })]).size;
     const size = bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1000))} KB`;
     storageStatus.textContent = `本地数据约 ${size}`;
     if (bytes >= 3_500_000) {
@@ -1913,11 +1954,12 @@ function exportProjectsBackup() {
   persistActiveProject();
   const backup = {
     format: "inkecho-projects",
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     activeProjectId,
     projects,
     customTemplates,
+    characterLibrary,
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -1981,6 +2023,9 @@ async function importProjectsBackup() {
     const sourceTemplates = backup?.format === "inkecho-projects" && Array.isArray(backup.customTemplates)
       ? backup.customTemplates
       : [];
+    const sourceLibrary = backup?.format === "inkecho-projects" && Array.isArray(backup.characterLibrary)
+      ? backup.characterLibrary
+      : [];
     if (!sourceProjects?.length || !sourceProjects[0] || typeof sourceProjects[0] !== "object") {
       throw new Error("invalid backup");
     }
@@ -1991,7 +2036,11 @@ async function importProjectsBackup() {
       id: `template-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
       title: `${safeText(template?.title, "我的模板", 80)} · 导入`,
     }));
-    if (!slots && !importedTemplates.length) {
+    const importedLibraryCharacters = sourceLibrary.slice(0, maxLibraryCharacters).map((character, index) => normalizeLibraryCharacter({
+      ...character,
+      id: `library-character-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+    }));
+    if (!slots && !importedTemplates.length && !importedLibraryCharacters.length) {
       showToast(`项目数量已达到上限（${maxProjects} 个）`);
       return;
     }
@@ -2000,7 +2049,8 @@ async function importProjectsBackup() {
       : sourceProjects[0];
     const activeLabel = sourceActiveProject?.name ? `\n备份中的当前项目：${sourceActiveProject.name}` : "";
     const templateLabel = importedTemplates.length ? `\n另含 ${importedTemplates.length} 个自定义模板。` : "";
-    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${activeLabel}${templateLabel}\n确定继续吗？`)) return;
+    const libraryLabel = importedLibraryCharacters.length ? `\n另含 ${importedLibraryCharacters.length} 个角色库条目。` : "";
+    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${activeLabel}${templateLabel}${libraryLabel}\n确定继续吗？`)) return;
     const importedEntries = sourceProjects.slice(0, slots).map((project, index) => {
       const source = project && typeof project === "object" ? project : {};
       return {
@@ -2017,17 +2067,21 @@ async function importProjectsBackup() {
     persistActiveProject();
     projects.push(...imported);
     customTemplates = [...importedTemplates, ...customTemplates].slice(0, maxCustomTemplates);
+    characterLibrary = [...importedLibraryCharacters, ...characterLibrary]
+      .filter((item, index, list) => list.findIndex((candidate) => candidate.name === item.name) === index)
+      .slice(0, maxLibraryCharacters);
     const selectedImported = importedEntries.find((entry) => entry.sourceId === sourceActiveProjectId);
     if (selectedImported?.project) activeProjectId = selectedImported.project.id;
     else if (imported[0]) activeProjectId = imported[0].id;
     persistProjects();
     persistCustomTemplates();
+    persistCharacterLibrary();
     hydrateActiveProject();
     renderProjectSelect();
     renderCharacters();
     renderConversation();
     updateProviderUI();
-    showToast(`已导入 ${imported.length} 个项目${importedTemplates.length ? `和 ${importedTemplates.length} 个模板` : ""}`);
+    showToast(`已导入 ${imported.length} 个项目${importedTemplates.length ? `、${importedTemplates.length} 个模板` : ""}${importedLibraryCharacters.length ? `、${importedLibraryCharacters.length} 个角色` : ""}`);
   } catch {
     showToast("备份文件无效，请选择 InkEcho 导出的 JSON");
   } finally {
@@ -2613,6 +2667,105 @@ function deleteCharacter() {
   showToast("角色已删除");
 }
 
+function renderCharacterLibrary() {
+  if (!characterLibraryList) return;
+  characterLibraryList.innerHTML = "";
+  if (!characterLibrary.length) {
+    const empty = document.createElement("p");
+    empty.className = "character-library-empty";
+    empty.textContent = "角色库还是空的。先保存当前角色，再在其他作品里复用。";
+    characterLibraryList.appendChild(empty);
+    return;
+  }
+  characterLibrary.forEach((character) => {
+    const card = document.createElement("article");
+    card.className = "library-character-card";
+    const info = document.createElement("div");
+    info.className = "library-character-info";
+    const title = document.createElement("strong");
+    title.textContent = character.name;
+    const tone = document.createElement("small");
+    tone.textContent = character.tone;
+    const details = document.createElement("p");
+    details.textContent = character.details || "暂无人物设定";
+    info.append(title, tone, details);
+    const actions = document.createElement("div");
+    actions.className = "library-character-actions";
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "message-action";
+    add.textContent = "加入当前项目";
+    add.addEventListener("click", () => addLibraryCharacter(character.id));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "message-action library-character-remove";
+    remove.textContent = "删除";
+    remove.addEventListener("click", () => deleteLibraryCharacter(character.id));
+    actions.append(add, remove);
+    card.append(info, actions);
+    characterLibraryList.appendChild(card);
+  });
+}
+
+function openCharacterLibrary() {
+  if (preventWorkspaceMutation("查看角色库")) return;
+  renderCharacterLibrary();
+  characterLibraryDialog.showModal();
+}
+
+function closeCharacterLibrary() {
+  characterLibraryDialog.close();
+}
+
+function saveSelectedCharacterToLibrary() {
+  if (preventWorkspaceMutation("保存角色")) return;
+  const character = normalizeLibraryCharacter(selectedCharacter);
+  const existingIndex = characterLibrary.findIndex((item) => item.name === character.name);
+  if (existingIndex < 0 && characterLibrary.length >= maxLibraryCharacters) {
+    showToast(`角色库最多保存 ${maxLibraryCharacters} 个角色`);
+    return;
+  }
+  if (existingIndex >= 0 && !window.confirm(`角色库已有「${character.name}」，要覆盖设定吗？`)) return;
+  if (existingIndex >= 0) character.id = characterLibrary[existingIndex].id;
+  characterLibrary = [character, ...characterLibrary.filter((item) => item.name !== character.name)].slice(0, maxLibraryCharacters);
+  persistCharacterLibrary();
+  renderCharacterLibrary();
+  showToast(`已保存角色「${character.name}」`);
+}
+
+function addLibraryCharacter(characterId) {
+  if (preventWorkspaceMutation("加入角色")) return;
+  const character = characterLibrary.find((item) => item.id === characterId);
+  if (!character) return;
+  const project = getActiveProject();
+  const characters = getDisplayedCharacters();
+  const existing = characters.find((item) => item.name === character.name);
+  if (existing) {
+    selectedCharacter = { ...existing };
+    renderCharacters();
+    conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+    persistActiveProject();
+    showToast(`已切换到角色「${character.name}」`);
+    return;
+  }
+  characters.push({ name: character.name, tone: character.tone, details: character.details });
+  project.characters = characters;
+  selectedCharacter = { ...character };
+  renderCharacters();
+  conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+  persistActiveProject();
+  showToast(`已加入角色「${character.name}」`);
+}
+
+function deleteLibraryCharacter(characterId) {
+  const character = characterLibrary.find((item) => item.id === characterId);
+  if (!character || !window.confirm(`删除角色库中的「${character.name}」吗？不会影响已有项目。`)) return;
+  characterLibrary = characterLibrary.filter((item) => item.id !== characterId);
+  persistCharacterLibrary();
+  renderCharacterLibrary();
+  showToast("角色库条目已删除");
+}
+
 function fillPrompt(text) {
   messageInput.value = text;
   messageInput.focus();
@@ -2881,11 +3034,17 @@ document.querySelector("#resetSession").addEventListener("click", () => {
 
 manageCharacterButton.addEventListener("click", () => openCharacterEditor(selectedCharacter));
 document.querySelector("#addCharacter").addEventListener("click", () => openCharacterEditor());
+openCharacterLibraryButton.addEventListener("click", openCharacterLibrary);
 characterForm.addEventListener("submit", saveCharacter);
 deleteCharacterButton.addEventListener("click", deleteCharacter);
 cancelCharacterButton.addEventListener("click", closeCharacterEditor);
 characterDialog.addEventListener("click", (event) => {
   if (event.target === characterDialog) closeCharacterEditor();
+});
+saveSelectedCharacterButton.addEventListener("click", saveSelectedCharacterToLibrary);
+closeCharacterLibraryButton.addEventListener("click", closeCharacterLibrary);
+characterLibraryDialog.addEventListener("click", (event) => {
+  if (event.target === characterLibraryDialog) closeCharacterLibrary();
 });
 addPromptButton.addEventListener("click", openPromptEditor);
 appendHighlightsButton.addEventListener("click", appendHighlightsToSummary);
