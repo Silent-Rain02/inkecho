@@ -55,6 +55,9 @@ class FrontendContractTests(unittest.TestCase):
             "archiveSearchInput",
             "archiveList",
             "openArchiveHistory",
+            "characterLibraryDialog",
+            "openCharacterLibrary",
+            "characterLibraryList",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -90,12 +93,17 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function saveCurrentAsTemplate", self.javascript)
         self.assertIn("function deleteCustomTemplate", self.javascript)
         self.assertIn("customTemplates", self.javascript)
-        self.assertIn('version: 2', self.javascript)
+        self.assertIn('version: 3', self.javascript)
         self.assertIn("sourceTemplates", self.javascript)
         self.assertIn("function renderArchiveHistory", self.javascript)
         self.assertIn("function openArchiveHistory", self.javascript)
         self.assertIn("查看归档历史", self.javascript)
         self.assertIn("function getCheckpointMessageCount", self.javascript)
+        self.assertIn("const characterLibraryStorageKey", self.javascript)
+        self.assertIn("function renderCharacterLibrary", self.javascript)
+        self.assertIn("function saveSelectedCharacterToLibrary", self.javascript)
+        self.assertIn("function addLibraryCharacter", self.javascript)
+        self.assertIn("characterLibrary", self.javascript)
         self.assertIn("function formatConversationForExport", self.javascript)
         self.assertIn("备选回复", self.javascript)
 
