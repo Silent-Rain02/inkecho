@@ -131,6 +131,9 @@ h2 { margin: 7px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.06em
 .project-search input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--ink-soft); background: transparent; font-size: 10px; }
 .project-search input::placeholder { color: #a6aba3; }
 .project-search:focus-within { color: var(--accent-dark); }
+.storage-status { grid-column: 1 / -1; margin: 0; color: var(--muted); font: 8px var(--mono); }
+.storage-status.is-warning { color: var(--accent); }
+.storage-status.is-error { color: #a24f3e; }
 .mini-button { width: 23px; height: 23px; padding: 0; border: 1px solid transparent; color: var(--muted); background: transparent; font: 16px var(--mono); line-height: 1; }
 .mini-button:hover { border-color: #d6dfd0; color: var(--accent); background: #f0f5eb; }
 .field-label { display: block; margin: 0 0 8px; color: var(--muted); font-size: 11px; }
