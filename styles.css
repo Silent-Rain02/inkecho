@@ -390,6 +390,18 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .checkpoint-remove { padding: 3px 7px; color: #b2b7af; font: 14px var(--mono); line-height: 1; }
 .checkpoint-restore:hover, .checkpoint-remove:hover { border-color: #d0daca; color: var(--accent-dark); background: #f3f6ee; }
 .checkpoint-dialog-actions { margin-top: 0; }
+.archive-dialog { width: min(650px, calc(100% - 36px)); }
+.archive-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
+.archive-search-input { flex: 1; min-width: 0; margin: 0; }
+.archive-count { flex: none; color: var(--muted); font: 9px var(--mono); }
+.archive-list { display: grid; gap: 8px; max-height: 390px; margin-bottom: 20px; overflow: auto; }
+.archive-empty { margin: 0; padding: 15px 12px; border: 1px dashed #dfe2d9; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.archive-card { position: relative; padding: 11px 12px 31px; border: 1px solid var(--line); background: #fbfbf7; }
+.archive-card-meta { display: flex; align-items: baseline; gap: 8px; }
+.archive-card-meta strong { color: var(--ink-soft); font-size: 11px; }
+.archive-card-meta span { color: var(--muted); font: 8px var(--mono); }
+.archive-card p { margin: 7px 0 0; color: var(--ink-soft); font-size: 11px; line-height: 1.7; white-space: pre-wrap; }
+.archive-copy { position: absolute; right: 10px; bottom: 7px; }
 .dialog-input, .dialog-textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--line); outline: 0; color: var(--ink); background: #fbfbf7; font-size: 13px; }
 .dialog-input { height: 38px; margin-bottom: 18px; padding: 0 10px; }
 .dialog-textarea { min-height: 84px; margin-bottom: 21px; padding: 9px 10px; line-height: 1.7; resize: vertical; }
