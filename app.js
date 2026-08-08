@@ -2929,6 +2929,19 @@ function addLibraryCharacter(characterId) {
   const characters = getDisplayedCharacters();
   const existing = characters.find((item) => item.name === character.name);
   if (existing) {
+    const hasDifferentSetup = existing.tone !== character.tone || (existing.details || "") !== (character.details || "");
+    if (hasDifferentSetup) {
+      if (!window.confirm(`角色库中的「${character.name}」设定与当前项目不同，要覆盖当前项目角色卡吗？`)) return;
+      existing.tone = character.tone;
+      existing.details = character.details;
+      project.characters = characters;
+      selectedCharacter = { ...existing };
+      renderCharacters();
+      conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+      persistActiveProject();
+      showToast(`已用角色库设定更新「${character.name}」`);
+      return;
+    }
     selectedCharacter = { ...existing };
     renderCharacters();
     conversationTitle.textContent = `与${selectedCharacter.name}对话`;
