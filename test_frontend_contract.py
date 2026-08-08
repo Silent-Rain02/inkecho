@@ -68,6 +68,7 @@ class FrontendContractTests(unittest.TestCase):
             "promptLibraryList",
             "savePromptToLibrary",
             "searchArchivedMessages",
+            "copyScenePlan",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -127,6 +128,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("persistActiveProject();", self.javascript)
         self.assertIn('if (active.status === "active") active.status = "planned"', self.javascript)
         self.assertIn("const replacement = project.beats.find((item) => item.status === \"active\")", self.javascript)
+        self.assertIn("function copyScenePlan", self.javascript)
+        self.assertIn("场景计划已复制", self.javascript)
         self.assertIn("归档引用", self.javascript)
         self.assertIn("查看归档历史", self.javascript)
         self.assertIn("function clearArchivedHistory", self.javascript)
