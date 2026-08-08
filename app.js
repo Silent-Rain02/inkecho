@@ -1664,6 +1664,12 @@ async function importProjectsBackup() {
       showToast(`项目数量已达到上限（${maxProjects} 个）`);
       return;
     }
+    const importCount = Math.min(sourceProjects.length, slots);
+    const sourceActiveProject = backup?.format === "inkecho-projects"
+      ? sourceProjects.find((project) => String(project?.id || "") === sourceActiveProjectId)
+      : sourceProjects[0];
+    const activeLabel = sourceActiveProject?.name ? `\n备份中的当前项目：${sourceActiveProject.name}` : "";
+    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${activeLabel}\n确定继续吗？`)) return;
     const importedEntries = sourceProjects.slice(0, slots).map((project, index) => {
       const source = project && typeof project === "object" ? project : {};
       return {
