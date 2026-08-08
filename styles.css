@@ -386,10 +386,11 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .checkpoint-main strong { display: block; overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .checkpoint-meta { display: block; margin-top: 4px; color: var(--muted); font: 9px var(--mono); }
 .checkpoint-actions { display: inline-flex; align-items: center; gap: 5px; flex: none; }
-.checkpoint-restore, .checkpoint-remove { border: 1px solid var(--line); background: transparent; font-size: 10px; }
+.checkpoint-restore, .checkpoint-branch, .checkpoint-remove { border: 1px solid var(--line); background: transparent; font-size: 10px; }
 .checkpoint-restore { padding: 5px 8px; color: var(--accent); }
+.checkpoint-branch { padding: 5px 7px; color: var(--ink-soft); }
 .checkpoint-remove { padding: 3px 7px; color: #b2b7af; font: 14px var(--mono); line-height: 1; }
-.checkpoint-restore:hover, .checkpoint-remove:hover { border-color: #d0daca; color: var(--accent-dark); background: #f3f6ee; }
+.checkpoint-restore:hover, .checkpoint-branch:hover, .checkpoint-remove:hover { border-color: #d0daca; color: var(--accent-dark); background: #f3f6ee; }
 .checkpoint-dialog-actions { margin-top: 0; }
 .character-library-list { display: grid; gap: 8px; max-height: 390px; margin-bottom: 20px; overflow: auto; }
 .character-library-empty { margin: 0; padding: 15px 12px; border: 1px dashed #dfe2d9; color: var(--muted); font-size: 11px; line-height: 1.7; }
