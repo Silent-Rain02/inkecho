@@ -2479,10 +2479,13 @@ function getContext() {
 }
 
 function exportSession() {
+  flushDraft();
+  const project = getActiveProject();
   const context = getContext();
-  const highlights = getActiveProject()?.highlights || [];
-  const checkpoints = getActiveProject()?.checkpoints || [];
-  const sceneBeats = getActiveProject()?.beats || [];
+  const highlights = project?.highlights || [];
+  const checkpoints = project?.checkpoints || [];
+  const sceneBeats = project?.beats || [];
+  const draft = messageInput.value.trim();
   const characters = Array.from(document.querySelectorAll(".character-card")).map((card) => {
     const name = card.dataset.character || "未命名角色";
     const tone = card.dataset.tone || "";
@@ -2505,6 +2508,7 @@ function exportSession() {
     context.reference ? `- **参考片段**：\n\n${context.reference}` : "",
     context.summary ? `- **剧情摘要**：\n\n${context.summary}` : "",
     context.instructions ? `- **本次创作要求**：\n\n${context.instructions}` : "",
+    draft ? `## 当前草稿\n\n${draft}` : "",
     "",
     "## 角色卡",
     "",
