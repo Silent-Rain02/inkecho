@@ -2359,7 +2359,7 @@ async function summarizeConversation() {
     return;
   }
   if (preventWorkspaceMutation("提炼摘要")) return;
-  if (conversationHistory.length < 2) {
+  if (getConversationMessageCount() < 2) {
     showToast("先完成一轮对话，再提炼剧情摘要");
     return;
   }
@@ -2422,7 +2422,7 @@ async function summarizeCurrentSceneOutcome() {
     showToast("先在场景计划中设定当前场景");
     return;
   }
-  if (conversationHistory.length < 1) {
+  if (getConversationMessageCount() < 1) {
     showToast("先完成一轮对话，再提炼本幕结果");
     return;
   }
