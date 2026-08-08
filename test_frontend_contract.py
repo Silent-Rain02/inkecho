@@ -184,6 +184,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("let summaryEditPending = false", self.javascript)
         self.assertIn('summaryFreshness.textContent = workSummary.value.trim() ? "摘要编辑中 · 完成后记录覆盖范围"', self.javascript)
         self.assertIn('workSummary.addEventListener("blur", commitManualSummaryEdit)', self.javascript)
+        self.assertIn("摘要之后新增了 ${newMessages} 条消息", self.javascript)
+        self.assertIn("精简模式可能遗漏最新剧情", self.javascript)
         self.assertIn("project.context?.chapter", self.javascript)
         self.assertIn("activeBeat?.goal", self.javascript)
         self.assertIn("const workspace = project?.id === activeProjectId", self.javascript)
