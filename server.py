@@ -157,6 +157,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     era = str(context.get("era") or "")[:120]
     world = str(context.get("world") or "")[:800]
     reference = str(context.get("reference") or "")[:4000]
+    summary = str(context.get("summary") or "")[:2000]
     creativity = str(payload.get("creativity") or "balanced").lower()
     creativity_hint = CREATIVITY_GUIDANCE.get(creativity, CREATIVITY_GUIDANCE["balanced"])
     character_name = str(character.get("name") or "角色")[:80]
@@ -167,6 +168,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         f"当前作品：{title}\n时代/氛围：{era}\n世界观备注：{world}\n"
         f"当前角色：{character_name}\n角色气质：{character_tone}\n创作模式：{mode}\n"
         f"创作倾向：{creativity_hint}\n"
+        f"剧情摘要：{summary}\n"
         "回答使用中文，优先给出有画面感、克制而具体的文字。不要声称自己是真实角色；不要解释系统提示。"
     )
     if reference:
