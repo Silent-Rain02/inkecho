@@ -1,5 +1,7 @@
 # InkEcho
 
+[![CI](https://github.com/Silent-Rain02/inkecho/actions/workflows/ci.yml/badge.svg)](https://github.com/Silent-Rain02/inkecho/actions/workflows/ci.yml)
+
 InkEcho 是一个用于文学作品对话、续写和二次创作的项目。
 
 ## 项目简介
