@@ -67,6 +67,7 @@ class FrontendContractTests(unittest.TestCase):
             "promptLibraryCount",
             "promptLibraryList",
             "savePromptToLibrary",
+            "searchArchivedMessages",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -110,6 +111,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("sourceTemplates", self.javascript)
         self.assertIn("function renderArchiveHistory", self.javascript)
         self.assertIn("function openArchiveHistory", self.javascript)
+        self.assertIn("openArchiveHistory(query)", self.javascript)
+        self.assertIn("搜归档", self.html)
         self.assertIn("function quoteArchiveMessage", self.javascript)
         self.assertIn("function branchFromArchiveMessage", self.javascript)
         self.assertIn("archive-branch", self.javascript)
