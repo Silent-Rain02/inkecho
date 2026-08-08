@@ -46,6 +46,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
         self.assertIn("记为结果", self.javascript)
+        self.assertIn("sourceActiveProjectId", self.javascript)
+        self.assertIn("selectedImported", self.javascript)
 
 
 if __name__ == "__main__":
