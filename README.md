@@ -88,6 +88,8 @@ python3 server.py
 
 然后访问 <http://localhost:5173>。
 
+服务只会提供 InkEcho 的前端运行文件，不会把 `.env`、README 或测试文件作为静态资源暴露。
+
 ## 开发计划
 
 - 整理文学作品与相关资料
