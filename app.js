@@ -818,8 +818,8 @@ function isSummaryContextMode() {
   return getActiveProject()?.contextMode === "summary";
 }
 
-function getModelMessages() {
-  const source = isSummaryContextMode() ? conversationHistory.slice(-4) : conversationHistory.slice(-20);
+function getModelMessages({ fullHistory = false } = {}) {
+  const source = !fullHistory && isSummaryContextMode() ? conversationHistory.slice(-4) : conversationHistory.slice(-20);
   const selected = [];
   let historyChars = 0;
   for (const item of [...source].reverse()) {
@@ -1873,7 +1873,7 @@ async function summarizeConversation() {
         provider,
         model,
         context: getContext(),
-        messages: conversationHistory,
+        messages: getModelMessages({ fullHistory: true }),
       }),
     }, clientModelRequestTimeout(summaryRequestTimeout));
     const payload = await response.json();
@@ -1934,7 +1934,7 @@ async function summarizeCurrentSceneOutcome() {
         model,
         summary_target: "scene",
         context: getContext(),
-        messages: getModelMessages(),
+        messages: getModelMessages({ fullHistory: true }),
       }),
     }, clientModelRequestTimeout(summaryRequestTimeout));
     const payload = await response.json();
