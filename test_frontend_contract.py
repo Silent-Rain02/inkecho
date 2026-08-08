@@ -33,6 +33,7 @@ class FrontendContractTests(unittest.TestCase):
     def test_runtime_assets_are_present_and_expected_controls_are_wired(self) -> None:
         self.assertIn('<link rel="stylesheet" href="styles.css"', self.html)
         self.assertIn('<script src="app.js"></script>', self.html)
+        self.assertIn("overflow-wrap: anywhere", (ROOT / "styles.css").read_text(encoding="utf-8"))
         ids = set(re.findall(r'\bid=["\']([^"\']+)["\']', self.html))
         required = {
             "projectSelect",
