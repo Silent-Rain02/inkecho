@@ -43,6 +43,7 @@ InkEcho 是一个用于文学作品对话、续写和二次创作的项目。
 - 模型服务切换：办公网自定义 Azure、Ollama、OpenAI、Azure OpenAI、OpenAI-compatible
 - 每个项目会分别记住不同模型服务的模型名，切换办公网 Azure、Ollama 或兼容接口时不会互相覆盖
 - 模型状态会区分“配置完整”和“已连接”：Ollama、OpenAI-compatible 会通过模型列表请求验证连通性；办公网 Azure 会明确标记为配置完成，因为企业端点通常不提供模型列表接口
+- 服务端会识别 `.env.example` 中的占位符，不会把未替换的密钥、端点或部署名误报为配置完整
 - 支持从 Ollama、OpenAI 和 OpenAI-compatible 服务读取可用模型列表
 - Ollama 本地模型支持，可配置 `qwen3:8b` 等模型
 - 模型流式输出，回复会逐字出现在对话框中
