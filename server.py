@@ -324,7 +324,13 @@ class InkEchoHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/models":
             provider = parse_qs(parsed.query).get("provider", [env("INK_ECHO_PROVIDER", "custom_azure")])[0]
             try:
-                self.send_json({"ok": True, "provider": provider, "models": list_provider_models(provider)})
+                models = list_provider_models(provider)
+                # Azure deployment names are configured locally because many
+                # enterprise gateways do not expose a model-list endpoint.
+                # Other providers reach their /models endpoint, so they are
+                # useful as an actual connectivity check.
+                verified = provider.lower() not in {"custom_azure", "azure"}
+                self.send_json({"ok": True, "provider": provider, "models": models, "verified": verified})
             except Exception as exc:  # noqa: BLE001
                 print(f"[InkEcho] model listing failed: {type(exc).__name__}")
                 self.send_json({"ok": False, "provider": provider, "models": [], "error": "无法读取模型列表"}, status=error_status(exc))
