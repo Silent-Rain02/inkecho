@@ -16,6 +16,7 @@ const searchConversationButton = document.querySelector("#searchConversationButt
 const conversationSearch = document.querySelector("#conversationSearch");
 const conversationSearchInput = document.querySelector("#conversationSearchInput");
 const conversationSearchCount = document.querySelector("#conversationSearchCount");
+const searchArchivedMessagesButton = document.querySelector("#searchArchivedMessages");
 const clearConversationSearchButton = document.querySelector("#clearConversationSearch");
 const composerHint = document.querySelector("#composerHint");
 const toast = document.querySelector("#toast");
@@ -1407,7 +1408,7 @@ function filterConversationMessages() {
   const rows = Array.from(messages.querySelectorAll(".message-row"));
   if (!query) {
     rows.forEach((row) => { row.hidden = false; });
-    conversationSearchCount.textContent = `${conversationHistory.length} 条消息`;
+    conversationSearchCount.textContent = `${conversationHistory.length} 条工作区消息`;
     return;
   }
   let matched = 0;
@@ -1418,7 +1419,7 @@ function filterConversationMessages() {
     row.hidden = !isMatch;
     if (isMatch) matched += 1;
   });
-  conversationSearchCount.textContent = `${matched} / ${rows.length} 条`;
+  conversationSearchCount.textContent = `${matched} / ${rows.length} 条工作区消息`;
 }
 
 function switchMessageVersion(historyIndex, nextVersion) {
@@ -1928,14 +1929,14 @@ function renderArchiveHistory() {
   });
 }
 
-function openArchiveHistory() {
+function openArchiveHistory(initialQuery = "") {
   if (preventWorkspaceMutation("查看归档历史")) return;
   const archive = getActiveProject()?.conversationArchive || [];
   if (!archive.length) {
     showToast("当前项目还没有归档消息");
     return;
   }
-  archiveSearchInput.value = "";
+  archiveSearchInput.value = initialQuery.trim();
   renderArchiveHistory();
   archiveDialog.showModal();
   archiveSearchInput.focus();
@@ -3553,6 +3554,11 @@ searchConversationButton.addEventListener("click", () => {
   setConversationSearchOpen(conversationSearch.hidden);
 });
 conversationSearchInput.addEventListener("input", filterConversationMessages);
+searchArchivedMessagesButton.addEventListener("click", () => {
+  const query = conversationSearchInput.value.trim();
+  setConversationSearchOpen(false);
+  openArchiveHistory(query);
+});
 clearConversationSearchButton.addEventListener("click", () => {
   conversationSearchInput.value = "";
   filterConversationMessages();
