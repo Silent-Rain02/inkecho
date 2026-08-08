@@ -128,6 +128,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function renderPromptLibrary", self.javascript)
         self.assertIn("const query = promptLibrarySearch", self.javascript)
         self.assertIn("没有匹配的灵感", self.javascript)
+        self.assertIn('promptLibraryDialog.querySelector("form").addEventListener("submit"', self.javascript)
+        self.assertIn('archiveDialog.querySelector("form").addEventListener("submit"', self.javascript)
         self.assertIn("function savePromptToLibrary", self.javascript)
         self.assertIn("previousText = \"\"", self.javascript)
         self.assertIn("savePromptToLibrary(title, text, previousText)", self.javascript)
