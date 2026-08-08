@@ -405,6 +405,9 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .prompt-library-dialog { width: min(560px, calc(100% - 36px)); }
 .library-toggle { display: flex; align-items: center; gap: 7px; margin: -4px 0 18px; color: var(--ink-soft); font-size: 10px; }
 .library-toggle input { accent-color: var(--accent); }
+.prompt-library-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
+.prompt-library-search { flex: 1; min-width: 0; margin: 0; }
+.prompt-library-count { flex: none; color: var(--muted); font: 9px var(--mono); }
 .prompt-library-list { display: grid; gap: 8px; max-height: 390px; margin-bottom: 20px; overflow: auto; }
 .prompt-library-empty { margin: 0; padding: 15px 12px; border: 1px dashed #dfe2d9; color: var(--muted); font-size: 11px; line-height: 1.7; }
 .library-prompt-card { display: flex; align-items: flex-start; gap: 12px; padding: 11px 12px; border: 1px solid var(--line); background: #fbfbf7; }
