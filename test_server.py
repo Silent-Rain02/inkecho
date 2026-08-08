@@ -7,9 +7,11 @@ from server import build_messages, list_provider_models, provider_settings, publ
 
 class ServerConfigTests(unittest.TestCase):
     def test_supported_provider_can_be_selected_without_network(self) -> None:
-        settings = provider_settings("ollama", "qwen3:8b")
+        with patch.dict(os.environ, {}, clear=True):
+            settings = provider_settings("ollama", "qwen3:8b")
         self.assertEqual(settings.provider, "ollama")
         self.assertEqual(settings.model, "qwen3:8b")
+        self.assertTrue(settings.configured)
 
     def test_unknown_provider_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
