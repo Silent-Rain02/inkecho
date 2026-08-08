@@ -61,6 +61,8 @@ class FrontendContractTests(unittest.TestCase):
             "characterLibraryList",
             "openPromptLibrary",
             "promptLibraryDialog",
+            "promptLibrarySearch",
+            "promptLibraryCount",
             "promptLibraryList",
             "savePromptToLibrary",
         }
@@ -122,6 +124,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("characterLibrary", self.javascript)
         self.assertIn("const promptLibraryStorageKey", self.javascript)
         self.assertIn("function renderPromptLibrary", self.javascript)
+        self.assertIn("const query = promptLibrarySearch", self.javascript)
+        self.assertIn("没有匹配的灵感", self.javascript)
         self.assertIn("function savePromptToLibrary", self.javascript)
         self.assertIn("function addLibraryPrompt", self.javascript)
         self.assertIn("promptLibrary", self.javascript)
