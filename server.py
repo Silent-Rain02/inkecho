@@ -81,9 +81,11 @@ UPSTREAM_ERROR_MESSAGES = {
 UPSTREAM_ERROR_STATUSES = {
     "AuthenticationError": HTTPStatus.UNAUTHORIZED,
     "PermissionDeniedError": HTTPStatus.FORBIDDEN,
+    "NotFoundError": HTTPStatus.NOT_FOUND,
     "RateLimitError": HTTPStatus.TOO_MANY_REQUESTS,
     "APITimeoutError": HTTPStatus.GATEWAY_TIMEOUT,
     "APIConnectionError": HTTPStatus.BAD_GATEWAY,
+    "InternalServerError": HTTPStatus.BAD_GATEWAY,
 }
 
 
