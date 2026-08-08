@@ -111,6 +111,9 @@ const beatDialogTitle = document.querySelector("#beatDialogTitle");
 const beatTitleInput = document.querySelector("#beatTitleInput");
 const beatGoalInput = document.querySelector("#beatGoalInput");
 const beatOutcomeInput = document.querySelector("#beatOutcomeInput");
+const beatSearchInput = document.querySelector("#beatSearchInput");
+const beatStatusFilter = document.querySelector("#beatStatusFilter");
+const beatListCount = document.querySelector("#beatListCount");
 const generateBeatOutcomeButton = document.querySelector("#generateBeatOutcome");
 const beatStatusInput = document.querySelector("#beatStatusInput");
 const beatList = document.querySelector("#beatList");
@@ -3726,6 +3729,11 @@ templateDialog.addEventListener("click", (event) => {
 });
 manageBeatsButton.addEventListener("click", openScenePlanner);
 beatForm.addEventListener("submit", saveSceneBeat);
+beatSearchInput.addEventListener("input", renderSceneBeats);
+beatStatusFilter.addEventListener("change", renderSceneBeats);
+beatSearchInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") event.preventDefault();
+});
 generateBeatOutcomeButton.addEventListener("click", summarizeCurrentSceneOutcome);
 cancelBeatButton.addEventListener("click", closeScenePlanner);
 beatDialog.addEventListener("click", (event) => {
@@ -4031,6 +4039,8 @@ function resetBeatEditor() {
 function renderSceneBeats() {
   const project = getActiveProject();
   const beats = project?.beats || [];
+  const query = beatSearchInput?.value.trim().toLocaleLowerCase() || "";
+  const statusFilter = beatStatusFilter?.value || "all";
   const done = beats.filter((beat) => beat.status === "done").length;
   const active = beats.filter((beat) => beat.status === "active").length;
   const planned = beats.filter((beat) => beat.status === "planned").length;
@@ -4040,6 +4050,15 @@ function renderSceneBeats() {
     : "还没有场景卡";
   beatProgressPercent.textContent = `${percent}%`;
   beatProgressBar.style.width = `${percent}%`;
+  const matches = beats
+    .map((beat, index) => ({ beat, index }))
+    .filter(({ beat }) => {
+      const searchable = [beat.title, beat.goal, beat.outcome].filter(Boolean).join(" ").toLocaleLowerCase();
+      return (!query || searchable.includes(query)) && (statusFilter === "all" || beat.status === statusFilter);
+    });
+  beatListCount.textContent = query || statusFilter !== "all"
+    ? `${matches.length} / ${beats.length} 张`
+    : `${beats.length} / ${maxSceneBeats} 张`;
   beatList.innerHTML = "";
   if (!beats.length) {
     const empty = document.createElement("p");
@@ -4048,7 +4067,14 @@ function renderSceneBeats() {
     beatList.appendChild(empty);
     return;
   }
-  beats.forEach((beat, index) => {
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.className = "beat-empty";
+    empty.textContent = "没有匹配的场景卡。试试清除搜索或切换状态。";
+    beatList.appendChild(empty);
+    return;
+  }
+  matches.forEach(({ beat, index }) => {
     const card = document.createElement("div");
     card.className = "beat-card";
     card.classList.toggle("is-current", beat.id === project.activeBeatId);
@@ -4107,6 +4133,8 @@ function renderSceneBeats() {
 
 function openScenePlanner() {
   if (preventWorkspaceMutation("编辑场景计划")) return;
+  beatSearchInput.value = "";
+  beatStatusFilter.value = "all";
   resetBeatEditor();
   renderSceneBeats();
   beatDialog.showModal();
