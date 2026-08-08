@@ -30,6 +30,7 @@ const characterDialog = document.querySelector("#characterDialog");
 const characterForm = document.querySelector("#characterForm");
 const characterNameInput = document.querySelector("#characterNameInput");
 const characterToneInput = document.querySelector("#characterToneInput");
+const characterDetailsInput = document.querySelector("#characterDetailsInput");
 const deleteCharacterButton = document.querySelector("#deleteCharacter");
 const cancelCharacterButton = document.querySelector("#cancelCharacter");
 const providerSelect = document.querySelector("#providerSelect");
@@ -106,8 +107,8 @@ const projectsStorageKey = "inkecho.projects.v1";
 const activeProjectStorageKey = "inkecho.active-project.v1";
 const focusModeStorageKey = "inkecho.focus-mode.v1";
 const defaultCharacters = [
-  { name: "林黛玉", tone: "清冷、敏锐，却藏着很深的真心。" },
-  { name: "贾宝玉", tone: "真挚、叛逆，对世俗规矩总有自己的看法。" },
+  { name: "林黛玉", tone: "清冷、敏锐，却藏着很深的真心。", details: "寄居贾府，敏感于礼法与人情的细微变化；愿望是被真诚地理解，却不肯轻易示弱。" },
+  { name: "贾宝玉", tone: "真挚、叛逆，对世俗规矩总有自己的看法。", details: "出身富贵家族，却厌倦被安排的人生；珍视真心和自由，常用玩笑掩饰无法改变现实的失落。" },
 ];
 
 const modeHints = {
@@ -273,6 +274,7 @@ const replyTemplates = {
 let selectedCharacter = {
   name: "林黛玉",
   tone: "清冷、敏锐，却藏着很深的真心。",
+  details: "寄居贾府，敏感于礼法与人情的细微变化；愿望是被真诚地理解，却不肯轻易示弱。",
 };
 let selectedMode = "续写";
 let toastTimer;
@@ -330,6 +332,7 @@ function createProject({ id, name, context, conversation, service, characters, s
       return {
         name: safeText(source.name, "角色", 40),
         tone: safeText(source.tone, "待设定", 240),
+        details: safeText(source.details, "", 500),
       };
     }).filter((item, index, list) => list.findIndex((candidate) => candidate.name === item.name) === index)
     : defaultCharacters.map((item) => ({ ...item }));
@@ -578,6 +581,7 @@ function persistActiveProject({ defer = false } = {}) {
   project.characters = Array.from(document.querySelectorAll(".character-card")).map((card) => ({
     name: card.dataset.character || "角色",
     tone: card.dataset.tone || "待设定",
+    details: card.dataset.details || "",
   }));
   project.selectedCharacterName = selectedCharacter.name;
   project.mode = selectedMode;
@@ -1556,7 +1560,8 @@ function exportSession() {
   const characters = Array.from(document.querySelectorAll(".character-card")).map((card) => {
     const name = card.dataset.character || "未命名角色";
     const tone = card.dataset.tone || "";
-    return `- **${name}**：${tone}`;
+    const details = card.dataset.details || "";
+    return `- **${name}**：${tone}${details ? `\n  - 人物设定：${details}` : ""}`;
   });
   const transcript = conversationHistory.map((item) => {
     const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
@@ -2167,7 +2172,7 @@ async function retryMessage(historyIndex) {
     ? previousReply.versions.filter((version) => typeof version === "string" && version.trim())
     : [previousReply.content].filter(Boolean);
   const character = getActiveProject().characters.find((item) => item.name === speaker)
-    || { name: speaker, tone: selectedCharacter.tone };
+    || { name: speaker, tone: selectedCharacter.tone, details: selectedCharacter.details };
   conversationHistory = conversationHistory.slice(0, -1);
   saveConversation();
   renderConversation();
@@ -2197,6 +2202,7 @@ function selectCharacter(card) {
   selectedCharacter = {
     name: card.dataset.character,
     tone: card.dataset.tone,
+    details: card.dataset.details || "",
   };
   conversationTitle.textContent = `与${selectedCharacter.name}对话`;
   persistActiveProject();
@@ -2209,6 +2215,7 @@ function createCharacterCard(character) {
   card.className = "character-card";
   card.dataset.character = character.name;
   card.dataset.tone = character.tone;
+  card.dataset.details = character.details || "";
   const avatar = document.createElement("span");
   avatar.className = `character-avatar ${character.name === "林黛玉" ? "avatar-dai" : "avatar-bao"}`;
   avatar.textContent = character.name.slice(0, 1);
@@ -2238,6 +2245,7 @@ function getDisplayedCharacters() {
   return Array.from(characterList.querySelectorAll(".character-card")).map((card) => ({
     name: card.dataset.character || "角色",
     tone: card.dataset.tone || "待设定",
+    details: card.dataset.details || "",
   }));
 }
 
@@ -2246,6 +2254,7 @@ function openCharacterEditor(character = null) {
   characterDialog.querySelector("#characterDialogTitle").textContent = character ? "编辑角色" : "添加角色";
   characterNameInput.value = character?.name || "";
   characterToneInput.value = character?.tone || "性格与声音，等待你来定义。";
+  characterDetailsInput.value = character?.details || "";
   deleteCharacterButton.hidden = !character;
   characterDialog.showModal();
   characterNameInput.focus();
@@ -2260,6 +2269,7 @@ function saveCharacter(event) {
   event.preventDefault();
   const name = characterNameInput.value.trim();
   const tone = characterToneInput.value.trim() || "性格与声音，等待你来定义。";
+  const details = characterDetailsInput.value.trim().slice(0, 500);
   if (!name) return;
   const wasEditing = Boolean(editingCharacterName);
   const characters = getDisplayedCharacters();
@@ -2274,12 +2284,13 @@ function saveCharacter(event) {
     if (!target) return;
     target.name = name;
     target.tone = tone;
+    target.details = details;
     if (selectedCharacter.name === editingCharacterName) {
-      selectedCharacter = { name, tone };
+      selectedCharacter = { name, tone, details };
     }
   } else {
-    characters.push({ name, tone });
-    selectedCharacter = { name, tone };
+    characters.push({ name, tone, details });
+    selectedCharacter = { name, tone, details };
   }
   getActiveProject().characters = characters;
   renderCharacters();
