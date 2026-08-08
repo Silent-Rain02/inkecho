@@ -315,6 +315,11 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .template-dialog-actions { margin-top: 18px; }
 .template-save-button { justify-self: start; }
 .beat-dialog { width: min(570px, calc(100% - 36px)); max-height: min(720px, calc(100vh - 36px)); overflow: auto; }
+.beat-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: -2px 0 17px; }
+.beat-search-input { min-width: 0; margin: 0; }
+.beat-filter-select { height: 34px; padding: 0 8px; border: 1px solid var(--line); outline: 0; color: var(--ink-soft); background: #fbfbf7; font-size: 10px; }
+.beat-filter-select:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
+.beat-list-count { grid-column: 1 / -1; margin-top: -3px; color: var(--muted); font: 8px var(--mono); }
 .dialog-select { width: 100%; height: 38px; margin-bottom: 18px; padding: 0 10px; border: 1px solid var(--line); outline: 0; color: var(--ink); background: #fbfbf7; font-size: 12px; }
 .dialog-select:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
 .beat-form-actions { margin-bottom: 22px; }
