@@ -473,6 +473,21 @@
         </div>
       </form>
     </dialog>
+    <dialog class="character-dialog context-dialog checkpoint-compare-dialog" id="checkpointCompareDialog" aria-labelledby="checkpointCompareTitle">
+      <form method="dialog">
+        <span class="section-kicker">CHECKPOINT DIFF</span>
+        <h2 id="checkpointCompareTitle">检查点对比</h2>
+        <p class="template-description">这里只展示检查点与当前项目的差异，不会修改任何快照或当前内容。</p>
+        <div class="context-preview-stats" id="checkpointCompareStats"></div>
+        <pre class="context-preview-text" id="checkpointCompareText"></pre>
+        <div class="dialog-actions context-dialog-actions">
+          <button class="dialog-copy" id="copyCheckpointCompare" type="button">复制对比</button>
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" type="submit">关闭</button>
+        </div>
+      </form>
+    </dialog>
     <dialog class="character-dialog checkpoint-dialog" id="checkpointDialog" aria-labelledby="checkpointDialogTitle">
       <form method="dialog">
         <span class="section-kicker">SCENE CHECKPOINTS</span>
