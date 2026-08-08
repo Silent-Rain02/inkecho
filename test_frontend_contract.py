@@ -102,6 +102,7 @@ class FrontendContractTests(unittest.TestCase):
             "projectSearchCount",
             "projectLineage",
             "projectHealth",
+            "projectStatusFilter",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -240,6 +241,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("项目状态**", self.javascript)
         self.assertIn("formatProjectHealth(project)", self.javascript)
         self.assertIn("或状态", self.html)
+        self.assertIn("function matchesProjectStatus", self.javascript)
+        self.assertIn("projectStatusFilter.addEventListener(\"change\", renderProjectSelect)", self.javascript)
+        self.assertIn("需要处理", self.html)
         self.assertIn("有 ${health.staleOutcomes} 个场景结果没有覆盖最新剧情", self.javascript)
         self.assertIn("仍会发送这些结果", self.javascript)
         self.assertIn("function getSceneOutcomeFreshness", self.javascript)
