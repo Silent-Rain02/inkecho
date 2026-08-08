@@ -147,6 +147,8 @@ const responseLengthLabels = {
 };
 const maxProjects = 50;
 const maxConversationMessages = 120;
+const maxArchivedMessages = 360;
+const maxStoredConversationMessages = maxConversationMessages + maxArchivedMessages;
 const maxPrompts = 12;
 const maxHighlights = 30;
 const maxCheckpoints = 12;
@@ -312,7 +314,31 @@ function safeText(value, fallback = "", maxLength = 240) {
   return text.trim().slice(0, maxLength) || fallback;
 }
 
-function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId, contextMode, summaryMessageCount, summaryUpdatedAt }) {
+function normalizeConversationItem(item, fallbackAssistantName = "角色") {
+  const source = item && typeof item === "object" ? item : {};
+  const content = safeText(source.content, "", 4000);
+  const savedVersions = Array.isArray(source.versions)
+    ? source.versions.map((version) => safeText(version, "", 4000)).filter(Boolean)
+    : [];
+  const versions = Array.from(new Set([...savedVersions, content])).filter(Boolean);
+  const contentIndex = versions.indexOf(content);
+  const requestedIndex = Number.isInteger(source.versionIndex) ? source.versionIndex : contentIndex;
+  const versionIndex = versions.length
+    ? Math.max(0, Math.min(requestedIndex < 0 ? 0 : requestedIndex, versions.length - 1))
+    : 0;
+  const normalized = {
+    role: source.role === "user" ? "user" : "assistant",
+    name: safeText(source.name, source.role === "user" ? "我" : fallbackAssistantName, 40),
+    content: versions[versionIndex] || content,
+  };
+  if (normalized.role === "assistant" && versions.length > 1) {
+    normalized.versions = versions;
+    normalized.versionIndex = versionIndex;
+  }
+  return normalized;
+}
+
+function createProject({ id, name, context, conversation, conversationArchive, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId, contextMode, summaryMessageCount, summaryUpdatedAt }) {
   const safeContext = context && typeof context === "object" ? context : {};
   const safeService = service && typeof service === "object" ? service : {};
   const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
@@ -339,6 +365,11 @@ function createProject({ id, name, context, conversation, service, characters, s
     }).filter((item, index, list) => list.findIndex((candidate) => candidate.name === item.name) === index)
     : defaultCharacters.map((item) => ({ ...item }));
   const selected = safeCharacters.find((item) => item.name === selectedCharacterName) || safeCharacters[0];
+  const safeConversationArchive = Array.isArray(conversationArchive)
+    ? conversationArchive.slice(-maxArchivedMessages)
+      .map((item) => normalizeConversationItem(item, selected.name))
+      .filter((item) => item.content)
+    : [];
   const safeName = safeText(name || safeContext.title, "未命名作品", 80);
   const safeTitle = safeText(safeContext.title || safeName, safeName, 120);
   const safePrompts = Array.isArray(prompts)
@@ -389,31 +420,9 @@ function createProject({ id, name, context, conversation, service, characters, s
     ? checkpoints.slice(-maxCheckpoints).map((item) => normalizeCheckpoint(item))
     : [];
   const safeConversation = Array.isArray(conversation) && conversation.length
-    ? conversation.slice(-maxConversationMessages).map((item) => {
-      const source = item && typeof item === "object" ? item : {};
-      const content = safeText(source.content, "", 4000);
-      const savedVersions = Array.isArray(source.versions)
-        ? source.versions.map((version) => safeText(version, "", 4000)).filter(Boolean)
-        : [];
-      const versions = Array.from(new Set([...savedVersions, content])).filter(Boolean);
-      const contentIndex = versions.indexOf(content);
-      const requestedIndex = Number.isInteger(source.versionIndex) ? source.versionIndex : contentIndex;
-      const versionIndex = versions.length
-        ? Math.max(0, Math.min(requestedIndex < 0 ? 0 : requestedIndex, versions.length - 1))
-        : 0;
-      const normalized = {
-        role: source.role === "user" ? "user" : "assistant",
-        name: safeText(source.name, source.role === "user" ? "我" : selected.name || "角色", 40),
-        content: versions[versionIndex] || content,
-      };
-      if (normalized.role === "assistant" && versions.length > 1) {
-        normalized.versions = versions;
-        normalized.versionIndex = versionIndex;
-      }
-      return {
-        ...normalized,
-      };
-    }).filter((item) => item.content)
+    ? conversation.slice(-maxConversationMessages)
+      .map((item) => normalizeConversationItem(item, selected.name))
+      .filter((item) => item.content)
     : defaultConversationHistory.map((item) => ({ ...item }));
   return {
     id: safeText(id, `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
@@ -428,6 +437,7 @@ function createProject({ id, name, context, conversation, service, characters, s
       instructions: safeText(safeContext.instructions, "", 1200),
     },
     conversation: safeConversation,
+    conversationArchive: safeConversationArchive,
     service: {
       provider: selectedProvider,
       model: selectedModel,
@@ -442,7 +452,7 @@ function createProject({ id, name, context, conversation, service, characters, s
     beats: safeBeats,
     activeBeatId: safeActiveBeatId,
     contextMode: contextMode === "summary" ? "summary" : "full",
-    summaryMessageCount: Number.isFinite(Number(summaryMessageCount)) ? Math.max(0, Math.min(Number(summaryMessageCount), maxConversationMessages)) : 0,
+    summaryMessageCount: Number.isFinite(Number(summaryMessageCount)) ? Math.max(0, Math.min(Number(summaryMessageCount), maxStoredConversationMessages)) : 0,
     summaryUpdatedAt: Number.isFinite(Number(summaryUpdatedAt)) ? Number(summaryUpdatedAt) : 0,
     characters: safeCharacters,
     selectedCharacterName: selected.name,
@@ -458,6 +468,7 @@ function normalizeCheckpoint(item) {
     name: source.name || "检查点",
     context: source.context,
     conversation: source.conversation,
+    conversationArchive: source.conversationArchive,
     service: source.service,
     characters: source.characters,
     selectedCharacterName: source.selectedCharacterName,
@@ -477,6 +488,7 @@ function normalizeCheckpoint(item) {
     createdAt: Number.isFinite(Number(source.createdAt)) ? Number(source.createdAt) : Date.now(),
     context: normalized.context,
     conversation: normalized.conversation,
+    conversationArchive: normalized.conversationArchive,
     service: normalized.service,
     characters: normalized.characters,
     selectedCharacterName: normalized.selectedCharacterName,
@@ -545,6 +557,26 @@ function getActiveProject() {
   return projects.find((project) => project.id === activeProjectId) || projects[0];
 }
 
+function getConversationForDisplay(project = getActiveProject()) {
+  return [
+    ...(Array.isArray(project?.conversationArchive) ? project.conversationArchive : []),
+    ...conversationHistory,
+  ];
+}
+
+function getConversationMessageCount(project = getActiveProject()) {
+  return getConversationForDisplay(project).length;
+}
+
+function archiveConversationOverflow(project = getActiveProject()) {
+  if (!project || conversationHistory.length <= maxConversationMessages) return false;
+  const overflowCount = conversationHistory.length - maxConversationMessages;
+  const overflow = conversationHistory.splice(0, overflowCount);
+  const existing = Array.isArray(project.conversationArchive) ? project.conversationArchive : [];
+  project.conversationArchive = [...existing, ...overflow].slice(-maxArchivedMessages);
+  return true;
+}
+
 function notifyStorageIssue() {
   if (storageWarningShown) return;
   storageWarningShown = true;
@@ -595,6 +627,7 @@ function scheduleProjectPersist() {
 function persistActiveProject({ defer = false } = {}) {
   const project = getActiveProject();
   if (!project) return;
+  archiveConversationOverflow(project);
   const context = getContext();
   project.name = context.title || project.name || "未命名作品";
   project.context = context;
@@ -729,6 +762,7 @@ function renderProjectSelect() {
 }
 
 function saveConversation() {
+  const archived = archiveConversationOverflow();
   try {
     localStorage.setItem(conversationStorageKey, JSON.stringify(conversationHistory.slice(-maxConversationMessages)));
   } catch {
@@ -736,6 +770,7 @@ function saveConversation() {
   }
   persistActiveProject();
   renderSummaryFreshness();
+  if (archived) renderConversation();
 }
 
 function renderSummaryFreshness() {
@@ -750,7 +785,7 @@ function renderSummaryFreshness() {
   const summarizedAt = Number.isFinite(Number(project?.summaryMessageCount))
     ? Number(project.summaryMessageCount)
     : 0;
-  const newMessages = Math.max(0, conversationHistory.length - summarizedAt);
+  const newMessages = Math.max(0, getConversationMessageCount() - summarizedAt);
   if (newMessages > 0) {
     summaryFreshness.textContent = `摘要后新增 ${newMessages} 条消息 · 建议重新提炼`;
     summaryFreshness.classList.toggle("is-stale", true);
@@ -909,7 +944,10 @@ function preventWorkspaceMutation(action) {
 
 function updateCount() {
   const count = messages.querySelectorAll(".message-row").length;
-  messageCount.textContent = `${String(count).padStart(2, "0")} 条消息`;
+  const archivedCount = getActiveProject()?.conversationArchive?.length || 0;
+  messageCount.textContent = archivedCount
+    ? `${getConversationMessageCount()} 条消息 · ${archivedCount} 条已归档`
+    : `${String(count).padStart(2, "0")} 条消息`;
   updateContextUsage();
 }
 
@@ -919,7 +957,7 @@ function isSummaryContextMode() {
 
 function getModelMessages({ fullHistory = false } = {}) {
   const source = fullHistory
-    ? conversationHistory.slice(-maxConversationMessages)
+    ? getConversationForDisplay()
     : isSummaryContextMode()
       ? conversationHistory.slice(-4)
       : conversationHistory.slice(-20);
@@ -1253,7 +1291,7 @@ async function copyMessage(text) {
 }
 
 async function copyConversation() {
-  const transcript = conversationHistory.map((item) => {
+  const transcript = getConversationForDisplay().map((item) => {
     const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
     return `${speaker}：${item.content}`;
   }).join("\n\n");
@@ -1261,7 +1299,7 @@ async function copyConversation() {
 }
 
 function formatConversationForExport() {
-  return conversationHistory.map((item) => {
+  return getConversationForDisplay().map((item) => {
     const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
     const versions = Array.isArray(item.versions)
       ? item.versions.filter((version) => typeof version === "string" && version.trim())
@@ -1440,6 +1478,10 @@ function cloneProjectState(source) {
   return {
     context: { ...(source.context || {}) },
     conversation: (source.conversation || []).map((item) => ({
+      ...item,
+      ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
+    })),
+    conversationArchive: (source.conversationArchive || []).map((item) => ({
       ...item,
       ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
     })),
@@ -2031,7 +2073,7 @@ async function summarizeConversation() {
     if (current && !window.confirm("用新摘要替换当前剧情摘要吗？")) return;
     workSummary.value = payload.summary.slice(0, 2000);
     const project = getActiveProject();
-    project.summaryMessageCount = conversationHistory.length;
+    project.summaryMessageCount = getConversationMessageCount(project);
     project.summaryUpdatedAt = Date.now();
     renderSummaryFreshness();
     setProviderBadge("已连接", "#6f8b6a");
@@ -2596,7 +2638,7 @@ workReference.addEventListener("input", () => {
 workSummary.addEventListener("input", () => {
   if (workSummary.value.length > 2000) workSummary.value = workSummary.value.slice(0, 2000);
   const project = getActiveProject();
-  project.summaryMessageCount = conversationHistory.length;
+  project.summaryMessageCount = getConversationMessageCount(project);
   project.summaryUpdatedAt = Date.now();
   renderSummaryFreshness();
   saveWorkspace();
@@ -3170,6 +3212,7 @@ function duplicateCurrentProject() {
     name: cleanName,
     context: { ...current.context },
     conversation: current.conversation.map((item) => ({ ...item })),
+    conversationArchive: current.conversationArchive.map((item) => ({ ...item })),
     service: { ...current.service },
     characters: current.characters.map((item) => ({ ...item })),
     selectedCharacterName: current.selectedCharacterName,
@@ -3225,6 +3268,7 @@ function branchFromMessage(historyIndex) {
     name: cleanName,
     context: { ...current.context },
     conversation: branchConversation,
+    conversationArchive: current.conversationArchive.map((item) => ({ ...item })),
     service: { ...current.service },
     characters: current.characters.map((item) => ({ ...item })),
     selectedCharacterName: current.selectedCharacterName,
