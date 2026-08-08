@@ -385,7 +385,10 @@
         <input class="dialog-input" id="beatTitleInput" type="text" maxlength="80" required placeholder="例如：站台上的最后一分钟" />
         <label class="field-label" for="beatGoalInput">这一幕要发生什么</label>
         <textarea class="dialog-textarea" id="beatGoalInput" rows="3" maxlength="280" placeholder="例如：让主角第一次发现车票上的名字与自己有关。"></textarea>
-        <label class="field-label" for="beatOutcomeInput">已发生 / 留下的线索</label>
+        <div class="field-label-row">
+          <label class="field-label" for="beatOutcomeInput">已发生 / 留下的线索</label>
+          <button class="text-button" id="generateBeatOutcome" type="button">提炼本幕</button>
+        </div>
         <textarea class="dialog-textarea" id="beatOutcomeInput" rows="3" maxlength="600" placeholder="记录已经写出的结果、人物变化或下一幕要接住的线索……"></textarea>
         <label class="field-label" for="beatStatusInput">推进状态</label>
         <select class="dialog-select" id="beatStatusInput">
