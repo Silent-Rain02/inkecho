@@ -804,7 +804,17 @@ function isSummaryContextMode() {
 }
 
 function getModelMessages() {
-  return isSummaryContextMode() ? conversationHistory.slice(-4) : conversationHistory;
+  const source = isSummaryContextMode() ? conversationHistory.slice(-4) : conversationHistory.slice(-20);
+  const selected = [];
+  let historyChars = 0;
+  for (const item of [...source].reverse()) {
+    if (!item || !["user", "assistant"].includes(item.role) || typeof item.content !== "string" || !item.content.trim()) continue;
+    const content = item.content.slice(0, 4000);
+    if (historyChars + content.length > serverHistoryBudget) break;
+    selected.push({ ...item, content });
+    historyChars += content.length;
+  }
+  return selected.reverse();
 }
 
 function updateContextModeUI() {
@@ -878,7 +888,7 @@ function getContextPreviewText() {
 function openContextPreview() {
   updateContextUsage();
   const modelMessages = getModelMessages();
-  contextPreviewStats.textContent = `${modelMessages.length} 条对话 · ${contextUsage.textContent} · ${isSummaryContextMode() ? "完整历史仍保留" : "发送完整对话"}`;
+  contextPreviewStats.textContent = `${modelMessages.length} 条对话 · ${contextUsage.textContent} · ${isSummaryContextMode() ? "完整历史仍保留" : "按服务端历史预算发送"}`;
   contextPreviewText.textContent = getContextPreviewText();
   contextDialog.showModal();
 }
