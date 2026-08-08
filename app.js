@@ -171,6 +171,16 @@ function createProject({ id, name, context, conversation, service, characters, s
   const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
     ? safeService.provider
     : "custom_azure";
+  const storedModels = safeService.models && typeof safeService.models === "object" ? safeService.models : {};
+  const safeModels = Object.fromEntries(Object.keys(providerDefaults)
+    .map((provider) => [provider, safeText(storedModels[provider], "", 160)])
+    .filter(([, model]) => model));
+  const selectedModel = safeText(
+    safeModels[selectedProvider] || safeService.model,
+    providerDefaults[selectedProvider],
+    160,
+  );
+  safeModels[selectedProvider] = selectedModel;
   const safeCharacters = Array.isArray(characters) && characters.length
     ? characters.map((item) => {
       const source = item && typeof item === "object" ? item : {};
@@ -249,7 +259,8 @@ function createProject({ id, name, context, conversation, service, characters, s
     conversation: safeConversation,
     service: {
       provider: selectedProvider,
-      model: safeText(safeService.model, providerDefaults[selectedProvider], 160),
+      model: selectedModel,
+      models: safeModels,
       creativity: creativityLabels[safeService.creativity] ? safeService.creativity : "balanced",
       responseLength: responseLengthLabels[safeService.responseLength] ? safeService.responseLength : "standard",
     },
@@ -372,7 +383,13 @@ function persistActiveProject() {
   project.context = context;
   project.conversation = conversationHistory.slice(-40);
   project.draft = messageInput.value.slice(0, 10000);
-  project.service = { provider: providerSelect.value, model: modelName.value.trim() };
+  const provider = providerSelect.value;
+  const model = modelName.value.trim() || providerDefaults[provider];
+  const savedModels = project.service?.models && typeof project.service.models === "object"
+    ? { ...project.service.models }
+    : {};
+  savedModels[provider] = model;
+  project.service = { provider, model, models: savedModels };
   project.service.creativity = creativitySelect.value;
   project.service.responseLength = responseLengthSelect.value;
   project.characters = Array.from(document.querySelectorAll(".character-card")).map((card) => ({
@@ -405,7 +422,7 @@ function hydrateActiveProject() {
   selectedMode = project.mode || "续写";
   selectedCharacter = project.characters.find((item) => item.name === project.selectedCharacterName) || project.characters[0];
   providerSelect.value = project.service.provider;
-  modelName.value = project.service.model;
+  modelName.value = project.service.models?.[project.service.provider] || project.service.model;
   creativitySelect.value = creativityLabels[project.service.creativity] ? project.service.creativity : "balanced";
   creativityValue.textContent = creativityLabels[creativitySelect.value];
   responseLengthSelect.value = responseLengthLabels[project.service.responseLength] ? project.service.responseLength : "standard";
@@ -881,7 +898,12 @@ function cloneProjectState(source) {
       ...item,
       ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
     })),
-    service: { ...(source.service || {}) },
+    service: {
+      ...(source.service || {}),
+      ...(source.service?.models && typeof source.service.models === "object"
+        ? { models: { ...source.service.models } }
+        : {}),
+    },
     characters: (source.characters || []).map((item) => ({ ...item })),
     selectedCharacterName: source.selectedCharacterName,
     mode: source.mode,
@@ -1768,6 +1790,9 @@ document.querySelector(".composer-tools button").addEventListener("click", () =>
 });
 
 providerSelect.addEventListener("change", () => {
+  const project = getActiveProject();
+  const provider = providerSelect.value;
+  modelName.value = project.service?.models?.[provider] || providerDefaults[provider];
   saveServiceSettings();
   updateProviderUI();
   showToast(`已切换到 ${providerSelect.options[providerSelect.selectedIndex].text}`);
