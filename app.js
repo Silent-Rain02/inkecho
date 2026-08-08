@@ -372,7 +372,13 @@ function createProject({ id, name, context, conversation, service, characters, s
       };
     }).filter((item, index, list) => item.title && list.findIndex((candidate) => candidate.id === item.id) === index)
     : [];
-  const safeActiveBeatId = safeBeats.some((beat) => beat.id === activeBeatId) ? activeBeatId : "";
+  const safeActiveBeatId = safeBeats.some((beat) => beat.id === activeBeatId)
+    ? activeBeatId
+    : safeBeats.find((beat) => beat.status === "active")?.id || "";
+  safeBeats.forEach((beat) => {
+    if (beat.id === safeActiveBeatId) beat.status = "active";
+    else if (beat.status === "active") beat.status = "planned";
+  });
   const safeCheckpoints = Array.isArray(checkpoints)
     ? checkpoints.slice(-maxCheckpoints).map((item) => normalizeCheckpoint(item))
     : [];
@@ -573,6 +579,16 @@ function persistActiveProject() {
 
 function getActiveSceneBeat(project = getActiveProject()) {
   return project?.beats?.find((beat) => beat.id === project.activeBeatId) || null;
+}
+
+function activateSceneBeat(project, beatId) {
+  const selected = project?.beats?.find((beat) => beat.id === beatId);
+  if (!selected) return null;
+  project.beats.forEach((beat) => {
+    beat.status = beat.id === beatId ? "active" : beat.status === "active" ? "planned" : beat.status;
+  });
+  project.activeBeatId = selected.id;
+  return selected;
 }
 
 function renderActiveBeat() {
@@ -2908,7 +2924,7 @@ function saveSceneBeat(event) {
     project.beats.push(beat);
   }
   if (status === "active") {
-    project.activeBeatId = beat.id;
+    activateSceneBeat(project, beat.id);
     workChapter.value = beat.title;
   }
   persistActiveProject();
@@ -2923,8 +2939,7 @@ function setCurrentBeat(beatId) {
   const project = getActiveProject();
   const beat = project.beats.find((item) => item.id === beatId);
   if (!beat) return;
-  project.activeBeatId = beat.id;
-  if (beat.status === "planned") beat.status = "active";
+  activateSceneBeat(project, beat.id);
   workChapter.value = beat.title;
   persistActiveProject();
   renderActiveBeat();
@@ -2971,6 +2986,15 @@ function deleteBeat(beatId) {
   if (!window.confirm(`删除场景「${beat.title}」吗？`)) return;
   project.beats.splice(index, 1);
   if (project.activeBeatId === beatId) project.activeBeatId = "";
+  if (project.activeBeatId === "") {
+    const replacement = project.beats[index] || project.beats[index - 1];
+    if (replacement) {
+      activateSceneBeat(project, replacement.id);
+      workChapter.value = replacement.title;
+    } else {
+      workChapter.value = "";
+    }
+  }
   persistActiveProject();
   renderActiveBeat();
   renderSceneBeats();
