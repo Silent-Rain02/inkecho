@@ -1071,6 +1071,7 @@ function renderProjectSelect() {
         activeBeat?.goal,
         project.selectedCharacterName,
         formatBranchSource(project),
+        formatProjectHealth(project),
       ].filter(Boolean).join(" ").toLocaleLowerCase().includes(query);
     });
   if (projectSearchCount) {
