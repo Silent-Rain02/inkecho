@@ -27,6 +27,7 @@ class ServerConfigTests(unittest.TestCase):
                     "era": "江南",
                     "world": "雨巷",
                     "reference": "她把伞留在了门边。",
+                    "summary": "沈砚正在寻找失散的妹妹。",
                 },
                 "character": {"name": "沈砚", "tone": "沉静"},
                 "messages": [{"role": "user", "content": "继续写下去"}],
@@ -36,6 +37,7 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("春日札记", messages[0]["content"])
         self.assertIn("沈砚", messages[0]["content"])
         self.assertIn("她把伞留在了门边。", messages[0]["content"])
+        self.assertIn("沈砚正在寻找失散的妹妹。", messages[0]["content"])
         self.assertIn("大胆想象", messages[0]["content"])
         self.assertEqual(messages[-1], {"role": "user", "content": "继续写下去"})
 
