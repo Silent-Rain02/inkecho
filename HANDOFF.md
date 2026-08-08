@@ -47,7 +47,7 @@ python3 -m unittest -q test_server.py
 python3 -m py_compile server.py test_server.py
 ```
 
-当前服务端回归测试共 30 项。服务端会在最近 20 条消息中执行历史预算，默认 48000 字，可通过 `INK_ECHO_HISTORY_BUDGET` 调整并优先保留最新内容。发布前检查本地 `.env` 没有被加入版本控制，并确认 GitHub Actions CI 通过。
+当前服务端回归测试共 30 项。GitHub Actions 还会启动本地服务进行首页、健康检查和静态资源白名单烟测。服务端会在最近 20 条消息中执行历史预算，默认 48000 字，可通过 `INK_ECHO_HISTORY_BUDGET` 调整并优先保留最新内容。发布前检查本地 `.env` 没有被加入版本控制，并确认 GitHub Actions CI 通过。
 
 ## 后续可选方向
 
