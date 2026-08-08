@@ -16,6 +16,7 @@ from server import (
     public_error,
     request_timeout_seconds,
     response_length_settings,
+    SECURITY_HEADERS,
     STATIC_FILES,
     static_asset_path,
 )
@@ -138,6 +139,12 @@ class ServerConfigTests(unittest.TestCase):
             self.assertEqual(request_timeout_seconds(), 5.0)
         with patch.dict(os.environ, {"INK_ECHO_REQUEST_TIMEOUT": "not-a-number"}, clear=True):
             self.assertEqual(request_timeout_seconds(), 120.0)
+
+    def test_security_headers_keep_browser_surface_restricted(self) -> None:
+        self.assertEqual(SECURITY_HEADERS["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(SECURITY_HEADERS["X-Frame-Options"], "DENY")
+        self.assertIn("connect-src 'self'", SECURITY_HEADERS["Content-Security-Policy"])
+        self.assertIn("https://fonts.googleapis.com", SECURITY_HEADERS["Content-Security-Policy"])
 
 
 class CaptureHandler(InkEchoHandler):
