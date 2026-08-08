@@ -69,6 +69,22 @@ PROVIDER_FIELD_LABELS = {
     "INK_ECHO_COMPATIBLE_API_KEY": "兼容接口密钥",
     "INK_ECHO_COMPATIBLE_BASE_URL": "兼容接口地址",
 }
+UPSTREAM_ERROR_MESSAGES = {
+    "AuthenticationError": "模型服务认证失败，请检查 API 密钥",
+    "PermissionDeniedError": "模型服务拒绝了当前请求，请检查账号权限",
+    "NotFoundError": "找不到模型或部署，请检查模型名称和服务端点",
+    "RateLimitError": "模型服务当前限流，请稍后重试",
+    "APITimeoutError": "模型服务请求超时，请检查服务状态或调大请求超时",
+    "APIConnectionError": "无法连接模型服务，请检查端点地址和网络",
+    "InternalServerError": "模型服务内部错误，请稍后重试",
+}
+UPSTREAM_ERROR_STATUSES = {
+    "AuthenticationError": HTTPStatus.UNAUTHORIZED,
+    "PermissionDeniedError": HTTPStatus.FORBIDDEN,
+    "RateLimitError": HTTPStatus.TOO_MANY_REQUESTS,
+    "APITimeoutError": HTTPStatus.GATEWAY_TIMEOUT,
+    "APIConnectionError": HTTPStatus.BAD_GATEWAY,
+}
 
 
 def load_local_env() -> None:
@@ -135,12 +151,17 @@ def public_error(exc: Exception) -> str:
     """Return a useful client error without exposing provider SDK details."""
     if isinstance(exc, ValueError):
         return str(exc)[:160]
+    message = UPSTREAM_ERROR_MESSAGES.get(type(exc).__name__)
+    if message:
+        return message
     return "模型服务请求失败，请检查服务配置或连接"
 
 
 def error_status(exc: Exception) -> HTTPStatus:
     """Classify malformed client input separately from upstream failures."""
-    return HTTPStatus.BAD_REQUEST if isinstance(exc, ValueError) else HTTPStatus.BAD_GATEWAY
+    if isinstance(exc, ValueError):
+        return HTTPStatus.BAD_REQUEST
+    return UPSTREAM_ERROR_STATUSES.get(type(exc).__name__, HTTPStatus.BAD_GATEWAY)
 
 
 def provider_settings(provider: str | None = None, requested_model: str | None = None) -> ProviderSettings:
