@@ -16,6 +16,7 @@ from openai import AzureOpenAI, OpenAI
 ROOT = Path(__file__).resolve().parent
 SUPPORTED_PROVIDERS = {"custom_azure", "ollama", "openai", "azure", "compatible"}
 MAX_BODY_BYTES = 1_000_000
+STATIC_FILES = {"index.html", "styles.css", "app.js"}
 CREATIVITY_GUIDANCE = {
     "restrained": "克制叙事：尊重已有设定，少做跳脱扩展，优先使用准确、含蓄的细节。",
     "balanced": "平衡：在遵循人物和世界观的前提下，适度加入新的画面与转折。",
@@ -177,6 +178,15 @@ def list_provider_models(provider: str) -> list[str]:
 def optional_logid_header(name: str) -> dict[str, str]:
     logid = env(name)
     return {"X-TT-LOGID": logid} if logid else {}
+
+
+def static_asset_path(request_path: str) -> Path | None:
+    """Resolve only the small set of browser assets that the app needs."""
+    relative = request_path.lstrip("/") or "index.html"
+    if relative not in STATIC_FILES:
+        return None
+    candidate = (ROOT / relative).resolve()
+    return candidate if candidate.is_file() else None
 
 
 def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
@@ -348,12 +358,8 @@ class InkEchoHandler(BaseHTTPRequestHandler):
         self.wfile.flush()
 
     def serve_static(self, request_path: str) -> None:
-        relative = request_path.lstrip("/") or "index.html"
-        candidate = (ROOT / relative).resolve()
-        if ROOT not in candidate.parents and candidate != ROOT:
-            self.send_error(HTTPStatus.NOT_FOUND, "Not found")
-            return
-        if not candidate.is_file():
+        candidate = static_asset_path(request_path)
+        if candidate is None:
             self.send_error(HTTPStatus.NOT_FOUND, "Not found")
             return
         content_type = mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
