@@ -14,6 +14,7 @@ from server import (
     provider_health_snapshot,
     provider_settings,
     public_error,
+    request_timeout_seconds,
     response_length_settings,
     STATIC_FILES,
     static_asset_path,
@@ -129,6 +130,14 @@ class ServerConfigTests(unittest.TestCase):
     def test_client_input_errors_use_bad_request_status(self) -> None:
         self.assertEqual(error_status(ValueError("bad json")).value, 400)
         self.assertEqual(error_status(RuntimeError("upstream")).value, 502)
+
+    def test_request_timeout_is_bounded_and_configurable(self) -> None:
+        with patch.dict(os.environ, {"INK_ECHO_REQUEST_TIMEOUT": "45"}, clear=True):
+            self.assertEqual(request_timeout_seconds(), 45.0)
+        with patch.dict(os.environ, {"INK_ECHO_REQUEST_TIMEOUT": "1"}, clear=True):
+            self.assertEqual(request_timeout_seconds(), 5.0)
+        with patch.dict(os.environ, {"INK_ECHO_REQUEST_TIMEOUT": "not-a-number"}, clear=True):
+            self.assertEqual(request_timeout_seconds(), 120.0)
 
 
 class CaptureHandler(InkEchoHandler):
