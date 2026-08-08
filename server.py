@@ -350,7 +350,8 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     selected_history: list[dict[str, str]] = []
     history_chars = 0
     budget = history_budget_chars()
-    for item in reversed(history[-20:]):
+    history_window = history if payload.get("summary_target") else history[-20:]
+    for item in reversed(history_window):
         if not isinstance(item, dict):
             continue
         role = item.get("role")
@@ -438,8 +439,8 @@ def summarize_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
     if not settings.configured:
         raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
 
-    messages = build_messages(payload)
     target = str(payload.get("summary_target") or "story").lower()
+    messages = build_messages({**payload, "summary_target": target})
     if target == "scene":
         messages[0]["content"] += (
             "\n\n当前任务是整理当前场景的结果，不是续写或角色对话。请根据当前场景目标、"
