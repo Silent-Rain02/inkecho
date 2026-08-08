@@ -2106,8 +2106,17 @@ function compareCheckpoint(checkpointId) {
     if (current.status !== saved.status) {
       beatDiffs.push(`状态变化：${current.title}（${sceneBeatStatusLabels[saved.status] || "未知"} → ${sceneBeatStatusLabels[current.status] || "未知"}）`);
     }
+    if (current.title !== saved.title) {
+      beatDiffs.push(`场景名称变化：${saved.title} → ${current.title}`);
+    }
+    if ((current.goal || "") !== (saved.goal || "")) {
+      beatDiffs.push(`目标变化：${current.title}（检查点：${saved.goal || "未设定"}；当前：${current.goal || "未设定"}）`);
+    }
     if ((current.outcome || "") !== (saved.outcome || "")) {
       beatDiffs.push(`结果变化：${current.title}（检查点：${saved.outcome || "未记录"}；当前：${current.outcome || "未记录"}）`);
+    }
+    if ((current.outcomeThrough || "") !== (saved.outcomeThrough || "")) {
+      beatDiffs.push(`结果来源变化：${current.title}（当前结果对应的消息节点已变化）`);
     }
   });
   const signedDelta = messageDelta > 0 ? `+${messageDelta}` : String(messageDelta);
@@ -2120,6 +2129,8 @@ function compareCheckpoint(checkpointId) {
     `场景：当前 ${currentScene} · 检查点 ${checkpointScene}`,
     `角色：当前 ${project.selectedCharacterName || "未选择"} · 检查点 ${checkpoint.selectedCharacterName || "未选择"}`,
     `摘要：当前${project.context.summary ? "有" : "无"} · 检查点${checkpoint.context?.summary ? "有" : "无"}`,
+    `摘要覆盖：当前 ${project.summaryMessageCount || 0} 条消息 · 检查点 ${checkpoint.summaryMessageCount || 0} 条消息`,
+    `上下文模式：当前${project.contextMode === "summary" ? "精简" : "完整"} · 检查点${checkpoint.contextMode === "summary" ? "精简" : "完整"}`,
     `草稿：当前${project.draft ? "有" : "无"} · 检查点${checkpoint.draft ? "有" : "无"}`,
     "",
     "场景计划变化",
