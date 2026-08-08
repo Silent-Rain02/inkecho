@@ -211,12 +211,26 @@ class ServerConfigTests(unittest.TestCase):
             summary, settings = summarize_chat({
                 "provider": "custom_azure",
                 "model": "office-model",
-                "messages": [{"role": "user", "content": "他们终于重逢了。"}],
+                "messages": [{"role": "user", "content": f"第 {index} 个事件"} for index in range(25)],
             })
         self.assertEqual(summary, "两人重逢，新的悬念仍未揭开。")
         self.assertEqual(settings.model, "office-model")
         self.assertEqual(completions.kwargs["max_tokens"], 500)
         self.assertIn("整理剧情摘要", completions.kwargs["messages"][0]["content"])
+        self.assertIn("第 0 个事件", "\n".join(item["content"] for item in completions.kwargs["messages"][1:]))
+
+    def test_summary_context_can_reach_history_older_than_normal_chat_window(self) -> None:
+        history = [
+            {"role": "user", "content": f"第 {index} 个事件"}
+            for index in range(25)
+        ]
+        normal_messages = build_messages({"messages": history})
+        summary_messages = build_messages({"summary_target": "story", "messages": history})
+        normal_text = "\n".join(item["content"] for item in normal_messages[1:])
+        summary_text = "\n".join(item["content"] for item in summary_messages[1:])
+        self.assertNotIn("第 0 个事件", normal_text)
+        self.assertIn("第 0 个事件", summary_text)
+        self.assertIn("第 24 个事件", summary_text)
 
     def test_summarize_chat_can_target_the_current_scene(self) -> None:
         class FakeCompletions:
