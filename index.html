@@ -486,6 +486,30 @@
         </div>
       </form>
     </dialog>
+    <dialog class="character-dialog context-dialog summary-preview-dialog" id="sceneOutcomePreviewDialog" aria-labelledby="sceneOutcomePreviewTitle">
+      <form method="dialog">
+        <span class="section-kicker">SCENE OUTCOME REVIEW</span>
+        <h2 id="sceneOutcomePreviewTitle">确认本幕结果</h2>
+        <p class="template-description">先比较当前场景记录和模型新提炼的结果；只有点击“替换结果”后，场景卡才会更新。</p>
+        <div class="context-preview-stats" id="sceneOutcomePreviewStats"></div>
+        <div class="summary-preview-grid">
+          <section class="summary-preview-column">
+            <span class="summary-preview-label">当前记录</span>
+            <pre class="context-preview-text" id="currentSceneOutcomePreview"></pre>
+          </section>
+          <section class="summary-preview-column">
+            <span class="summary-preview-label">新结果</span>
+            <pre class="context-preview-text" id="nextSceneOutcomePreview"></pre>
+          </section>
+        </div>
+        <div class="dialog-actions context-dialog-actions">
+          <button class="dialog-copy" id="applySceneOutcomePreview" type="button">替换结果</button>
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" type="submit">取消</button>
+        </div>
+      </form>
+    </dialog>
     <dialog class="character-dialog context-dialog summary-preview-dialog" id="summaryPreviewDialog" aria-labelledby="summaryPreviewTitle">
       <form method="dialog">
         <span class="section-kicker">SUMMARY REVIEW</span>
