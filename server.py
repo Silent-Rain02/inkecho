@@ -21,6 +21,11 @@ CREATIVITY_GUIDANCE = {
     "balanced": "平衡：在遵循人物和世界观的前提下，适度加入新的画面与转折。",
     "imaginative": "大胆想象：允许更明显的意象、隐喻和意外转折，但仍要保持人物可信。",
 }
+MODE_GUIDANCE = {
+    "续写": "续写要求：承接最近的情节与情绪，直接写出下一段，不复述背景或解释写作过程。",
+    "改写": "改写要求：根据用户提出的方向重写目标片段，保留人物核心性格，明确呈现改动后的文本，不只给建议。",
+    "独白": "独白要求：以当前角色的第一人称内心独白为主，集中表达感受、记忆与未说出口的话，不替其他角色展开对话。",
+}
 RESPONSE_LENGTH_GUIDANCE = {
     "concise": (420, "精简回复：聚焦一个关键动作或情绪，尽量控制在较短篇幅内。"),
     "standard": (700, "标准回复：完整推进一个小场景，兼顾动作、氛围与人物反应。"),
@@ -175,6 +180,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     character = payload.get("character")
     character = character if isinstance(character, dict) else {}
     mode = str(payload.get("mode") or "续写")[:20]
+    mode_hint = MODE_GUIDANCE.get(mode, MODE_GUIDANCE["续写"])
     title = str(context.get("title") or "未命名作品")[:120]
     era = str(context.get("era") or "")[:120]
     world = str(context.get("world") or "")[:800]
@@ -191,6 +197,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         "你是 InkEcho 的文学创作伙伴。请保持角色的语言气质，帮助用户进行文学作品对话与二次创作。\n"
         f"当前作品：{title}\n时代/氛围：{era}\n世界观备注：{world}\n"
         f"当前角色：{character_name}\n角色气质：{character_tone}\n创作模式：{mode}\n"
+        f"模式要求：{mode_hint}\n"
         f"创作倾向：{creativity_hint}\n"
         f"回复篇幅：{response_length_hint}\n"
         f"剧情摘要：{summary}\n"
