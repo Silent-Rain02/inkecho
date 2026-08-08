@@ -79,6 +79,7 @@ const projectStatusFilter = document.querySelector("#projectStatusFilter");
 const projectSearchCount = document.querySelector("#projectSearchCount");
 const projectLineage = document.querySelector("#projectLineage");
 const projectHealth = document.querySelector("#projectHealth");
+const projectHealthAction = document.querySelector("#projectHealthAction");
 const newProjectButton = document.querySelector("#newProject");
 const duplicateProjectButton = document.querySelector("#duplicateProject");
 const exportProjectsButton = document.querySelector("#exportProjects");
@@ -1125,9 +1126,16 @@ function renderProjectSelect() {
   }
   if (projectHealth) {
     const health = formatProjectHealth(active);
+    const healthState = getProjectHealth(active);
+    const needsAttention = !healthState.hasSummary || healthState.summaryNewMessages > 0 || healthState.staleOutcomes > 0 || healthState.hasDraft;
     projectHealth.textContent = health;
     projectHealth.title = `当前项目状态：${health}`;
     projectHealth.classList.toggle("is-warning", health.includes("待更新") || health.includes("有草稿"));
+    if (projectHealthAction) {
+      projectHealthAction.hidden = !needsAttention;
+      projectHealthAction.textContent = needsAttention ? "去处理 →" : "";
+      projectHealthAction.title = needsAttention ? "定位当前项目最需要处理的内容" : "当前项目暂无待处理状态";
+    }
   }
   projectSelect.innerHTML = "";
   if (!visibleProjects.length) {
@@ -1156,6 +1164,28 @@ function renderProjectSelect() {
     projectSelect.appendChild(option);
   });
   projectSelect.value = activeVisible ? active.id : "";
+}
+
+function focusProjectAttention() {
+  const project = getActiveProject();
+  const health = getProjectHealth(project);
+  if (!health.hasSummary || health.summaryNewMessages > 0) {
+    workSummary.scrollIntoView({ behavior: "smooth", block: "center" });
+    workSummary.focus();
+    showToast(health.hasSummary ? "已定位到待更新的剧情摘要" : "已定位到剧情摘要，请先建立摘要");
+    return;
+  }
+  if (health.staleOutcomes > 0) {
+    openScenePlanner();
+    showToast("已打开场景计划，请处理待更新的本幕结果");
+    return;
+  }
+  if (health.hasDraft) {
+    messageInput.focus();
+    showToast("已定位到未发送草稿");
+    return;
+  }
+  showToast("当前项目暂无待处理状态");
 }
 
 function saveConversation() {
@@ -4975,6 +5005,7 @@ function deleteCurrentProject() {
 projectSelect.addEventListener("change", () => switchProject(projectSelect.value));
 projectSearchInput.addEventListener("input", renderProjectSelect);
 projectStatusFilter.addEventListener("change", renderProjectSelect);
+projectHealthAction.addEventListener("click", focusProjectAttention);
 newProjectButton.addEventListener("click", createNewProject);
 duplicateProjectButton.addEventListener("click", duplicateCurrentProject);
 exportProjectsButton.addEventListener("click", exportProjectsBackup);
