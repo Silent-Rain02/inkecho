@@ -31,6 +31,8 @@ const refreshModelsButton = document.querySelector("#refreshModels");
 const modelOptions = document.querySelector("#modelOptions");
 const creativitySelect = document.querySelector("#creativitySelect");
 const creativityValue = document.querySelector("#creativityValue");
+const responseLengthSelect = document.querySelector("#responseLengthSelect");
+const responseLengthValue = document.querySelector("#responseLengthValue");
 const sendButton = document.querySelector(".send-button");
 const draftStatus = document.querySelector("#draftStatus");
 const projectSelect = document.querySelector("#projectSelect");
@@ -81,6 +83,11 @@ const creativityLabels = {
   restrained: "克制叙事",
   balanced: "平衡",
   imaginative: "大胆想象",
+};
+const responseLengthLabels = {
+  concise: "精简",
+  standard: "标准",
+  expanded: "展开",
 };
 const maxProjects = 50;
 
@@ -167,6 +174,7 @@ function createProject({ id, name, context, conversation, service, characters, s
       provider: selectedProvider,
       model: safeText(safeService.model, providerDefaults[selectedProvider], 160),
       creativity: creativityLabels[safeService.creativity] ? safeService.creativity : "balanced",
+      responseLength: responseLengthLabels[safeService.responseLength] ? safeService.responseLength : "standard",
     },
     draft: safeText(draft, "", 10000),
     characters: safeCharacters,
@@ -248,6 +256,7 @@ function persistActiveProject() {
   project.draft = messageInput.value.slice(0, 10000);
   project.service = { provider: providerSelect.value, model: modelName.value.trim() };
   project.service.creativity = creativitySelect.value;
+  project.service.responseLength = responseLengthSelect.value;
   project.characters = Array.from(document.querySelectorAll(".character-card")).map((card) => ({
     name: card.dataset.character || "角色",
     tone: card.dataset.tone || "待设定",
@@ -277,6 +286,8 @@ function hydrateActiveProject() {
   modelName.value = project.service.model;
   creativitySelect.value = creativityLabels[project.service.creativity] ? project.service.creativity : "balanced";
   creativityValue.textContent = creativityLabels[creativitySelect.value];
+  responseLengthSelect.value = responseLengthLabels[project.service.responseLength] ? project.service.responseLength : "standard";
+  responseLengthValue.textContent = responseLengthLabels[responseLengthSelect.value];
   conversationTitle.textContent = `与${selectedCharacter.name}对话`;
   document.querySelectorAll(".mode-tab").forEach((tab) => {
     const active = tab.dataset.mode === selectedMode;
@@ -387,7 +398,9 @@ function restoreServiceSettings() {
     if (saved && providerDefaults[saved.provider]) providerSelect.value = saved.provider;
     if (saved && typeof saved.model === "string" && saved.model.trim()) modelName.value = saved.model;
     if (saved && creativityLabels[saved.creativity]) creativitySelect.value = saved.creativity;
+    if (saved && responseLengthLabels[saved.responseLength]) responseLengthSelect.value = saved.responseLength;
     creativityValue.textContent = creativityLabels[creativitySelect.value];
+    responseLengthValue.textContent = responseLengthLabels[responseLengthSelect.value];
   } catch {
     // Ignore malformed or unavailable local storage.
   }
@@ -399,6 +412,7 @@ function saveServiceSettings() {
       provider: providerSelect.value,
       model: modelName.value.trim(),
       creativity: creativitySelect.value,
+      responseLength: responseLengthSelect.value,
     }));
   } catch {
     // Local storage is an enhancement; the selector still works without it.
@@ -788,6 +802,7 @@ async function requestModelReply() {
       model: modelName.value.trim(),
       mode: selectedMode,
       creativity: creativitySelect.value,
+      response_length: responseLengthSelect.value,
       character: selectedCharacter,
       context: getContext(),
       messages: conversationHistory,
@@ -813,6 +828,7 @@ async function requestStreamReply(onDelta, character = selectedCharacter) {
       model: modelName.value.trim(),
       mode: selectedMode,
       creativity: creativitySelect.value,
+      response_length: responseLengthSelect.value,
       character,
       context: getContext(),
       messages: conversationHistory,
@@ -1076,6 +1092,12 @@ creativitySelect.addEventListener("change", () => {
   showToast(`创作倾向：${creativityLabels[creativitySelect.value]}`);
 });
 
+responseLengthSelect.addEventListener("change", () => {
+  responseLengthValue.textContent = responseLengthLabels[responseLengthSelect.value];
+  saveServiceSettings();
+  showToast(`回复长度：${responseLengthLabels[responseLengthSelect.value]}`);
+});
+
 refreshModelsButton.addEventListener("click", refreshModels);
 
 ["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
@@ -1260,6 +1282,7 @@ function createNewProject() {
       provider: providerSelect.value,
       model: modelName.value.trim(),
       creativity: creativitySelect.value,
+      responseLength: responseLengthSelect.value,
     },
     characters: defaultCharacters,
     selectedCharacterName: "林黛玉",
