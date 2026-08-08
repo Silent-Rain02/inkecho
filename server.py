@@ -324,6 +324,32 @@ def probe_provider(payload: dict[str, Any]) -> ProviderSettings:
     return settings
 
 
+def summarize_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
+    """Turn the recent conversation into a compact, reusable story summary."""
+    settings = provider_settings(payload.get("provider"), payload.get("model"))
+    if not settings.model:
+        raise RuntimeError(f"{settings.provider} 尚未配置模型名")
+    if not settings.configured:
+        raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
+
+    messages = build_messages(payload)
+    messages[0]["content"] += (
+        "\n\n当前任务是整理剧情摘要，不是续写或角色对话。请根据已有设定和最近对话，"
+        "提炼已经发生的关键事件、人物关系变化、未解决的悬念与下一步方向。"
+        "只输出一段简洁的中文摘要，不要解释过程，不要添加标题，不要虚构对话中没有出现的事实。"
+    )
+    response = build_client(settings).chat.completions.create(
+        model=settings.model,
+        messages=messages,
+        max_tokens=500,
+        stream=False,
+    )
+    content = response.choices[0].message.content if response.choices else ""
+    if not isinstance(content, str) or not content.strip():
+        raise RuntimeError("模型没有返回可用的剧情摘要")
+    return content.strip()[:2000], settings
+
+
 class InkEchoHandler(BaseHTTPRequestHandler):
     server_version = "InkEcho/0.2"
 
@@ -356,7 +382,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
-        if path not in {"/api/chat", "/api/chat/stream", "/api/probe"}:
+        if path not in {"/api/chat", "/api/chat/stream", "/api/probe", "/api/summarize"}:
             self.send_error(HTTPStatus.NOT_FOUND, "Not found")
             return
         try:
@@ -364,6 +390,9 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             if path == "/api/probe":
                 settings = probe_provider(payload)
                 self.send_json({"ok": True, "provider": settings.provider, "model": settings.model})
+            elif path == "/api/summarize":
+                summary, settings = summarize_chat(payload)
+                self.send_json({"ok": True, "summary": summary, "provider": settings.provider, "model": settings.model})
             elif path == "/api/chat/stream":
                 self.stream_response(payload)
             else:
