@@ -34,6 +34,20 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(settings.model, "qwen3:8b")
         self.assertTrue(settings.configured)
 
+    def test_placeholder_credentials_are_not_reported_as_configured(self) -> None:
+        environment = {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "office-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://your-resource.openai.azure.com/",
+        }
+        with patch.dict(os.environ, environment, clear=True):
+            settings = provider_settings("custom_azure", "office-model")
+        self.assertFalse(settings.configured)
+        with patch.dict(os.environ, {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "replace_with_your_key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
+        }, clear=True):
+            self.assertFalse(provider_settings("custom_azure", "office-model").configured)
+
     def test_health_snapshot_uses_model_selected_in_ui(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             snapshot = provider_health_snapshot("ollama", "qwen3:8b")
@@ -201,6 +215,10 @@ class ServerConfigTests(unittest.TestCase):
     def test_azure_model_listing_uses_configured_deployment_without_network(self) -> None:
         with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_MODEL": "office-model"}, clear=False):
             self.assertEqual(list_provider_models("custom_azure"), ["office-model"])
+
+    def test_azure_model_listing_ignores_placeholder_deployment(self) -> None:
+        with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_MODEL": "your-deployment-name"}, clear=False):
+            self.assertEqual(list_provider_models("custom_azure"), [])
 
     def test_reference_is_capped_before_prompt_construction(self) -> None:
         reference = "雨" * 5000
