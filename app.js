@@ -341,6 +341,7 @@ let isSending = false;
 let isSummarizing = false;
 let pendingSceneOutcomePreview = null;
 let pendingSummaryPreview = null;
+let summaryEditPending = false;
 let streamController = null;
 let providerHealthRequestId = 0;
 let serverHistoryBudget = 48000;
@@ -934,6 +935,7 @@ async function copyScenePlan() {
 function hydrateActiveProject() {
   const project = getActiveProject();
   if (!project) return;
+  summaryEditPending = false;
   document.querySelector("#workTitle").value = project.context.title;
   workChapter.value = project.context.chapter || "";
   document.querySelector("#workEra").value = project.context.era;
@@ -1044,6 +1046,23 @@ function renderSummaryFreshness() {
     : "已有摘要 · 尚未记录更新时间";
 }
 
+function commitManualSummaryEdit() {
+  if (!summaryEditPending) return;
+  const project = getActiveProject();
+  if (!project) return;
+  const value = workSummary.value.trim();
+  if (value) {
+    project.summaryMessageCount = getConversationMessageCount(project);
+    project.summaryUpdatedAt = Date.now();
+  } else {
+    project.summaryMessageCount = 0;
+    project.summaryUpdatedAt = 0;
+  }
+  summaryEditPending = false;
+  renderSummaryFreshness();
+  saveWorkspace();
+}
+
 function restoreWorkspace() {
   try {
     const saved = JSON.parse(localStorage.getItem(workspaceStorageKey) || "null");
@@ -1090,6 +1109,7 @@ function flushDraft() {
   projectPersistTimer = null;
   const project = getActiveProject();
   if (!project) return;
+  commitManualSummaryEdit();
   project.draft = messageInput.value.slice(0, 10000);
   // Persist the live form fields too; pagehide can fire before the deferred
   // project save scheduled by saveWorkspace().
@@ -3768,12 +3788,12 @@ workReference.addEventListener("input", () => {
 });
 workSummary.addEventListener("input", () => {
   if (workSummary.value.length > 2000) workSummary.value = workSummary.value.slice(0, 2000);
-  const project = getActiveProject();
-  project.summaryMessageCount = getConversationMessageCount(project);
-  project.summaryUpdatedAt = Date.now();
-  renderSummaryFreshness();
+  summaryEditPending = true;
+  summaryFreshness.classList.add("is-stale");
+  summaryFreshness.textContent = workSummary.value.trim() ? "摘要编辑中 · 完成后记录覆盖范围" : "暂无摘要";
   saveWorkspace();
 });
+workSummary.addEventListener("blur", commitManualSummaryEdit);
 workInstructions.addEventListener("input", () => {
   if (workInstructions.value.length > 1200) workInstructions.value = workInstructions.value.slice(0, 1200);
   saveWorkspace();
