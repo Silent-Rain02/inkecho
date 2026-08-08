@@ -31,6 +31,9 @@ const draftStatus = document.querySelector("#draftStatus");
 const projectSelect = document.querySelector("#projectSelect");
 const newProjectButton = document.querySelector("#newProject");
 const duplicateProjectButton = document.querySelector("#duplicateProject");
+const exportProjectsButton = document.querySelector("#exportProjects");
+const importProjectsButton = document.querySelector("#importProjects");
+const projectBackupFile = document.querySelector("#projectBackupFile");
 const deleteProjectButton = document.querySelector("#deleteProject");
 const workReference = document.querySelector("#workReference");
 const referenceCount = document.querySelector("#referenceCount");
@@ -568,6 +571,67 @@ function exportSession() {
   link.remove();
   URL.revokeObjectURL(url);
   showToast("创作已导出为 Markdown");
+}
+
+function exportProjectsBackup() {
+  if (isSending) {
+    showToast("模型回复完成后再备份项目");
+    return;
+  }
+  flushDraft();
+  persistActiveProject();
+  const backup = {
+    format: "inkecho-projects",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    activeProjectId,
+    projects,
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `inkecho-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast(`已备份 ${projects.length} 个项目`);
+}
+
+async function importProjectsBackup() {
+  const file = projectBackupFile.files?.[0];
+  if (!file) return;
+  if (file.size > 5_000_000) {
+    showToast("备份文件超过 5MB，无法导入");
+    projectBackupFile.value = "";
+    return;
+  }
+  try {
+    const backup = JSON.parse(await file.text());
+    if (backup?.format !== "inkecho-projects" || !Array.isArray(backup.projects)) {
+      throw new Error("invalid backup");
+    }
+    const imported = backup.projects.slice(0, 50).map((project, index) => createProject({
+      ...project,
+      id: `project-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+      name: `${project.name || "未命名作品"} · 导入`,
+    }));
+    if (!imported.length) throw new Error("empty backup");
+    projects.push(...imported);
+    activeProjectId = imported[0].id;
+    persistProjects();
+    hydrateActiveProject();
+    renderProjectSelect();
+    renderCharacters();
+    renderConversation();
+    updateProviderUI();
+    showToast(`已导入 ${imported.length} 个项目`);
+  } catch {
+    showToast("备份文件无效，请选择 InkEcho 导出的 JSON");
+  } finally {
+    projectBackupFile.value = "";
+  }
 }
 
 function setSending(value) {
@@ -1165,6 +1229,9 @@ function deleteCurrentProject() {
 projectSelect.addEventListener("change", () => switchProject(projectSelect.value));
 newProjectButton.addEventListener("click", createNewProject);
 duplicateProjectButton.addEventListener("click", duplicateCurrentProject);
+exportProjectsButton.addEventListener("click", exportProjectsBackup);
+importProjectsButton.addEventListener("click", () => projectBackupFile.click());
+projectBackupFile.addEventListener("change", importProjectsBackup);
 deleteProjectButton.addEventListener("click", deleteCurrentProject);
 
 hydrateActiveProject();
