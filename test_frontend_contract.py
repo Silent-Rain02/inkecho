@@ -51,6 +51,10 @@ class FrontendContractTests(unittest.TestCase):
             "storageStatus",
             "templateDialog",
             "saveCurrentTemplate",
+            "archiveDialog",
+            "archiveSearchInput",
+            "archiveList",
+            "openArchiveHistory",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -88,6 +92,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("customTemplates", self.javascript)
         self.assertIn('version: 2', self.javascript)
         self.assertIn("sourceTemplates", self.javascript)
+        self.assertIn("function renderArchiveHistory", self.javascript)
+        self.assertIn("function openArchiveHistory", self.javascript)
+        self.assertIn("查看归档历史", self.javascript)
+        self.assertIn("function getCheckpointMessageCount", self.javascript)
         self.assertIn("function formatConversationForExport", self.javascript)
         self.assertIn("备选回复", self.javascript)
 
