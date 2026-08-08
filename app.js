@@ -113,6 +113,7 @@ const beatGoalInput = document.querySelector("#beatGoalInput");
 const beatOutcomeInput = document.querySelector("#beatOutcomeInput");
 const beatSearchInput = document.querySelector("#beatSearchInput");
 const beatStatusFilter = document.querySelector("#beatStatusFilter");
+const focusCurrentBeatButton = document.querySelector("#focusCurrentBeat");
 const beatListCount = document.querySelector("#beatListCount");
 const generateBeatOutcomeButton = document.querySelector("#generateBeatOutcome");
 const beatStatusInput = document.querySelector("#beatStatusInput");
@@ -3731,6 +3732,7 @@ manageBeatsButton.addEventListener("click", openScenePlanner);
 beatForm.addEventListener("submit", saveSceneBeat);
 beatSearchInput.addEventListener("input", renderSceneBeats);
 beatStatusFilter.addEventListener("change", renderSceneBeats);
+focusCurrentBeatButton.addEventListener("click", focusCurrentBeat);
 beatSearchInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") event.preventDefault();
 });
@@ -4039,6 +4041,7 @@ function resetBeatEditor() {
 function renderSceneBeats() {
   const project = getActiveProject();
   const beats = project?.beats || [];
+  const currentBeat = getActiveSceneBeat(project);
   const query = beatSearchInput?.value.trim().toLocaleLowerCase() || "";
   const statusFilter = beatStatusFilter?.value || "all";
   const done = beats.filter((beat) => beat.status === "done").length;
@@ -4050,6 +4053,8 @@ function renderSceneBeats() {
     : "还没有场景卡";
   beatProgressPercent.textContent = `${percent}%`;
   beatProgressBar.style.width = `${percent}%`;
+  focusCurrentBeatButton.disabled = !currentBeat;
+  focusCurrentBeatButton.title = currentBeat ? `定位到「${currentBeat.title}」` : "先选择一个当前场景";
   const matches = beats
     .map((beat, index) => ({ beat, index }))
     .filter(({ beat }) => {
@@ -4077,6 +4082,7 @@ function renderSceneBeats() {
   matches.forEach(({ beat, index }) => {
     const card = document.createElement("div");
     card.className = "beat-card";
+    card.dataset.beatId = beat.id;
     card.classList.toggle("is-current", beat.id === project.activeBeatId);
     const head = document.createElement("div");
     head.className = "beat-card-head";
@@ -4129,6 +4135,23 @@ function renderSceneBeats() {
     card.append(head, goal, actions);
     beatList.appendChild(card);
   });
+}
+
+function focusCurrentBeat() {
+  const project = getActiveProject();
+  const currentBeat = getActiveSceneBeat(project);
+  if (!currentBeat) {
+    showToast("还没有当前场景，请先选择一张场景卡");
+    return;
+  }
+  beatSearchInput.value = "";
+  beatStatusFilter.value = "all";
+  renderSceneBeats();
+  const card = Array.from(beatList.querySelectorAll(".beat-card")).find((item) => item.dataset.beatId === currentBeat.id);
+  if (!card) return;
+  card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  card.classList.add("is-focus");
+  window.setTimeout(() => card.classList.remove("is-focus"), 900);
 }
 
 function openScenePlanner() {
