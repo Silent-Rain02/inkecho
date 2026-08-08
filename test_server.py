@@ -51,6 +51,7 @@ class ServerConfigTests(unittest.TestCase):
                 "creativity": "imaginative",
                 "context": {
                     "title": "春日札记",
+                    "chapter": "第三回 · 潇湘馆夜话",
                     "era": "江南",
                     "world": "雨巷",
                     "reference": "她把伞留在了门边。",
@@ -63,6 +64,7 @@ class ServerConfigTests(unittest.TestCase):
         )
         self.assertEqual(messages[0]["role"], "system")
         self.assertIn("春日札记", messages[0]["content"])
+        self.assertIn("第三回 · 潇湘馆夜话", messages[0]["content"])
         self.assertIn("沈砚", messages[0]["content"])
         self.assertIn("她把伞留在了门边。", messages[0]["content"])
         self.assertIn("沈砚正在寻找失散的妹妹。", messages[0]["content"])
