@@ -196,6 +196,18 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("消息19-", selected[-1]["content"])
         self.assertNotIn("消息0-", "\n".join(item["content"] for item in selected))
 
+    def test_configured_history_budget_is_applied_to_prompt(self) -> None:
+        history = [
+            {"role": "user", "content": f"消息{i}-" + "字" * 3990}
+            for i in range(3)
+        ]
+        with patch.dict(os.environ, {"INK_ECHO_HISTORY_BUDGET": "8000"}, clear=True):
+            messages = build_messages({"messages": history})
+        selected = messages[1:]
+        self.assertEqual(len(selected), 2)
+        self.assertIn("消息2-", selected[-1]["content"])
+        self.assertNotIn("消息0-", "\n".join(item["content"] for item in selected))
+
     def test_instructions_are_capped_before_prompt_construction(self) -> None:
         instructions = "要求" * 800
         system_prompt = build_messages({"context": {"instructions": instructions}})[0]["content"]
