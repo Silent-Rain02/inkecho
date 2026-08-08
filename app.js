@@ -19,6 +19,10 @@ const clearConversationSearchButton = document.querySelector("#clearConversation
 const composerHint = document.querySelector("#composerHint");
 const toast = document.querySelector("#toast");
 const contextUsage = document.querySelector("#contextUsage");
+const contextDialog = document.querySelector("#contextDialog");
+const contextPreviewStats = document.querySelector("#contextPreviewStats");
+const contextPreviewText = document.querySelector("#contextPreviewText");
+const copyContextPreviewButton = document.querySelector("#copyContextPreview");
 const characterList = document.querySelector("#characterList");
 const manageCharacterButton = document.querySelector("#manageCharacter");
 const characterDialog = document.querySelector("#characterDialog");
@@ -841,6 +845,42 @@ function updateContextUsage() {
   contextUsage.title = isSummaryContextMode()
     ? "已启用精简上下文：剧情摘要 + 最近两轮对话；完整历史仍保存在本地"
     : `服务端历史预算约 ${serverHistoryBudget.toLocaleString("zh-CN")} 字`;
+}
+
+function getContextPreviewText() {
+  const context = getContext();
+  const modelMessages = getModelMessages();
+  const conversation = modelMessages.length
+    ? modelMessages.map((message) => `${message.role === "assistant" ? (message.name || selectedCharacter.name) : "我"}：${message.content}`).join("\n\n")
+    : "暂无对话消息";
+  return [
+    "InkEcho · 模型上下文预览",
+    `模型：${modelName.value.trim() || "未填写"}`,
+    `模式：${selectedMode}`,
+    `上下文策略：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : "完整对话"}`,
+    "",
+    "【作品设定】",
+    `作品：${context.title || "未填写"}`,
+    `章节 / 场景：${context.chapter || "未填写"}`,
+    `本幕目标：${context.sceneGoal || "未填写"}`,
+    `时代 / 氛围：${context.era || "未填写"}`,
+    `世界观：${context.world || "未填写"}`,
+    `剧情摘要：${context.summary || "未填写"}`,
+    `创作要求：${context.instructions || "未填写"}`,
+    context.scenePlan ? `场景计划：\n${context.scenePlan}` : "场景计划：未填写",
+    context.reference ? `参考片段：\n${context.reference}` : "参考片段：未填写",
+    "",
+    `【本次对话 · ${modelMessages.length} 条】`,
+    conversation,
+  ].join("\n");
+}
+
+function openContextPreview() {
+  updateContextUsage();
+  const modelMessages = getModelMessages();
+  contextPreviewStats.textContent = `${modelMessages.length} 条对话 · ${contextUsage.textContent} · ${isSummaryContextMode() ? "完整历史仍保留" : "发送完整对话"}`;
+  contextPreviewText.textContent = getContextPreviewText();
+  contextDialog.showModal();
 }
 
 function escapeHtml(value) {
@@ -2240,6 +2280,11 @@ refreshModelsButton.addEventListener("click", refreshModels);
 testProviderButton.addEventListener("click", testProviderConnection);
 generateSummaryButton.addEventListener("click", summarizeConversation);
 toggleContextModeButton.addEventListener("click", toggleContextMode);
+contextUsage.addEventListener("click", openContextPreview);
+copyContextPreviewButton.addEventListener("click", () => copyText(contextPreviewText.textContent, "上下文预览已复制"));
+contextDialog.addEventListener("click", (event) => {
+  if (event.target === contextDialog) contextDialog.close();
+});
 
 ["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
   document.querySelector(selector).addEventListener("input", saveWorkspace);
