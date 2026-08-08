@@ -81,6 +81,7 @@ const cancelTemplateButton = document.querySelector("#cancelTemplate");
 const manageBeatsButton = document.querySelector("#manageBeats");
 const activeBeatHint = document.querySelector("#activeBeatHint");
 const beatCount = document.querySelector("#beatCount");
+const advanceBeatButton = document.querySelector("#advanceBeat");
 const beatDialog = document.querySelector("#beatDialog");
 const beatForm = document.querySelector("#beatForm");
 const beatDialogTitle = document.querySelector("#beatDialogTitle");
@@ -574,10 +575,18 @@ function renderActiveBeat() {
   if (!active) {
     activeBeatHint.textContent = "未选择场景卡";
     activeBeatHint.title = "打开场景计划，添加并设为当前";
+    advanceBeatButton.disabled = true;
+    advanceBeatButton.textContent = "推进下一幕 →";
+    advanceBeatButton.title = "先在场景计划中设定当前场景";
     return;
   }
   activeBeatHint.textContent = active.goal ? `当前：${active.goal}` : `当前：${active.title}`;
   activeBeatHint.title = `${active.title} · ${sceneBeatStatusLabels[active.status]}`;
+  const index = beats.findIndex((beat) => beat.id === active.id);
+  const next = index >= 0 ? beats[index + 1] : null;
+  advanceBeatButton.disabled = !next;
+  advanceBeatButton.textContent = next ? "完成并推进 →" : "已到最后一幕";
+  advanceBeatButton.title = next ? `完成「${active.title}」，进入「${next.title}」` : "添加下一张场景卡后即可继续推进";
 }
 
 function hydrateActiveProject() {
@@ -2414,6 +2423,7 @@ cancelBeatButton.addEventListener("click", closeScenePlanner);
 beatDialog.addEventListener("click", (event) => {
   if (event.target === beatDialog) closeScenePlanner();
 });
+advanceBeatButton.addEventListener("click", advanceCurrentBeat);
 closeCheckpointButton.addEventListener("click", closeCheckpointDialog);
 checkpointDialog.addEventListener("click", (event) => {
   if (event.target === checkpointDialog) closeCheckpointDialog();
@@ -2762,6 +2772,23 @@ function setCurrentBeat(beatId) {
   renderActiveBeat();
   renderSceneBeats();
   showToast(`当前场景：${beat.title}`);
+}
+
+function advanceCurrentBeat() {
+  if (preventWorkspaceMutation("推进场景")) return;
+  const project = getActiveProject();
+  const currentIndex = project.beats.findIndex((beat) => beat.id === project.activeBeatId);
+  const current = currentIndex >= 0 ? project.beats[currentIndex] : null;
+  const next = current ? project.beats[currentIndex + 1] : null;
+  if (!current || !next) return;
+  current.status = "done";
+  next.status = "active";
+  project.activeBeatId = next.id;
+  workChapter.value = next.title;
+  persistActiveProject();
+  renderActiveBeat();
+  renderSceneBeats();
+  showToast(`已完成「${current.title}」，进入「${next.title}」`);
 }
 
 function moveBeat(beatId, direction) {
