@@ -68,6 +68,10 @@ const promptDialogTitle = document.querySelector("#promptDialogTitle");
 const promptTitleInput = document.querySelector("#promptTitleInput");
 const promptTextInput = document.querySelector("#promptTextInput");
 const cancelPromptButton = document.querySelector("#cancelPrompt");
+const openTemplatesButton = document.querySelector("#openTemplates");
+const templateDialog = document.querySelector("#templateDialog");
+const templateList = document.querySelector("#templateList");
+const cancelTemplateButton = document.querySelector("#cancelTemplate");
 const checkpointDialog = document.querySelector("#checkpointDialog");
 const checkpointList = document.querySelector("#checkpointList");
 const closeCheckpointButton = document.querySelector("#closeCheckpoint");
@@ -117,6 +121,104 @@ const maxProjects = 50;
 const maxPrompts = 12;
 const maxHighlights = 30;
 const maxCheckpoints = 12;
+const templatePresets = [
+  {
+    id: "classical-afterglow",
+    title: "古典余韵",
+    label: "原作续写",
+    description: "沿着熟悉的人物关系，写一场原作没有发生过的相逢。",
+    context: {
+      title: "古典余韵",
+      chapter: "一场迟到的春雨",
+      era: "古典园林 · 黄昏",
+      world: "礼法、家族与真心彼此牵扯，人物习惯把最重要的话藏在日常细节里。",
+      summary: "故事从一场未曾发生的告别前开始，人物仍有机会把心事说完。",
+      instructions: "保持含蓄、典雅的语感，用细节和留白推进关系，不急于解释人物的心意。",
+    },
+    characters: [
+      { name: "寄春人", tone: "敏锐、克制，善于从风物里听见未说出口的话。" },
+      { name: "迟归客", tone: "温柔而迟疑，习惯用玩笑掩饰真正的在意。" },
+    ],
+    selectedCharacterName: "寄春人",
+    mode: "续写",
+    prompts: [
+      { title: "一封未寄的信", text: "写一封没有寄出的信，告诉对方这场迟到的相逢意味着什么。" },
+      { title: "让雨替人说话", text: "让窗外的雨成为旁观者，用一段含蓄的文字写出两人的沉默。" },
+    ],
+  },
+  {
+    id: "original-world",
+    title: "原创长篇",
+    label: "从零搭建",
+    description: "先定下世界的规则与人物的愿望，再让第一幕自己长出来。",
+    context: {
+      title: "未命名长篇",
+      chapter: "第一幕 · 雾中的车站",
+      era: "架空世界",
+      world: "这是一个记忆可以被寄存和交换的城市。每个人都拥有一段不愿被取回的往事。",
+      summary: "主角在一座停运多年的车站醒来，手里握着一张写有陌生人名字的车票。",
+      instructions: "优先建立可感知的场景和人物欲望，每次推进留下一个具体问题，避免一次性解释世界观。",
+    },
+    characters: [
+      { name: "拾忆者", tone: "谨慎、好奇，擅长观察却不轻易相信别人。" },
+      { name: "无名旅客", tone: "从容而神秘，知道一些不该被知道的城市秘密。" },
+    ],
+    selectedCharacterName: "拾忆者",
+    mode: "续写",
+    prompts: [
+      { title: "车票背面", text: "车票背面出现了一行刚刚写上的字，请让这句话改变主角对车站的理解。" },
+      { title: "交换一段记忆", text: "让两个角色交换一段记忆，但其中一人发现那段记忆并不属于自己。" },
+    ],
+  },
+  {
+    id: "unsent-letter",
+    title: "一封未寄出的信",
+    label: "角色独白",
+    description: "把复杂的关系折进一封信里，让角色终于说出平时不敢说的话。",
+    context: {
+      title: "一封未寄出的信",
+      chapter: "落款之前",
+      era: "当代 · 深夜",
+      world: "两个人曾经非常亲近，如今只剩一封写了很多次却始终没有寄出的信。",
+      summary: "写信人准备在天亮前完成最后一版，却不断删去真正想说的那一句。",
+      instructions: "使用第一人称，语气像真实的私人信件；允许犹豫、改口和重复，让情绪慢慢浮现。",
+    },
+    characters: [
+      { name: "写信人", tone: "清醒、嘴硬，越想说得体面越暴露自己的舍不得。" },
+      { name: "收信人", tone: "沉默而具体，始终以缺席的方式参与这封信。" },
+    ],
+    selectedCharacterName: "写信人",
+    mode: "独白",
+    prompts: [
+      { title: "真正的第一句", text: "不要从问候开始，直接写出写信人最想逃避的那件事。" },
+      { title: "删掉的段落", text: "写出一段被划掉的文字，再解释为什么这段话始终无法寄出。" },
+    ],
+  },
+  {
+    id: "parallel-choice",
+    title: "如果那天没有告别",
+    label: "平行改写",
+    description: "从一个关键分岔点重写故事，让人物在另一条路上重新遇见彼此。",
+    context: {
+      title: "如果那天没有告别",
+      chapter: "分岔点 · 站台",
+      era: "当代 · 雨夜",
+      world: "原本应该发生的告别被一个微小的意外打断，两个人因此进入一条未被写下的时间线。",
+      summary: "列车即将开走，主角还不知道留下来会改变什么，也不知道谁正在等一句挽留。",
+      instructions: "保留人物原有的性格核心，只改变选择和后果；让每个转折都能追溯到一个具体动作。",
+    },
+    characters: [
+      { name: "留下的人", tone: "理智、可靠，已经习惯把自己的愿望放到最后。" },
+      { name: "未上车的人", tone: "直接、倔强，害怕承认自己其实一直在等挽留。" },
+    ],
+    selectedCharacterName: "留下的人",
+    mode: "改写",
+    prompts: [
+      { title: "只晚了一分钟", text: "把改变命运的原因写成一个很小的、几乎不会被注意到的动作。" },
+      { title: "另一种后果", text: "写出这次没有告别之后，两人第一次意识到世界已经变了的瞬间。" },
+    ],
+  },
+];
 const providerRequestTimeout = 12000;
 const summaryRequestTimeout = 45000;
 const streamIdleTimeout = 90000;
@@ -2044,6 +2146,11 @@ cancelPromptButton.addEventListener("click", closePromptEditor);
 promptDialog.addEventListener("click", (event) => {
   if (event.target === promptDialog) closePromptEditor();
 });
+openTemplatesButton.addEventListener("click", openTemplateDialog);
+cancelTemplateButton.addEventListener("click", closeTemplateDialog);
+templateDialog.addEventListener("click", (event) => {
+  if (event.target === templateDialog) closeTemplateDialog();
+});
 closeCheckpointButton.addEventListener("click", closeCheckpointDialog);
 checkpointDialog.addEventListener("click", (event) => {
   if (event.target === checkpointDialog) closeCheckpointDialog();
@@ -2143,6 +2250,93 @@ function switchProject(projectId) {
   renderConversation();
   updateProviderUI();
   showToast(`已切换到「${getActiveProject().name}」`);
+}
+
+function renderTemplateList() {
+  if (!templateList) return;
+  templateList.innerHTML = "";
+  templatePresets.forEach((template, index) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `template-card template-card-${index + 1}`;
+    const eyebrow = document.createElement("span");
+    eyebrow.className = "template-card-label";
+    eyebrow.textContent = template.label;
+    const title = document.createElement("strong");
+    title.textContent = template.title;
+    const description = document.createElement("small");
+    description.textContent = template.description;
+    const meta = document.createElement("span");
+    meta.className = "template-card-meta";
+    meta.textContent = `${template.characters.length} 位角色 · ${template.prompts.length} 个灵感`;
+    const arrow = document.createElement("span");
+    arrow.className = "template-card-arrow";
+    arrow.textContent = "↗";
+    card.append(eyebrow, title, description, meta, arrow);
+    card.addEventListener("click", () => applyTemplate(template.id));
+    templateList.appendChild(card);
+  });
+}
+
+function openTemplateDialog() {
+  if (projects.length >= maxProjects) {
+    showToast(`项目数量已达到上限（${maxProjects} 个）`);
+    return;
+  }
+  if (preventWorkspaceMutation("使用模板")) return;
+  renderTemplateList();
+  templateDialog.showModal();
+}
+
+function closeTemplateDialog() {
+  templateDialog.close();
+}
+
+function applyTemplate(templateId) {
+  if (projects.length >= maxProjects) {
+    closeTemplateDialog();
+    showToast(`项目数量已达到上限（${maxProjects} 个）`);
+    return;
+  }
+  if (preventWorkspaceMutation("使用模板")) return;
+  const template = templatePresets.find((item) => item.id === templateId);
+  if (!template) return;
+  persistActiveProject();
+  const name = window.prompt("给模板项目取一个名字：", template.context.title || template.title);
+  if (!name || !name.trim()) return;
+  const cleanName = safeText(name, template.title, 80);
+  const current = getActiveProject();
+  const project = createProject({
+    id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name: cleanName,
+    context: { ...template.context, title: cleanName },
+    conversation: [{
+      role: "assistant",
+      name: template.selectedCharacterName,
+      content: `「${cleanName}」已经准备好。${template.description}先写下第一句，让故事找到自己的方向。`,
+    }],
+    service: {
+      provider: providerSelect.value,
+      model: modelName.value.trim(),
+      models: { ...(current.service?.models || {}) },
+      creativity: creativitySelect.value,
+      responseLength: responseLengthSelect.value,
+    },
+    characters: template.characters.map((character) => ({ ...character })),
+    selectedCharacterName: template.selectedCharacterName,
+    mode: template.mode,
+    prompts: template.prompts.map((prompt) => ({ ...prompt })),
+  });
+  projects.push(project);
+  activeProjectId = project.id;
+  persistProjects();
+  hydrateActiveProject();
+  renderProjectSelect();
+  renderCharacters();
+  renderConversation();
+  updateProviderUI();
+  closeTemplateDialog();
+  showToast(`已用「${template.title}」创建「${cleanName}」`);
 }
 
 function createNewProject() {
