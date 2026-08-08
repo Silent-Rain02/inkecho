@@ -36,6 +36,7 @@ const responseLengthValue = document.querySelector("#responseLengthValue");
 const sendButton = document.querySelector(".send-button");
 const draftStatus = document.querySelector("#draftStatus");
 const projectSelect = document.querySelector("#projectSelect");
+const projectSearchInput = document.querySelector("#projectSearch");
 const newProjectButton = document.querySelector("#newProject");
 const duplicateProjectButton = document.querySelector("#duplicateProject");
 const exportProjectsButton = document.querySelector("#exportProjects");
@@ -373,17 +374,26 @@ function hydrateActiveProject() {
 
 function renderProjectSelect() {
   const active = getActiveProject();
-  projectSelect.innerHTML = "";
-  projects
+  const query = projectSearchInput?.value.trim().toLocaleLowerCase() || "";
+  const visibleProjects = projects
     .slice()
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-    .forEach((project) => {
-      const option = document.createElement("option");
-      option.value = project.id;
-      option.textContent = project.name || "未命名作品";
-      projectSelect.appendChild(option);
-    });
-  if (active) projectSelect.value = active.id;
+    .filter((project) => !query || (project.name || "未命名作品").toLocaleLowerCase().includes(query));
+  projectSelect.innerHTML = "";
+  if (!visibleProjects.length) {
+    const empty = document.createElement("option");
+    empty.disabled = true;
+    empty.textContent = "没有匹配的项目";
+    projectSelect.appendChild(empty);
+    return;
+  }
+  visibleProjects.forEach((project) => {
+    const option = document.createElement("option");
+    option.value = project.id;
+    option.textContent = project.name || "未命名作品";
+    projectSelect.appendChild(option);
+  });
+  if (active && visibleProjects.some((project) => project.id === active.id)) projectSelect.value = active.id;
 }
 
 function saveConversation() {
@@ -1814,6 +1824,7 @@ function deleteCurrentProject() {
 }
 
 projectSelect.addEventListener("change", () => switchProject(projectSelect.value));
+projectSearchInput.addEventListener("input", renderProjectSelect);
 newProjectButton.addEventListener("click", createNewProject);
 duplicateProjectButton.addEventListener("click", duplicateCurrentProject);
 exportProjectsButton.addEventListener("click", exportProjectsBackup);
