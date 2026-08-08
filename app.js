@@ -52,6 +52,7 @@ const referenceFile = document.querySelector("#referenceFile");
 const promptList = document.querySelector("#promptList");
 const highlightList = document.querySelector("#highlightList");
 const highlightCount = document.querySelector("#highlightCount");
+const appendHighlightsButton = document.querySelector("#appendHighlightsToSummary");
 const addPromptButton = document.querySelector("#addPrompt");
 const promptDialog = document.querySelector("#promptDialog");
 const promptForm = document.querySelector("#promptForm");
@@ -749,6 +750,29 @@ function renderHighlights() {
     card.append(main, remove);
     highlightList.appendChild(card);
   });
+}
+
+function appendHighlightsToSummary() {
+  const highlights = getActiveProject()?.highlights || [];
+  if (!highlights.length) {
+    showToast("先保存几条灵感摘录");
+    return;
+  }
+  const current = workSummary.value.trim();
+  const currentLines = new Set(current.split("\n").map((line) => line.trim()).filter(Boolean));
+  const freshLines = highlights
+    .map((highlight) => `【${highlight.name}】${highlight.content}`)
+    .filter((line) => !currentLines.has(line));
+  if (!freshLines.length) {
+    showToast("这些摘录已经在剧情摘要中");
+    return;
+  }
+  const addition = freshLines.join("\n");
+  const next = current ? `${current}\n${addition}` : addition;
+  const truncated = next.slice(0, 2000);
+  workSummary.value = truncated;
+  saveWorkspace();
+  showToast(truncated.length < next.length ? "摘录已加入摘要（已达到 2000 字上限）" : "摘录已加入剧情摘要");
 }
 
 function toggleHighlight(historyIndex) {
@@ -1591,6 +1615,7 @@ characterDialog.addEventListener("click", (event) => {
   if (event.target === characterDialog) closeCharacterEditor();
 });
 addPromptButton.addEventListener("click", openPromptEditor);
+appendHighlightsButton.addEventListener("click", appendHighlightsToSummary);
 promptForm.addEventListener("submit", savePrompt);
 cancelPromptButton.addEventListener("click", closePromptEditor);
 promptDialog.addEventListener("click", (event) => {
