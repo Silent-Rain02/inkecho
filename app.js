@@ -118,6 +118,8 @@ const beatProgressBar = document.querySelector("#beatProgressBar");
 const cancelBeatButton = document.querySelector("#cancelBeat");
 const checkpointDialog = document.querySelector("#checkpointDialog");
 const checkpointList = document.querySelector("#checkpointList");
+const checkpointSearchInput = document.querySelector("#checkpointSearchInput");
+const checkpointCount = document.querySelector("#checkpointCount");
 const closeCheckpointButton = document.querySelector("#closeCheckpoint");
 const openArchiveHistoryButton = document.querySelector("#openArchiveHistory");
 const archiveDialog = document.querySelector("#archiveDialog");
@@ -1746,6 +1748,21 @@ function getCheckpointMessageCount(checkpoint) {
 function renderCheckpoints() {
   if (!checkpointList) return;
   const checkpoints = getActiveProject()?.checkpoints || [];
+  const query = checkpointSearchInput?.value.trim().toLocaleLowerCase() || "";
+  const matches = checkpoints.filter((checkpoint) => {
+    if (!query) return true;
+    const activeBeat = checkpoint.beats?.find((beat) => beat.id === checkpoint.activeBeatId);
+    return [
+      checkpoint.name,
+      checkpoint.context?.chapter,
+      activeBeat?.title,
+      activeBeat?.goal,
+      checkpoint.selectedCharacterName,
+    ].filter(Boolean).join(" ").toLocaleLowerCase().includes(query);
+  });
+  checkpointCount.textContent = query
+    ? `${matches.length} / ${checkpoints.length} 个`
+    : `${checkpoints.length} / ${maxCheckpoints} 个`;
   checkpointList.innerHTML = "";
   if (!checkpoints.length) {
     const empty = document.createElement("p");
@@ -1754,7 +1771,14 @@ function renderCheckpoints() {
     checkpointList.appendChild(empty);
     return;
   }
-  checkpoints.slice().reverse().forEach((checkpoint) => {
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.className = "checkpoint-empty";
+    empty.textContent = "没有匹配的检查点。试试搜索场景名称或角色。";
+    checkpointList.appendChild(empty);
+    return;
+  }
+  matches.slice().reverse().forEach((checkpoint) => {
     const card = document.createElement("div");
     card.className = "checkpoint-card";
     const main = document.createElement("div");
@@ -1840,8 +1864,10 @@ function renameCheckpoint(checkpointId) {
 }
 
 function openCheckpointDialog() {
+  checkpointSearchInput.value = "";
   renderCheckpoints();
   checkpointDialog.showModal();
+  checkpointSearchInput.focus();
 }
 
 function closeCheckpointDialog() {
@@ -3549,6 +3575,8 @@ closeCheckpointButton.addEventListener("click", closeCheckpointDialog);
 checkpointDialog.addEventListener("click", (event) => {
   if (event.target === checkpointDialog) closeCheckpointDialog();
 });
+checkpointSearchInput.addEventListener("input", renderCheckpoints);
+checkpointDialog.querySelector("form").addEventListener("submit", (event) => event.preventDefault());
 openArchiveHistoryButton.addEventListener("click", () => {
   closeConversationMenu();
   openArchiveHistory();
