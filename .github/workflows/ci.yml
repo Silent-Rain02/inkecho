@@ -30,6 +30,22 @@ jobs:
       - name: Compile Python sources
         run: python -m py_compile server.py test_server.py
 
+      - name: Smoke test HTTP routes
+        run: |
+          INK_ECHO_PORT=5174 python server.py >/tmp/inkecho-smoke.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:5174/ >/tmp/inkecho-index.html; then
+              break
+            fi
+            sleep 0.5
+          done
+          grep -q "InkEcho" /tmp/inkecho-index.html
+          curl --fail --silent "http://127.0.0.1:5174/api/health?provider=ollama&model=qwen3:8b" \
+            | python -c 'import json, sys; data = json.load(sys.stdin); assert data["ok"] and data["history_budget"] == 48000'
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:5174/README.md)" = "404"
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
