@@ -65,6 +65,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("provider_details", self.javascript)
         self.assertIn("characterDetailsInput", self.javascript)
         self.assertIn("dataset.details", self.javascript)
+        self.assertIn("【当前角色卡】", self.javascript)
 
 
 if __name__ == "__main__":
