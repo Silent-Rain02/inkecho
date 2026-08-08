@@ -307,6 +307,23 @@ def stream_chat(payload: dict[str, Any]) -> tuple[ProviderSettings, Iterator[str
     return settings, deltas()
 
 
+def probe_provider(payload: dict[str, Any]) -> ProviderSettings:
+    """Make an explicit, minimal request to verify credentials and routing."""
+    settings = provider_settings(payload.get("provider"), payload.get("model"))
+    if not settings.model:
+        raise RuntimeError(f"{settings.provider} 尚未配置模型名")
+    if not settings.configured:
+        raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
+
+    build_client(settings).chat.completions.create(
+        model=settings.model,
+        messages=[{"role": "user", "content": "请只回复：好"}],
+        max_tokens=2,
+        stream=False,
+    )
+    return settings
+
+
 class InkEchoHandler(BaseHTTPRequestHandler):
     server_version = "InkEcho/0.2"
 
@@ -339,12 +356,15 @@ class InkEchoHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
-        if path not in {"/api/chat", "/api/chat/stream"}:
+        if path not in {"/api/chat", "/api/chat/stream", "/api/probe"}:
             self.send_error(HTTPStatus.NOT_FOUND, "Not found")
             return
         try:
             payload = self.read_payload()
-            if path == "/api/chat/stream":
+            if path == "/api/probe":
+                settings = probe_provider(payload)
+                self.send_json({"ok": True, "provider": settings.provider, "model": settings.model})
+            elif path == "/api/chat/stream":
                 self.stream_response(payload)
             else:
                 text, settings = complete_chat(payload)
