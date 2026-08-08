@@ -82,6 +82,7 @@ const openTemplatesButton = document.querySelector("#openTemplates");
 const templateDialog = document.querySelector("#templateDialog");
 const templateList = document.querySelector("#templateList");
 const cancelTemplateButton = document.querySelector("#cancelTemplate");
+const saveCurrentTemplateButton = document.querySelector("#saveCurrentTemplate");
 const manageBeatsButton = document.querySelector("#manageBeats");
 const activeBeatHint = document.querySelector("#activeBeatHint");
 const beatCount = document.querySelector("#beatCount");
@@ -106,6 +107,7 @@ const conversationStorageKey = "inkecho.conversation.v1";
 const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
 const projectsStorageKey = "inkecho.projects.v1";
+const customTemplatesStorageKey = "inkecho.templates.v1";
 const activeProjectStorageKey = "inkecho.active-project.v1";
 const focusModeStorageKey = "inkecho.focus-mode.v1";
 const defaultCharacters = [
@@ -146,6 +148,7 @@ const responseLengthLabels = {
   expanded: "展开",
 };
 const maxProjects = 50;
+const maxCustomTemplates = 12;
 const maxConversationMessages = 120;
 const maxArchivedMessages = 360;
 const maxStoredConversationMessages = maxConversationMessages + maxArchivedMessages;
@@ -300,6 +303,7 @@ const defaultConversationHistory = [
   { role: "assistant", name: "林黛玉", content: "那便去看一场没有结局的雨吧。雨停之前，谁也不必急着把心事说完。" },
 ];
 let projects = loadProjects();
+let customTemplates = loadCustomTemplates();
 let activeProjectId = projects[0].id;
 try {
   activeProjectId = localStorage.getItem(activeProjectStorageKey) || projects[0].id;
@@ -336,6 +340,88 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
     normalized.versionIndex = versionIndex;
   }
   return normalized;
+}
+
+function normalizeTemplate(item, fallbackTitle = "我的模板") {
+  const source = item && typeof item === "object" ? item : {};
+  const rawContext = source.context && typeof source.context === "object" ? source.context : {};
+  const title = safeText(source.title || rawContext.title, fallbackTitle, 80);
+  const rawCharacters = Array.isArray(source.characters) ? source.characters : [];
+  const characters = (rawCharacters.length ? rawCharacters : defaultCharacters)
+    .map((character) => {
+      const value = character && typeof character === "object" ? character : {};
+      return {
+        name: safeText(value.name, "角色", 40),
+        tone: safeText(value.tone, "待设定", 240),
+        details: safeText(value.details, "", 500),
+      };
+    })
+    .filter((character, index, list) => list.findIndex((item) => item.name === character.name) === index);
+  const prompts = (Array.isArray(source.prompts) ? source.prompts : [])
+    .slice(0, maxPrompts)
+    .map((prompt) => {
+      const value = prompt && typeof prompt === "object" ? prompt : {};
+      return {
+        id: safeText(value.id, `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+        title: safeText(value.title, "自定义灵感", 32),
+        text: safeText(value.text, "", 500),
+      };
+    })
+    .filter((prompt) => prompt.text);
+  const beats = (Array.isArray(source.beats) ? source.beats : [])
+    .slice(0, maxSceneBeats)
+    .map((beat) => {
+      const value = beat && typeof beat === "object" ? beat : {};
+      return {
+        title: safeText(value.title, "未命名场景", 80),
+        goal: safeText(value.goal, "", 280),
+      };
+    })
+    .filter((beat) => beat.title);
+  const selectedCharacterName = characters.some((character) => character.name === source.selectedCharacterName)
+    ? source.selectedCharacterName
+    : characters[0].name;
+  return {
+    id: safeText(source.id, `template-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+    title,
+    label: safeText(source.label, "我的模板", 24),
+    description: safeText(source.description, `从「${title}」保存的创作底稿，可继续修改后开始新作。`, 160),
+    context: {
+      title,
+      chapter: safeText(rawContext.chapter, "", 120),
+      era: safeText(rawContext.era, "", 120),
+      world: safeText(rawContext.world, "", 800),
+      reference: safeText(rawContext.reference, "", 4000),
+      summary: safeText(rawContext.summary, "", 2000),
+      instructions: safeText(rawContext.instructions, "", 1200),
+    },
+    characters,
+    selectedCharacterName,
+    mode: modeHints[source.mode] ? source.mode : "续写",
+    prompts,
+    beats,
+  };
+}
+
+function loadCustomTemplates() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(customTemplatesStorageKey) || "null");
+    if (Array.isArray(saved)) {
+      return saved.slice(0, maxCustomTemplates).map((item) => normalizeTemplate(item)).filter(Boolean);
+    }
+  } catch {
+    // Use the built-in starters when custom templates are unavailable.
+  }
+  return [];
+}
+
+function persistCustomTemplates() {
+  try {
+    localStorage.setItem(customTemplatesStorageKey, JSON.stringify(customTemplates));
+    updateStorageStatus();
+  } catch {
+    notifyStorageIssue();
+  }
 }
 
 function createProject({ id, name, context, conversation, conversationArchive, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId, contextMode, summaryMessageCount, summaryUpdatedAt }) {
@@ -592,7 +678,7 @@ function updateStorageStatus(failed = false) {
     return;
   }
   try {
-    const bytes = new Blob([JSON.stringify(projects)]).size;
+    const bytes = new Blob([JSON.stringify({ projects, customTemplates })]).size;
     const size = bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1000))} KB`;
     storageStatus.textContent = `本地数据约 ${size}`;
     if (bytes >= 3_500_000) {
@@ -1759,10 +1845,11 @@ function exportProjectsBackup() {
   persistActiveProject();
   const backup = {
     format: "inkecho-projects",
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     activeProjectId,
     projects,
+    customTemplates,
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -1823,20 +1910,29 @@ async function importProjectsBackup() {
         ? backup.projects
         : null;
     const sourceActiveProjectId = backup?.format === "inkecho-projects" ? String(backup.activeProjectId || "") : "";
+    const sourceTemplates = backup?.format === "inkecho-projects" && Array.isArray(backup.customTemplates)
+      ? backup.customTemplates
+      : [];
     if (!sourceProjects?.length || !sourceProjects[0] || typeof sourceProjects[0] !== "object") {
       throw new Error("invalid backup");
     }
     const slots = Math.max(0, maxProjects - projects.length);
-    if (!slots) {
+    const importCount = Math.min(sourceProjects.length, slots);
+    const importedTemplates = sourceTemplates.slice(0, maxCustomTemplates).map((template, index) => normalizeTemplate({
+      ...template,
+      id: `template-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+      title: `${safeText(template?.title, "我的模板", 80)} · 导入`,
+    }));
+    if (!slots && !importedTemplates.length) {
       showToast(`项目数量已达到上限（${maxProjects} 个）`);
       return;
     }
-    const importCount = Math.min(sourceProjects.length, slots);
     const sourceActiveProject = backup?.format === "inkecho-projects"
       ? sourceProjects.find((project) => String(project?.id || "") === sourceActiveProjectId)
       : sourceProjects[0];
     const activeLabel = sourceActiveProject?.name ? `\n备份中的当前项目：${sourceActiveProject.name}` : "";
-    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${activeLabel}\n确定继续吗？`)) return;
+    const templateLabel = importedTemplates.length ? `\n另含 ${importedTemplates.length} 个自定义模板。` : "";
+    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${activeLabel}${templateLabel}\n确定继续吗？`)) return;
     const importedEntries = sourceProjects.slice(0, slots).map((project, index) => {
       const source = project && typeof project === "object" ? project : {};
       return {
@@ -1849,18 +1945,21 @@ async function importProjectsBackup() {
       };
     });
     const imported = importedEntries.map((entry) => entry.project);
-    if (!imported.length) throw new Error("empty backup");
+    if (!imported.length && !importedTemplates.length) throw new Error("empty backup");
     persistActiveProject();
     projects.push(...imported);
+    customTemplates = [...importedTemplates, ...customTemplates].slice(0, maxCustomTemplates);
     const selectedImported = importedEntries.find((entry) => entry.sourceId === sourceActiveProjectId);
-    activeProjectId = selectedImported?.project.id || imported[0].id;
+    if (selectedImported?.project) activeProjectId = selectedImported.project.id;
+    else if (imported[0]) activeProjectId = imported[0].id;
     persistProjects();
+    persistCustomTemplates();
     hydrateActiveProject();
     renderProjectSelect();
     renderCharacters();
     renderConversation();
     updateProviderUI();
-    showToast(`已导入 ${imported.length} 个项目`);
+    showToast(`已导入 ${imported.length} 个项目${importedTemplates.length ? `和 ${importedTemplates.length} 个模板` : ""}`);
   } catch {
     showToast("备份文件无效，请选择 InkEcho 导出的 JSON");
   } finally {
@@ -2730,6 +2829,7 @@ promptDialog.addEventListener("click", (event) => {
 });
 openTemplatesButton.addEventListener("click", openTemplateDialog);
 cancelTemplateButton.addEventListener("click", closeTemplateDialog);
+saveCurrentTemplateButton.addEventListener("click", saveCurrentAsTemplate);
 templateDialog.addEventListener("click", (event) => {
   if (event.target === templateDialog) closeTemplateDialog();
 });
@@ -2850,10 +2950,13 @@ function switchProject(projectId) {
 function renderTemplateList() {
   if (!templateList) return;
   templateList.innerHTML = "";
-  templatePresets.forEach((template, index) => {
+  const templates = [...customTemplates, ...templatePresets];
+  templates.forEach((template) => {
+    const custom = customTemplates.some((item) => item.id === template.id);
+    const presetIndex = templatePresets.findIndex((item) => item.id === template.id);
     const card = document.createElement("button");
     card.type = "button";
-    card.className = `template-card template-card-${index + 1}`;
+    card.className = `template-card ${custom ? "template-card-custom" : `template-card-${presetIndex + 1}`}`;
     const eyebrow = document.createElement("span");
     eyebrow.className = "template-card-label";
     eyebrow.textContent = template.label;
@@ -2863,21 +2966,35 @@ function renderTemplateList() {
     description.textContent = template.description;
     const meta = document.createElement("span");
     meta.className = "template-card-meta";
-    meta.textContent = `${template.characters.length} 位角色 · ${template.prompts.length} 个灵感`;
+    meta.textContent = `${template.characters.length} 位角色 · ${template.prompts.length} 个灵感${custom ? " · 我的模板" : ""}`;
     const arrow = document.createElement("span");
     arrow.className = "template-card-arrow";
     arrow.textContent = "↗";
     card.append(eyebrow, title, description, meta, arrow);
     card.addEventListener("click", () => applyTemplate(template.id));
+    if (custom) {
+      const remove = document.createElement("span");
+      remove.className = "template-card-remove";
+      remove.textContent = "×";
+      remove.title = "删除我的模板";
+      remove.setAttribute("role", "button");
+      remove.setAttribute("tabindex", "0");
+      remove.setAttribute("aria-label", `删除模板 ${template.title}`);
+      const removeTemplate = (event) => {
+        event.stopPropagation();
+        deleteCustomTemplate(template.id);
+      };
+      remove.addEventListener("click", removeTemplate);
+      remove.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") removeTemplate(event);
+      });
+      card.appendChild(remove);
+    }
     templateList.appendChild(card);
   });
 }
 
 function openTemplateDialog() {
-  if (projects.length >= maxProjects) {
-    showToast(`项目数量已达到上限（${maxProjects} 个）`);
-    return;
-  }
   if (preventWorkspaceMutation("使用模板")) return;
   renderTemplateList();
   templateDialog.showModal();
@@ -2887,6 +3004,44 @@ function closeTemplateDialog() {
   templateDialog.close();
 }
 
+function saveCurrentAsTemplate() {
+  if (preventWorkspaceMutation("保存模板")) return;
+  if (customTemplates.length >= maxCustomTemplates) {
+    showToast(`自定义模板最多保存 ${maxCustomTemplates} 个`);
+    return;
+  }
+  persistActiveProject();
+  const project = getActiveProject();
+  const name = window.prompt("给这个模板取一个名字：", `${project.name} · 模板`);
+  if (!name || !name.trim()) return;
+  const cleanName = safeText(name, "我的模板", 80);
+  const template = normalizeTemplate({
+    id: `template-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    title: cleanName,
+    label: "我的模板",
+    description: `从「${project.name}」保存的创作底稿，可继续修改后开始新作。`,
+    context: { ...project.context },
+    characters: project.characters.map((character) => ({ ...character })),
+    selectedCharacterName: project.selectedCharacterName,
+    mode: project.mode,
+    prompts: project.prompts.map((prompt) => ({ ...prompt })),
+    beats: project.beats.map((beat) => ({ title: beat.title, goal: beat.goal })),
+  }, cleanName);
+  customTemplates = [template, ...customTemplates].slice(0, maxCustomTemplates);
+  persistCustomTemplates();
+  renderTemplateList();
+  showToast(`已保存模板「${cleanName}」`);
+}
+
+function deleteCustomTemplate(templateId) {
+  const template = customTemplates.find((item) => item.id === templateId);
+  if (!template || !window.confirm(`删除模板「${template.title}」吗？`)) return;
+  customTemplates = customTemplates.filter((item) => item.id !== templateId);
+  persistCustomTemplates();
+  renderTemplateList();
+  showToast("模板已删除");
+}
+
 function applyTemplate(templateId) {
   if (projects.length >= maxProjects) {
     closeTemplateDialog();
@@ -2894,14 +3049,23 @@ function applyTemplate(templateId) {
     return;
   }
   if (preventWorkspaceMutation("使用模板")) return;
-  const template = templatePresets.find((item) => item.id === templateId);
+  const template = [...customTemplates, ...templatePresets].find((item) => item.id === templateId);
   if (!template) return;
   persistActiveProject();
   const name = window.prompt("给模板项目取一个名字：", template.context.title || template.title);
   if (!name || !name.trim()) return;
   const cleanName = safeText(name, template.title, 80);
   const current = getActiveProject();
-  const firstBeatId = `beat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const sourceBeats = Array.isArray(template.beats) && template.beats.length
+    ? template.beats
+    : [{ title: template.context.chapter || "第一幕", goal: template.context.summary || "" }];
+  const beats = sourceBeats.slice(0, maxSceneBeats).map((beat, index) => ({
+    id: `beat-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+    title: safeText(beat.title, `第 ${index + 1} 幕`, 80),
+    goal: safeText(beat.goal, "", 280),
+    outcome: "",
+    status: index === 0 ? "active" : "planned",
+  }));
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: cleanName,
@@ -2922,8 +3086,8 @@ function applyTemplate(templateId) {
     selectedCharacterName: template.selectedCharacterName,
     mode: template.mode,
     prompts: template.prompts.map((prompt) => ({ ...prompt })),
-    beats: [{ id: firstBeatId, title: template.context.chapter, goal: template.context.summary, status: "active" }],
-    activeBeatId: firstBeatId,
+    beats,
+    activeBeatId: beats[0]?.id || "",
   });
   projects.push(project);
   activeProjectId = project.id;
