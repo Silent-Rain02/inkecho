@@ -223,6 +223,7 @@
                 <button type="button" id="exportProjectJson">导出项目 JSON</button>
                 <button type="button" id="saveCheckpointFromMenu">保存当前检查点</button>
                 <button type="button" id="openCheckpoints">查看检查点</button>
+                <button type="button" id="openArchiveHistory">查看归档历史</button>
                 <button type="button" id="resetFromMenu">重新开始</button>
               </div>
             </div>
@@ -443,6 +444,24 @@
           <span></span>
           <span></span>
           <button class="dialog-cancel" id="closeCheckpoint" type="button">关闭</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog archive-dialog" id="archiveDialog" aria-labelledby="archiveDialogTitle">
+      <form method="dialog">
+        <span class="section-kicker">ARCHIVED HISTORY</span>
+        <h2 id="archiveDialogTitle">归档历史</h2>
+        <p class="template-description">这里保存工作区之外的较早消息，只读查看，不会改变当前对话顺序。</p>
+        <div class="archive-toolbar">
+          <input class="dialog-input archive-search-input" id="archiveSearchInput" type="search" placeholder="搜索归档中的角色、情节或句子……" aria-label="搜索归档历史" autocomplete="off" />
+          <span class="archive-count" id="archiveCount">0 条归档</span>
+        </div>
+        <div class="archive-list" id="archiveList"></div>
+        <div class="dialog-actions checkpoint-dialog-actions">
+          <span></span>
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" id="closeArchive" type="button">关闭</button>
         </div>
       </form>
     </dialog>
