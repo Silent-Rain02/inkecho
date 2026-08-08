@@ -299,12 +299,16 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .template-card-2 { background: linear-gradient(135deg, #f1f6ef, #eaf2ee); }
 .template-card-3 { background: linear-gradient(135deg, #f8f0ee, #f4e8e1); }
 .template-card-4 { background: linear-gradient(135deg, #f2f0fa, #ececf7); }
+.template-card-custom { background: linear-gradient(135deg, #f7f2ec, #f2e9df); }
 .template-card-label { color: var(--accent); font: 9px var(--mono); letter-spacing: 0.7px; }
 .template-card strong { font-size: 15px; font-weight: 600; letter-spacing: -0.04em; }
 .template-card small { max-width: 245px; color: var(--ink-soft); font-size: 10px; line-height: 1.65; }
 .template-card-meta { align-self: end; color: var(--muted); font: 9px var(--mono); }
 .template-card-arrow { position: absolute; top: 14px; right: 14px; color: var(--accent); font: 14px var(--mono); }
+.template-card-remove { position: absolute; top: 12px; right: 34px; z-index: 1; width: 18px; height: 18px; color: var(--muted); font: 15px/17px var(--mono); text-align: center; opacity: 0; transition: opacity 0.2s, color 0.2s; }
+.template-card:hover .template-card-remove, .template-card-remove:focus { color: var(--accent); opacity: 1; outline: 0; }
 .template-dialog-actions { margin-top: 18px; }
+.template-save-button { justify-self: start; }
 .beat-dialog { width: min(570px, calc(100% - 36px)); max-height: min(720px, calc(100vh - 36px)); overflow: auto; }
 .dialog-select { width: 100%; height: 38px; margin-bottom: 18px; padding: 0 10px; border: 1px solid var(--line); outline: 0; color: var(--ink); background: #fbfbf7; font-size: 12px; }
 .dialog-select:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
