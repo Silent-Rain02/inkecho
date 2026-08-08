@@ -10,6 +10,7 @@ const copyConversationButton = document.querySelector("#copyConversation");
 const exportFromMenuButton = document.querySelector("#exportFromMenu");
 const exportProjectJsonButton = document.querySelector("#exportProjectJson");
 const copyProjectHandoffButton = document.querySelector("#copyProjectHandoff");
+const downloadProjectHandoffButton = document.querySelector("#downloadProjectHandoff");
 const resetFromMenuButton = document.querySelector("#resetFromMenu");
 const saveCheckpointFromMenuButton = document.querySelector("#saveCheckpointFromMenu");
 const openCheckpointsButton = document.querySelector("#openCheckpoints");
@@ -1687,6 +1688,25 @@ async function copyProjectHandoff() {
   if (preventWorkspaceMutation("复制项目交接摘要")) return;
   persistActiveProject();
   await copyText(formatProjectHandoff(), "项目交接摘要已复制");
+}
+
+function downloadProjectHandoff() {
+  if (preventWorkspaceMutation("下载项目交接摘要")) return;
+  flushDraft();
+  persistActiveProject();
+  const project = getActiveProject();
+  const title = String(project?.name || document.querySelector("#workTitle")?.value || "inkecho-project");
+  const safeTitle = title.replace(/[\\/:*?"<>|\s]+/g, "-").slice(0, 60);
+  const blob = new Blob([formatProjectHandoff()], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${safeTitle || "inkecho-project"}-handoff.md`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast("项目交接摘要已下载");
 }
 
 function formatConversationForExport() {
@@ -4074,6 +4094,10 @@ copyConversationButton.addEventListener("click", async () => {
 });
 copyProjectHandoffButton.addEventListener("click", async () => {
   await copyProjectHandoff();
+  closeConversationMenu();
+});
+downloadProjectHandoffButton.addEventListener("click", () => {
+  downloadProjectHandoff();
   closeConversationMenu();
 });
 exportFromMenuButton.addEventListener("click", () => {
