@@ -339,6 +339,8 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .beat-status-active { color: #5e7b58; background: #e5f0e2; }
 .beat-status-done { color: #8b9090; background: #eceeeb; }
 .beat-card p { margin: 7px 0 9px; color: var(--ink-soft); font-size: 10px; line-height: 1.65; white-space: pre-line; }
+.beat-provenance { display: block; margin: -2px 0 9px; color: #7b8b78; font: 8px var(--mono); line-height: 1.5; }
+.beat-provenance.is-stale { color: var(--accent); }
 .beat-card-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .beat-action { padding: 0; border: 0; color: var(--muted); background: transparent; font: 9px var(--mono); }
 .beat-action:hover:not(:disabled) { color: var(--accent); }
