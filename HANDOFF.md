@@ -1,0 +1,54 @@
+# InkEcho 接手说明
+
+InkEcho 是一个中文文学作品对话与二次创作工作台。项目当前是无构建步骤的原生前端 + Python 标准库服务端，适合直接在本地继续迭代。
+
+## 本地运行
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 server.py
+```
+
+打开 `http://localhost:5173`。模型密钥只放在本地 `.env`，参考 `.env.example`，不要提交真实密钥。
+
+## 主要文件
+
+- `index.html`：页面结构、对话菜单、角色卡、检查点和模型服务操作入口
+- `styles.css`：整体视觉、响应式布局和交互状态
+- `app.js`：项目状态、浏览器本地保存、流式对话和全部前端交互
+- `server.py`：模型服务适配、请求超时、安全静态资源和 HTTP 路由
+- `test_server.py`：服务端配置、路由、安全和模型请求回归测试
+- `README.md`：用户向项目说明
+
+## 服务端接口
+
+- `GET /api/health`：读取当前服务配置状态，不发起模型请求
+- `GET /api/models`：读取模型列表；Azure 类型端点只返回配置中的部署名，并标记为非实际探测
+- `POST /api/probe`：用最小请求验证当前服务的密钥、端点和模型部署
+- `POST /api/chat`：非流式回复
+- `POST /api/chat/stream`：SSE 流式回复
+
+支持 `custom_azure`、`ollama`、`openai`、`azure` 和 `compatible`。办公网端点与本地 Ollama 的配置示例都在 `.env.example`。
+
+## 当前功能
+
+作品设定、参考片段导入、剧情摘要、角色卡、续写/改写/独白、项目切换与分支、灵感摘录、命名检查点、Markdown 导出、JSON 备份、模型流式生成、停止/重试、多回复版本、对话搜索和模型连接测试均已实现。
+
+## 验证
+
+```bash
+node --check app.js
+python3 -m unittest -q test_server.py
+python3 -m py_compile server.py test_server.py
+```
+
+当前服务端回归测试共 24 项。发布前检查本地 `.env` 没有被加入版本控制，并确认 GitHub Actions CI 通过。
+
+## 后续可选方向
+
+- 为作品提供更多可复用的创作模板和示例
+- 增加更细的上下文压缩与长篇项目管理
+- 补充浏览器端自动化测试和视觉回归检查
+- 评估是否需要账号同步或云端存储
