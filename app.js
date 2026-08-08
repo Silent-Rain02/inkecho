@@ -48,6 +48,13 @@ const workInstructions = document.querySelector("#workInstructions");
 const referenceCount = document.querySelector("#referenceCount");
 const importReferenceButton = document.querySelector("#importReference");
 const referenceFile = document.querySelector("#referenceFile");
+const promptList = document.querySelector("#promptList");
+const addPromptButton = document.querySelector("#addPrompt");
+const promptDialog = document.querySelector("#promptDialog");
+const promptForm = document.querySelector("#promptForm");
+const promptTitleInput = document.querySelector("#promptTitleInput");
+const promptTextInput = document.querySelector("#promptTextInput");
+const cancelPromptButton = document.querySelector("#cancelPrompt");
 const conversationStorageKey = "inkecho.conversation.v1";
 const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
@@ -91,6 +98,7 @@ const responseLengthLabels = {
   expanded: "展开",
 };
 const maxProjects = 50;
+const maxPrompts = 12;
 
 const replyTemplates = {
   续写: [
@@ -132,7 +140,7 @@ function safeText(value, fallback = "", maxLength = 240) {
   return text.trim().slice(0, maxLength) || fallback;
 }
 
-function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt }) {
+function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts }) {
   const safeContext = context && typeof context === "object" ? context : {};
   const safeService = service && typeof service === "object" ? service : {};
   const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
@@ -150,6 +158,16 @@ function createProject({ id, name, context, conversation, service, characters, s
   const selected = safeCharacters.find((item) => item.name === selectedCharacterName) || safeCharacters[0];
   const safeName = safeText(name || safeContext.title, "未命名作品", 80);
   const safeTitle = safeText(safeContext.title || safeName, safeName, 120);
+  const safePrompts = Array.isArray(prompts)
+    ? prompts.slice(0, maxPrompts).map((item) => {
+      const source = item && typeof item === "object" ? item : {};
+      return {
+        id: safeText(source.id, `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+        title: safeText(source.title, "自定义灵感", 32),
+        text: safeText(source.text, "", 500),
+      };
+    }).filter((item) => item.text)
+    : [];
   const safeConversation = Array.isArray(conversation) && conversation.length
     ? conversation.slice(-40).map((item) => {
       const source = item && typeof item === "object" ? item : {};
@@ -196,6 +214,7 @@ function createProject({ id, name, context, conversation, service, characters, s
       responseLength: responseLengthLabels[safeService.responseLength] ? safeService.responseLength : "standard",
     },
     draft: safeText(draft, "", 10000),
+    prompts: safePrompts,
     characters: safeCharacters,
     selectedCharacterName: selected.name,
     mode: modeHints[mode] ? mode : "续写",
@@ -296,6 +315,7 @@ function hydrateActiveProject() {
   workReference.value = project.context.reference || "";
   workSummary.value = project.context.summary || "";
   workInstructions.value = project.context.instructions || "";
+  renderCustomPrompts();
   updateReferenceCount();
   messageInput.value = project.draft || "";
   draftStatus.textContent = messageInput.value ? "草稿已恢复" : "草稿自动保存";
@@ -1146,6 +1166,93 @@ function deleteCharacter() {
   showToast("角色已删除");
 }
 
+function fillPrompt(text) {
+  messageInput.value = text;
+  messageInput.focus();
+  showToast("灵感已放入输入框");
+}
+
+function createCustomPromptCard(prompt, index) {
+  const card = document.createElement("div");
+  card.className = "prompt-card custom-prompt-card";
+  const main = document.createElement("button");
+  main.type = "button";
+  main.className = "prompt-card-main";
+  const number = document.createElement("span");
+  number.className = "prompt-number";
+  number.textContent = "✦";
+  const copy = document.createElement("span");
+  const title = document.createElement("strong");
+  title.textContent = prompt.title;
+  const description = document.createElement("small");
+  description.textContent = "自定义灵感";
+  copy.append(title, description);
+  const arrow = document.createElement("span");
+  arrow.className = "prompt-arrow";
+  arrow.textContent = "↗";
+  main.append(number, copy, arrow);
+  main.addEventListener("click", () => fillPrompt(prompt.text));
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "prompt-remove";
+  remove.textContent = "×";
+  remove.setAttribute("aria-label", `删除灵感 ${prompt.title}`);
+  remove.addEventListener("click", () => deleteCustomPrompt(index));
+  card.append(main, remove);
+  return card;
+}
+
+function renderCustomPrompts() {
+  if (!promptList) return;
+  promptList.querySelectorAll(".custom-prompt-card").forEach((card) => card.remove());
+  getActiveProject().prompts.forEach((prompt, index) => {
+    promptList.appendChild(createCustomPromptCard(prompt, index));
+  });
+}
+
+function openPromptEditor() {
+  promptTitleInput.value = "";
+  promptTextInput.value = "";
+  promptDialog.showModal();
+  promptTitleInput.focus();
+}
+
+function closePromptEditor() {
+  promptDialog.close();
+}
+
+function savePrompt(event) {
+  event.preventDefault();
+  const title = safeText(promptTitleInput.value, "", 32);
+  const text = safeText(promptTextInput.value, "", 500);
+  if (!title || !text) return;
+  const project = getActiveProject();
+  if (project.prompts.length >= maxPrompts) {
+    closePromptEditor();
+    showToast(`自定义灵感最多保存 ${maxPrompts} 条`);
+    return;
+  }
+  project.prompts.push({
+    id: `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    title,
+    text,
+  });
+  persistActiveProject();
+  renderCustomPrompts();
+  closePromptEditor();
+  showToast(`已保存灵感「${title}」`);
+}
+
+function deleteCustomPrompt(index) {
+  const project = getActiveProject();
+  const prompt = project.prompts[index];
+  if (!prompt || !window.confirm(`确定删除「${prompt.title}」吗？`)) return;
+  project.prompts.splice(index, 1);
+  persistActiveProject();
+  renderCustomPrompts();
+  showToast("灵感已删除");
+}
+
 document.querySelectorAll(".mode-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
     selectedMode = tab.dataset.mode;
@@ -1162,9 +1269,7 @@ document.querySelectorAll(".mode-tab").forEach((tab) => {
 
 document.querySelectorAll(".prompt-card").forEach((card) => {
   card.addEventListener("click", () => {
-    messageInput.value = card.dataset.prompt;
-    messageInput.focus();
-    showToast("灵感已放入输入框");
+    fillPrompt(card.dataset.prompt);
   });
 });
 
@@ -1283,6 +1388,12 @@ deleteCharacterButton.addEventListener("click", deleteCharacter);
 cancelCharacterButton.addEventListener("click", closeCharacterEditor);
 characterDialog.addEventListener("click", (event) => {
   if (event.target === characterDialog) closeCharacterEditor();
+});
+addPromptButton.addEventListener("click", openPromptEditor);
+promptForm.addEventListener("submit", savePrompt);
+cancelPromptButton.addEventListener("click", closePromptEditor);
+promptDialog.addEventListener("click", (event) => {
+  if (event.target === promptDialog) closePromptEditor();
 });
 
 document.addEventListener("pointermove", (event) => {
@@ -1428,6 +1539,7 @@ function duplicateCurrentProject() {
     selectedCharacterName: current.selectedCharacterName,
     mode: current.mode,
     draft: current.draft,
+    prompts: current.prompts.map((item) => ({ ...item })),
   });
   projects.push(project);
   activeProjectId = project.id;
