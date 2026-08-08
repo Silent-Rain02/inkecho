@@ -46,6 +46,29 @@ PLACEHOLDER_VALUES = {
     "replace_with_your_logid",
     "your-deployment-name",
 }
+PROVIDER_MODEL_KEYS = {
+    "custom_azure": "INK_ECHO_CUSTOM_AZURE_MODEL",
+    "ollama": "INK_ECHO_OLLAMA_MODEL",
+    "openai": "INK_ECHO_OPENAI_MODEL",
+    "azure": "INK_ECHO_AZURE_MODEL",
+    "compatible": "INK_ECHO_COMPATIBLE_MODEL",
+}
+PROVIDER_REQUIRED_ENV = {
+    "custom_azure": ("INK_ECHO_CUSTOM_AZURE_API_KEY", "INK_ECHO_CUSTOM_AZURE_ENDPOINT"),
+    "ollama": (),
+    "openai": ("INK_ECHO_OPENAI_API_KEY",),
+    "azure": ("INK_ECHO_AZURE_API_KEY", "INK_ECHO_AZURE_ENDPOINT"),
+    "compatible": ("INK_ECHO_COMPATIBLE_API_KEY", "INK_ECHO_COMPATIBLE_BASE_URL"),
+}
+PROVIDER_FIELD_LABELS = {
+    "INK_ECHO_CUSTOM_AZURE_API_KEY": "办公网密钥",
+    "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "办公网端点",
+    "INK_ECHO_OPENAI_API_KEY": "OpenAI 密钥",
+    "INK_ECHO_AZURE_API_KEY": "Azure 密钥",
+    "INK_ECHO_AZURE_ENDPOINT": "Azure 端点",
+    "INK_ECHO_COMPATIBLE_API_KEY": "兼容接口密钥",
+    "INK_ECHO_COMPATIBLE_BASE_URL": "兼容接口地址",
+}
 
 
 def load_local_env() -> None:
@@ -125,29 +148,46 @@ def provider_settings(provider: str | None = None, requested_model: str | None =
     if selected not in SUPPORTED_PROVIDERS:
         raise ValueError(f"不支持的模型服务：{selected}")
 
-    defaults = {
-        "custom_azure": ("INK_ECHO_CUSTOM_AZURE_MODEL", ("INK_ECHO_CUSTOM_AZURE_API_KEY", "INK_ECHO_CUSTOM_AZURE_ENDPOINT")),
-        "ollama": ("INK_ECHO_OLLAMA_MODEL", ()),
-        "openai": ("INK_ECHO_OPENAI_MODEL", ("INK_ECHO_OPENAI_API_KEY",)),
-        "azure": ("INK_ECHO_AZURE_MODEL", ("INK_ECHO_AZURE_API_KEY", "INK_ECHO_AZURE_ENDPOINT")),
-        "compatible": ("INK_ECHO_COMPATIBLE_MODEL", ("INK_ECHO_COMPATIBLE_API_KEY", "INK_ECHO_COMPATIBLE_BASE_URL")),
-    }
-    model_key, required_keys = defaults[selected]
+    model_key = PROVIDER_MODEL_KEYS[selected]
+    required_keys = PROVIDER_REQUIRED_ENV[selected]
     model = (requested_model or env(model_key)).strip()
     configured = bool(model and not is_placeholder(model) and all(not is_placeholder(env(key)) for key in required_keys))
     return ProviderSettings(provider=selected, model=model, configured=configured)
+
+
+def provider_missing_fields(provider: str, requested_model: str | None = None) -> list[str]:
+    selected = provider.lower()
+    if selected not in SUPPORTED_PROVIDERS:
+        raise ValueError(f"不支持的模型服务：{selected}")
+    settings = provider_settings(selected, requested_model)
+    missing = ["模型名"] if is_placeholder(settings.model) else []
+    missing.extend(
+        PROVIDER_FIELD_LABELS.get(key, key)
+        for key in PROVIDER_REQUIRED_ENV[selected]
+        if is_placeholder(env(key))
+    )
+    return missing
 
 
 def provider_health_snapshot(provider: str | None = None, requested_model: str | None = None) -> dict[str, Any]:
     """Report configuration using the model currently selected in the UI."""
     selected = (provider or env("INK_ECHO_PROVIDER", "custom_azure")).lower()
     providers = {name: provider_settings(name).configured for name in sorted(SUPPORTED_PROVIDERS)}
+    provider_details = {
+        name: {"configured": providers[name], "missing": provider_missing_fields(name)}
+        for name in sorted(SUPPORTED_PROVIDERS)
+    }
     if selected in SUPPORTED_PROVIDERS:
         providers[selected] = provider_settings(selected, requested_model).configured
+        provider_details[selected] = {
+            "configured": providers[selected],
+            "missing": provider_missing_fields(selected, requested_model),
+        }
     return {
         "ok": True,
         "provider": selected,
         "providers": providers,
+        "provider_details": provider_details,
         "history_budget": history_budget_chars(),
         "request_timeout": request_timeout_seconds(),
     }
