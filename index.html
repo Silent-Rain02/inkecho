@@ -570,14 +570,14 @@
       <form method="dialog">
         <span class="section-kicker">SCENE CHECKPOINTS</span>
         <h2 id="checkpointDialogTitle">对话检查点</h2>
-        <p class="checkpoint-description">保存当前对话、设定和草稿，之后可以恢复，或从这一刻创建一条安全的剧情支线。</p>
+        <p class="checkpoint-description">保存当前对话、设定和草稿，之后可以恢复，或从这一刻创建一条安全的剧情支线。也可以用 ⌘ / Ctrl + Shift + S 快速保存。</p>
         <div class="checkpoint-toolbar">
           <input class="dialog-input checkpoint-search-input" id="checkpointSearchInput" type="search" placeholder="搜索检查点名称、场景或角色……" aria-label="搜索检查点" autocomplete="off" />
           <span class="checkpoint-count" id="checkpointCount">0 / 12 个</span>
         </div>
         <div class="checkpoint-list" id="checkpointList"></div>
         <div class="dialog-actions checkpoint-dialog-actions">
-          <span></span>
+          <button class="dialog-copy" id="quickSaveCheckpoint" type="button">快速保存</button>
           <span></span>
           <span></span>
           <button class="dialog-cancel" id="closeCheckpoint" type="button">关闭</button>
