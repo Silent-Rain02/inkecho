@@ -55,6 +55,7 @@ class FrontendContractTests(unittest.TestCase):
             "archiveSearchInput",
             "archiveList",
             "openArchiveHistory",
+            "clearArchive",
             "characterLibraryDialog",
             "openCharacterLibrary",
             "characterLibraryList",
@@ -98,6 +99,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function renderArchiveHistory", self.javascript)
         self.assertIn("function openArchiveHistory", self.javascript)
         self.assertIn("查看归档历史", self.javascript)
+        self.assertIn("function clearArchivedHistory", self.javascript)
+        self.assertIn("建议先导出 JSON 备份", self.javascript)
         self.assertIn("function getCheckpointMessageCount", self.javascript)
         self.assertIn("const characterLibraryStorageKey", self.javascript)
         self.assertIn("function renderCharacterLibrary", self.javascript)
