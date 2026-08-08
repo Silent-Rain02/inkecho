@@ -139,6 +139,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("基础设定快照", self.javascript)
         self.assertIn("function branchFromCheckpoint", self.javascript)
         self.assertIn("checkpoint-branch", self.javascript)
+        self.assertIn("function renameCheckpoint", self.javascript)
+        self.assertIn("checkpoint-rename", self.javascript)
         self.assertIn("从这一刻创建一条安全的剧情支线", self.html)
         self.assertIn("const characterLibraryStorageKey", self.javascript)
         self.assertIn("function renderCharacterLibrary", self.javascript)
