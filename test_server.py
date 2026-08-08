@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from server import build_messages, list_provider_models, provider_settings, public_error
+from server import build_messages, list_provider_models, provider_health_snapshot, provider_settings, public_error
 
 
 class ServerConfigTests(unittest.TestCase):
@@ -12,6 +12,12 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(settings.provider, "ollama")
         self.assertEqual(settings.model, "qwen3:8b")
         self.assertTrue(settings.configured)
+
+    def test_health_snapshot_uses_model_selected_in_ui(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            snapshot = provider_health_snapshot("ollama", "qwen3:8b")
+        self.assertTrue(snapshot["providers"]["ollama"])
+        self.assertEqual(snapshot["provider"], "ollama")
 
     def test_unknown_provider_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
