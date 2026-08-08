@@ -127,6 +127,10 @@ h2 { margin: 7px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.06em
 .project-switcher { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; margin: -10px 0 20px; padding: 5px; border: 1px solid rgba(215, 217, 207, 0.9); background: rgba(247, 248, 241, 0.68); }
 .project-switcher select { min-width: 0; height: 27px; padding: 0 5px; border: 0; outline: 0; color: var(--ink-soft); background: transparent; font-size: 11px; }
 .project-actions { display: flex; gap: 3px; }
+.project-search { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; padding: 5px 5px 2px; border-top: 1px solid rgba(215, 217, 207, 0.7); color: var(--accent); }
+.project-search input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--ink-soft); background: transparent; font-size: 10px; }
+.project-search input::placeholder { color: #a6aba3; }
+.project-search:focus-within { color: var(--accent-dark); }
 .mini-button { width: 23px; height: 23px; padding: 0; border: 1px solid transparent; color: var(--muted); background: transparent; font: 16px var(--mono); line-height: 1; }
 .mini-button:hover { border-color: #d6dfd0; color: var(--accent); background: #f0f5eb; }
 .field-label { display: block; margin: 0 0 8px; color: var(--muted); font-size: 11px; }
