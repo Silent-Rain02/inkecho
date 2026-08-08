@@ -43,6 +43,7 @@ class ServerConfigTests(unittest.TestCase):
                     "world": "雨巷",
                     "reference": "她把伞留在了门边。",
                     "summary": "沈砚正在寻找失散的妹妹。",
+                    "instructions": "保持古典语感，不改变人物结局。",
                 },
                 "character": {"name": "沈砚", "tone": "沉静"},
                 "messages": [{"role": "user", "content": "继续写下去"}],
@@ -53,6 +54,7 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("沈砚", messages[0]["content"])
         self.assertIn("她把伞留在了门边。", messages[0]["content"])
         self.assertIn("沈砚正在寻找失散的妹妹。", messages[0]["content"])
+        self.assertIn("保持古典语感，不改变人物结局。", messages[0]["content"])
         self.assertIn("大胆想象", messages[0]["content"])
         self.assertEqual(messages[-1], {"role": "user", "content": "继续写下去"})
 
@@ -100,6 +102,12 @@ class ServerConfigTests(unittest.TestCase):
         reference = "雨" * 5000
         system_prompt = build_messages({"context": {"reference": reference}})[0]["content"]
         self.assertEqual(system_prompt.count("雨"), 4000)
+
+    def test_instructions_are_capped_before_prompt_construction(self) -> None:
+        instructions = "要求" * 800
+        system_prompt = build_messages({"context": {"instructions": instructions}})[0]["content"]
+        self.assertIn("要求" * 600, system_prompt)
+        self.assertNotIn("要求" * 601, system_prompt)
 
     def test_provider_exception_is_not_returned_to_client(self) -> None:
         error = public_error(RuntimeError("upstream key=secret-value response body"))
