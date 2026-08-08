@@ -26,6 +26,11 @@ const contextDialog = document.querySelector("#contextDialog");
 const contextPreviewStats = document.querySelector("#contextPreviewStats");
 const contextPreviewText = document.querySelector("#contextPreviewText");
 const copyContextPreviewButton = document.querySelector("#copyContextPreview");
+const summaryPreviewDialog = document.querySelector("#summaryPreviewDialog");
+const summaryPreviewStats = document.querySelector("#summaryPreviewStats");
+const currentSummaryPreview = document.querySelector("#currentSummaryPreview");
+const nextSummaryPreview = document.querySelector("#nextSummaryPreview");
+const applySummaryPreviewButton = document.querySelector("#applySummaryPreview");
 const characterList = document.querySelector("#characterList");
 const manageCharacterButton = document.querySelector("#manageCharacter");
 const characterDialog = document.querySelector("#characterDialog");
@@ -329,6 +334,7 @@ let draftTimer;
 let projectPersistTimer;
 let isSending = false;
 let isSummarizing = false;
+let pendingSummaryPreview = null;
 let streamController = null;
 let providerHealthRequestId = 0;
 let serverHistoryBudget = 48000;
@@ -2820,6 +2826,39 @@ async function testProviderConnection() {
   }
 }
 
+function openSummaryPreview(summary, projectId, messageCount) {
+  const current = workSummary.value.trim();
+  pendingSummaryPreview = { summary, projectId, messageCount };
+  summaryPreviewStats.textContent = `当前摘要 ${current.length} 字 · 新摘要 ${summary.length} 字 · 覆盖 ${messageCount} 条消息`;
+  currentSummaryPreview.textContent = current || "暂无摘要";
+  nextSummaryPreview.textContent = summary || "暂无摘要";
+  summaryPreviewDialog.showModal();
+}
+
+function applySummaryPreview() {
+  const pending = pendingSummaryPreview;
+  if (!pending) {
+    summaryPreviewDialog.close();
+    return;
+  }
+  if (activeProjectId !== pending.projectId) {
+    pendingSummaryPreview = null;
+    summaryPreviewDialog.close();
+    showToast("当前项目已切换，摘要未写入");
+    return;
+  }
+  workSummary.value = pending.summary;
+  const project = getActiveProject();
+  project.summaryMessageCount = pending.messageCount;
+  project.summaryUpdatedAt = Date.now();
+  renderSummaryFreshness();
+  setProviderBadge("已连接", "#6f8b6a");
+  saveWorkspace();
+  pendingSummaryPreview = null;
+  summaryPreviewDialog.close();
+  showToast("剧情摘要已更新");
+}
+
 async function summarizeConversation() {
   if (isSummarizing) {
     showToast("摘要正在提炼中，请稍候");
@@ -2858,16 +2897,9 @@ async function summarizeConversation() {
       showToast("当前项目已切换，摘要未写入");
       return;
     }
-    const current = workSummary.value.trim();
-    if (current && !window.confirm("用新摘要替换当前剧情摘要吗？")) return;
-    workSummary.value = payload.summary.slice(0, 2000);
     const project = getActiveProject();
-    project.summaryMessageCount = getConversationMessageCount(project);
-    project.summaryUpdatedAt = Date.now();
-    renderSummaryFreshness();
     setProviderBadge("已连接", "#6f8b6a");
-    saveWorkspace();
-    showToast("剧情摘要已更新");
+    openSummaryPreview(payload.summary.slice(0, 2000), projectId, getConversationMessageCount(project));
   } catch (error) {
     showToast(error?.name === "AbortError" ? "摘要生成超时，请检查服务状态" : (error?.userMessage || "剧情摘要生成失败"));
   } finally {
@@ -3654,6 +3686,13 @@ contextUsage.addEventListener("click", openContextPreview);
 copyContextPreviewButton.addEventListener("click", () => copyText(contextPreviewText.textContent, "上下文预览已复制"));
 contextDialog.addEventListener("click", (event) => {
   if (event.target === contextDialog) contextDialog.close();
+});
+applySummaryPreviewButton.addEventListener("click", applySummaryPreview);
+summaryPreviewDialog.addEventListener("click", (event) => {
+  if (event.target === summaryPreviewDialog) summaryPreviewDialog.close();
+});
+summaryPreviewDialog.addEventListener("close", () => {
+  pendingSummaryPreview = null;
 });
 
 ["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
