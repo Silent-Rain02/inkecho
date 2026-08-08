@@ -90,6 +90,9 @@ const beatGoalInput = document.querySelector("#beatGoalInput");
 const beatOutcomeInput = document.querySelector("#beatOutcomeInput");
 const beatStatusInput = document.querySelector("#beatStatusInput");
 const beatList = document.querySelector("#beatList");
+const beatProgressText = document.querySelector("#beatProgressText");
+const beatProgressPercent = document.querySelector("#beatProgressPercent");
+const beatProgressBar = document.querySelector("#beatProgressBar");
 const cancelBeatButton = document.querySelector("#cancelBeat");
 const checkpointDialog = document.querySelector("#checkpointDialog");
 const checkpointList = document.querySelector("#checkpointList");
@@ -2682,6 +2685,15 @@ function resetBeatEditor() {
 function renderSceneBeats() {
   const project = getActiveProject();
   const beats = project?.beats || [];
+  const done = beats.filter((beat) => beat.status === "done").length;
+  const active = beats.filter((beat) => beat.status === "active").length;
+  const planned = beats.filter((beat) => beat.status === "planned").length;
+  const percent = beats.length ? Math.round((done / beats.length) * 100) : 0;
+  beatProgressText.textContent = beats.length
+    ? `${done}/${beats.length} 已完成 · ${active} 进行中 · ${planned} 待写`
+    : "还没有场景卡";
+  beatProgressPercent.textContent = `${percent}%`;
+  beatProgressBar.style.width = `${percent}%`;
   beatList.innerHTML = "";
   if (!beats.length) {
     const empty = document.createElement("p");
