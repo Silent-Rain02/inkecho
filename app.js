@@ -17,6 +17,7 @@ const conversationSearchCount = document.querySelector("#conversationSearchCount
 const clearConversationSearchButton = document.querySelector("#clearConversationSearch");
 const composerHint = document.querySelector("#composerHint");
 const toast = document.querySelector("#toast");
+const contextUsage = document.querySelector("#contextUsage");
 const characterList = document.querySelector("#characterList");
 const manageCharacterButton = document.querySelector("#manageCharacter");
 const characterDialog = document.querySelector("#characterDialog");
@@ -493,6 +494,7 @@ function saveWorkspace() {
     notifyStorageIssue();
   }
   persistActiveProject();
+  updateContextUsage();
 }
 
 function saveDraft() {
@@ -579,6 +581,19 @@ function showToast(message) {
 function updateCount() {
   const count = messages.querySelectorAll(".message-row").length;
   messageCount.textContent = `${String(count).padStart(2, "0")} 条消息`;
+  updateContextUsage();
+}
+
+function updateContextUsage() {
+  if (!contextUsage) return;
+  const context = getContext();
+  const contextChars = Object.values(context).reduce((total, value) => total + value.length, 0);
+  const historyChars = conversationHistory
+    .slice(-20)
+    .reduce((total, message) => total + (message.content || "").length, 0);
+  const total = contextChars + historyChars;
+  contextUsage.textContent = `上下文约 ${total.toLocaleString("zh-CN")} 字`;
+  contextUsage.classList.toggle("is-heavy", total > 60000);
 }
 
 function addMessage({ role, name, text, avatarClass, historyIndex, versions, versionIndex = 0 }) {
