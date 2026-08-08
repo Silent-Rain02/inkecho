@@ -53,6 +53,8 @@ class ServerConfigTests(unittest.TestCase):
             snapshot = provider_health_snapshot("ollama", "qwen3:8b")
         self.assertTrue(snapshot["providers"]["ollama"])
         self.assertEqual(snapshot["provider"], "ollama")
+        self.assertEqual(snapshot["provider_details"]["ollama"]["missing"], [])
+        self.assertIn("模型名", snapshot["provider_details"]["custom_azure"]["missing"])
 
     def test_unknown_provider_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
