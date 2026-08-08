@@ -70,6 +70,11 @@ def public_error(exc: Exception) -> str:
     return "模型服务请求失败，请检查服务配置或连接"
 
 
+def error_status(exc: Exception) -> HTTPStatus:
+    """Classify malformed client input separately from upstream failures."""
+    return HTTPStatus.BAD_REQUEST if isinstance(exc, ValueError) else HTTPStatus.BAD_GATEWAY
+
+
 def provider_settings(provider: str | None = None, requested_model: str | None = None) -> ProviderSettings:
     selected = (provider or env("INK_ECHO_PROVIDER", "custom_azure")).lower()
     if selected not in SUPPORTED_PROVIDERS:
@@ -289,7 +294,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
                 self.send_json({"ok": True, "provider": provider, "models": list_provider_models(provider)})
             except Exception as exc:  # noqa: BLE001
                 print(f"[InkEcho] model listing failed: {type(exc).__name__}")
-                self.send_json({"ok": False, "provider": provider, "models": [], "error": "无法读取模型列表"}, status=HTTPStatus.BAD_GATEWAY)
+                self.send_json({"ok": False, "provider": provider, "models": [], "error": "无法读取模型列表"}, status=error_status(exc))
             return
         self.serve_static(unquote(parsed.path))
 
@@ -308,7 +313,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
         except Exception as exc:  # noqa: BLE001
             print(f"[InkEcho] request failed: {type(exc).__name__}")
             if not getattr(self, "_response_started", False):
-                self.send_json({"ok": False, "error": public_error(exc)}, status=HTTPStatus.BAD_GATEWAY)
+                self.send_json({"ok": False, "error": public_error(exc)}, status=error_status(exc))
 
     def read_payload(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", "0"))
