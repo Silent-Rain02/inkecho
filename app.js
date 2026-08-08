@@ -88,6 +88,7 @@ const beatDialogTitle = document.querySelector("#beatDialogTitle");
 const beatTitleInput = document.querySelector("#beatTitleInput");
 const beatGoalInput = document.querySelector("#beatGoalInput");
 const beatOutcomeInput = document.querySelector("#beatOutcomeInput");
+const generateBeatOutcomeButton = document.querySelector("#generateBeatOutcome");
 const beatStatusInput = document.querySelector("#beatStatusInput");
 const beatList = document.querySelector("#beatList");
 const beatProgressText = document.querySelector("#beatProgressText");
@@ -1900,6 +1901,71 @@ async function summarizeConversation() {
   }
 }
 
+async function summarizeCurrentSceneOutcome() {
+  if (isSummarizing) {
+    showToast("摘要正在提炼中，请稍候");
+    return;
+  }
+  if (preventWorkspaceMutation("提炼本幕结果")) return;
+  const project = getActiveProject();
+  const beat = getActiveSceneBeat(project);
+  if (!beat) {
+    showToast("先在场景计划中设定当前场景");
+    return;
+  }
+  if (conversationHistory.length < 1) {
+    showToast("先完成一轮对话，再提炼本幕结果");
+    return;
+  }
+  saveServiceSettings();
+  const projectId = activeProjectId;
+  const beatId = beat.id;
+  const provider = providerSelect.value;
+  const model = modelName.value.trim();
+  isSummarizing = true;
+  generateBeatOutcomeButton.disabled = true;
+  generateBeatOutcomeButton.textContent = "提炼中";
+  try {
+    const response = await fetchWithTimeout("/api/summarize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider,
+        model,
+        summary_target: "scene",
+        context: getContext(),
+        messages: getModelMessages(),
+      }),
+    }, clientModelRequestTimeout(summaryRequestTimeout));
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.summary) {
+      const error = new Error(payload.error || "本幕结果生成失败");
+      error.userMessage = payload.error || "本幕结果生成失败";
+      throw error;
+    }
+    const currentProject = getActiveProject();
+    const currentBeat = currentProject?.beats.find((item) => item.id === beatId);
+    if (activeProjectId !== projectId || !currentBeat) {
+      showToast("当前项目或场景已切换，结果未写入");
+      return;
+    }
+    if (currentBeat.outcome && !window.confirm("用模型提炼的新结果替换当前记录吗？")) return;
+    currentBeat.outcome = payload.summary.slice(0, 600);
+    beatOutcomeInput.value = currentBeat.outcome;
+    setProviderBadge("已连接", "#6f8b6a");
+    persistActiveProject();
+    renderActiveBeat();
+    renderSceneBeats();
+    showToast("本幕结果已更新");
+  } catch (error) {
+    showToast(error?.name === "AbortError" ? "本幕结果提炼超时，请检查服务状态" : (error?.userMessage || "本幕结果提炼失败"));
+  } finally {
+    isSummarizing = false;
+    generateBeatOutcomeButton.disabled = false;
+    generateBeatOutcomeButton.textContent = "提炼本幕";
+  }
+}
+
 async function requestModelReply() {
   const response = await fetch("/api/chat", {
     method: "POST",
@@ -2472,6 +2538,7 @@ templateDialog.addEventListener("click", (event) => {
 });
 manageBeatsButton.addEventListener("click", openScenePlanner);
 beatForm.addEventListener("submit", saveSceneBeat);
+generateBeatOutcomeButton.addEventListener("click", summarizeCurrentSceneOutcome);
 cancelBeatButton.addEventListener("click", closeScenePlanner);
 beatDialog.addEventListener("click", (event) => {
   if (event.target === beatDialog) closeScenePlanner();
