@@ -49,6 +49,8 @@ class FrontendContractTests(unittest.TestCase):
             "characterDetailsInput",
             "summaryFreshness",
             "storageStatus",
+            "templateDialog",
+            "saveCurrentTemplate",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -79,6 +81,13 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("摘要后新增", self.javascript)
         self.assertIn("function updateStorageStatus", self.javascript)
         self.assertIn("请立即导出 JSON 备份", self.javascript)
+        self.assertIn("const customTemplatesStorageKey", self.javascript)
+        self.assertIn("function normalizeTemplate", self.javascript)
+        self.assertIn("function saveCurrentAsTemplate", self.javascript)
+        self.assertIn("function deleteCustomTemplate", self.javascript)
+        self.assertIn("customTemplates", self.javascript)
+        self.assertIn('version: 2', self.javascript)
+        self.assertIn("sourceTemplates", self.javascript)
         self.assertIn("function formatConversationForExport", self.javascript)
         self.assertIn("备选回复", self.javascript)
 
