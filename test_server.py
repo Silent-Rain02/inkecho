@@ -1,8 +1,17 @@
 import os
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from server import build_messages, list_provider_models, provider_health_snapshot, provider_settings, public_error
+from server import (
+    build_messages,
+    complete_chat,
+    list_provider_models,
+    provider_health_snapshot,
+    provider_settings,
+    public_error,
+    response_length_settings,
+)
 
 
 class ServerConfigTests(unittest.TestCase):
@@ -46,6 +55,42 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("沈砚正在寻找失散的妹妹。", messages[0]["content"])
         self.assertIn("大胆想象", messages[0]["content"])
         self.assertEqual(messages[-1], {"role": "user", "content": "继续写下去"})
+
+    def test_response_length_maps_to_safe_generation_budget(self) -> None:
+        self.assertEqual(response_length_settings({"response_length": "concise"})[0], 420)
+        self.assertEqual(response_length_settings({"response_length": "expanded"})[0], 1200)
+        self.assertEqual(response_length_settings({"response_length": "unknown"})[0], 700)
+
+    def test_prompt_describes_requested_response_length(self) -> None:
+        system_prompt = build_messages({"response_length": "expanded"})[0]["content"]
+        self.assertIn("充分铺陈场景", system_prompt)
+
+    def test_complete_chat_passes_selected_length_to_provider(self) -> None:
+        class FakeCompletions:
+            def __init__(self) -> None:
+                self.kwargs = {}
+
+            def create(self, **kwargs):
+                self.kwargs = kwargs
+                return SimpleNamespace(
+                    choices=[SimpleNamespace(message=SimpleNamespace(content="一段展开的回复。"))]
+                )
+
+        fake_completions = FakeCompletions()
+        fake_client = SimpleNamespace(chat=SimpleNamespace(completions=fake_completions))
+        environment = {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "test-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
+        }
+        with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
+            text, _ = complete_chat({
+                "provider": "custom_azure",
+                "model": "demo-model",
+                "response_length": "expanded",
+                "messages": [{"role": "user", "content": "继续"}],
+            })
+        self.assertEqual(text, "一段展开的回复。")
+        self.assertEqual(fake_completions.kwargs["max_tokens"], 1200)
 
     def test_azure_model_listing_uses_configured_deployment_without_network(self) -> None:
         with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_MODEL": "office-model"}, clear=False):
