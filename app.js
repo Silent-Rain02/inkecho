@@ -44,6 +44,7 @@ const projectBackupFile = document.querySelector("#projectBackupFile");
 const deleteProjectButton = document.querySelector("#deleteProject");
 const workReference = document.querySelector("#workReference");
 const workSummary = document.querySelector("#workSummary");
+const workInstructions = document.querySelector("#workInstructions");
 const referenceCount = document.querySelector("#referenceCount");
 const importReferenceButton = document.querySelector("#importReference");
 const referenceFile = document.querySelector("#referenceFile");
@@ -168,6 +169,7 @@ function createProject({ id, name, context, conversation, service, characters, s
       world: safeText(safeContext.world, "", 800),
       reference: safeText(safeContext.reference, "", 4000),
       summary: safeText(safeContext.summary, "", 2000),
+      instructions: safeText(safeContext.instructions, "", 1200),
     },
     conversation: safeConversation,
     service: {
@@ -276,6 +278,7 @@ function hydrateActiveProject() {
   document.querySelector("#workWorld").value = project.context.world;
   workReference.value = project.context.reference || "";
   workSummary.value = project.context.summary || "";
+  workInstructions.value = project.context.instructions || "";
   updateReferenceCount();
   messageInput.value = project.draft || "";
   draftStatus.textContent = messageInput.value ? "草稿已恢复" : "草稿自动保存";
@@ -330,6 +333,7 @@ function restoreWorkspace() {
     if (typeof saved.world === "string") document.querySelector("#workWorld").value = saved.world;
     if (typeof saved.reference === "string") workReference.value = saved.reference;
     if (typeof saved.summary === "string") workSummary.value = saved.summary;
+    if (typeof saved.instructions === "string") workInstructions.value = saved.instructions;
     updateReferenceCount();
   } catch {
     // Ignore malformed or unavailable local storage.
@@ -607,6 +611,7 @@ function getContext() {
     world: document.querySelector("#workWorld").value,
     reference: workReference.value,
     summary: workSummary.value,
+    instructions: workInstructions.value,
   };
 }
 
@@ -632,6 +637,7 @@ function exportSession() {
     `- **世界观备注**：${context.world || "未填写"}`,
     context.reference ? `- **参考片段**：\n\n${context.reference}` : "",
     context.summary ? `- **剧情摘要**：\n\n${context.summary}` : "",
+    context.instructions ? `- **本次创作要求**：\n\n${context.instructions}` : "",
     "",
     "## 角色卡",
     "",
@@ -1111,6 +1117,10 @@ workReference.addEventListener("input", () => {
 });
 workSummary.addEventListener("input", () => {
   if (workSummary.value.length > 2000) workSummary.value = workSummary.value.slice(0, 2000);
+  saveWorkspace();
+});
+workInstructions.addEventListener("input", () => {
+  if (workInstructions.value.length > 1200) workInstructions.value = workInstructions.value.slice(0, 1200);
   saveWorkspace();
 });
 importReferenceButton.addEventListener("click", () => referenceFile.click());
