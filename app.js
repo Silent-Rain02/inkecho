@@ -53,6 +53,7 @@ const promptList = document.querySelector("#promptList");
 const highlightList = document.querySelector("#highlightList");
 const highlightCount = document.querySelector("#highlightCount");
 const appendHighlightsButton = document.querySelector("#appendHighlightsToSummary");
+const copyHighlightsButton = document.querySelector("#copyHighlights");
 const addPromptButton = document.querySelector("#addPrompt");
 const promptDialog = document.querySelector("#promptDialog");
 const promptForm = document.querySelector("#promptForm");
@@ -774,6 +775,14 @@ function appendHighlightsToSummary() {
   workSummary.value = truncated;
   saveWorkspace();
   showToast(truncated.length < next.length ? "摘录已加入摘要（已达到 2000 字上限）" : "摘录已加入剧情摘要");
+}
+
+async function copyHighlights() {
+  const highlights = getActiveProject()?.highlights || [];
+  const text = highlights
+    .map((highlight) => `【${highlight.name}】${highlight.content}`)
+    .join("\n\n");
+  await copyText(text, "全部摘录已复制", "先保存几条灵感摘录");
 }
 
 function toggleHighlight(historyIndex) {
@@ -1638,6 +1647,7 @@ characterDialog.addEventListener("click", (event) => {
 });
 addPromptButton.addEventListener("click", openPromptEditor);
 appendHighlightsButton.addEventListener("click", appendHighlightsToSummary);
+copyHighlightsButton.addEventListener("click", copyHighlights);
 promptForm.addEventListener("submit", savePrompt);
 cancelPromptButton.addEventListener("click", closePromptEditor);
 promptDialog.addEventListener("click", (event) => {
