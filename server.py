@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parent
 SUPPORTED_PROVIDERS = {"custom_azure", "ollama", "openai", "azure", "compatible"}
 MAX_BODY_BYTES = 1_000_000
 STATIC_FILES = {"index.html", "styles.css", "app.js"}
+DEFAULT_REQUEST_TIMEOUT = 120.0
 CREATIVITY_GUIDANCE = {
     "restrained": "克制叙事：尊重已有设定，少做跳脱扩展，优先使用准确、含蓄的细节。",
     "balanced": "平衡：在遵循人物和世界观的前提下，适度加入新的画面与转折。",
@@ -62,6 +63,15 @@ class ProviderSettings:
 
 def env(name: str, default: str = "") -> str:
     return os.getenv(name, default).strip()
+
+
+def request_timeout_seconds() -> float:
+    """Keep upstream calls bounded while allowing slower local models."""
+    try:
+        value = float(env("INK_ECHO_REQUEST_TIMEOUT", str(DEFAULT_REQUEST_TIMEOUT)))
+    except ValueError:
+        return DEFAULT_REQUEST_TIMEOUT
+    return max(5.0, min(value, 600.0))
 
 
 def public_error(exc: Exception) -> str:
@@ -110,22 +120,26 @@ def response_length_settings(payload: dict[str, Any]) -> tuple[int, str]:
 
 
 def build_client(settings: ProviderSettings) -> OpenAI | AzureOpenAI:
+    timeout = request_timeout_seconds()
     if settings.provider == "ollama":
         return OpenAI(
             api_key=env("INK_ECHO_OLLAMA_API_KEY", "ollama"),
             base_url=env("INK_ECHO_OLLAMA_BASE_URL", "http://127.0.0.1:11434/v1").rstrip("/"),
+            timeout=timeout,
         )
 
     if settings.provider == "openai":
         return OpenAI(
             api_key=env("INK_ECHO_OPENAI_API_KEY"),
             base_url=env("INK_ECHO_OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/"),
+            timeout=timeout,
         )
 
     if settings.provider == "compatible":
         return OpenAI(
             api_key=env("INK_ECHO_COMPATIBLE_API_KEY", "local"),
             base_url=env("INK_ECHO_COMPATIBLE_BASE_URL").rstrip("/"),
+            timeout=timeout,
         )
 
     if settings.provider == "azure":
@@ -137,6 +151,7 @@ def build_client(settings: ProviderSettings) -> OpenAI | AzureOpenAI:
             api_version=env("INK_ECHO_AZURE_API_VERSION", "2024-02-01"),
             azure_endpoint=endpoint,
             default_headers=headers,
+            timeout=timeout,
         )
 
     headers = optional_logid_header("INK_ECHO_CUSTOM_AZURE_LOGID")
@@ -145,6 +160,7 @@ def build_client(settings: ProviderSettings) -> OpenAI | AzureOpenAI:
         api_version=env("INK_ECHO_CUSTOM_AZURE_API_VERSION", "2024-02-01"),
         azure_endpoint=env("INK_ECHO_CUSTOM_AZURE_ENDPOINT"),
         default_headers=headers,
+        timeout=timeout,
     )
 
 
