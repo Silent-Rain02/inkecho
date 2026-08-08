@@ -16,7 +16,7 @@ from openai import AzureOpenAI, OpenAI
 ROOT = Path(__file__).resolve().parent
 SUPPORTED_PROVIDERS = {"custom_azure", "ollama", "openai", "azure", "compatible"}
 MAX_BODY_BYTES = 1_000_000
-MAX_HISTORY_CHARS = 48_000
+DEFAULT_HISTORY_CHARS = 48_000
 STATIC_FILES = {"index.html", "styles.css", "app.js"}
 DEFAULT_REQUEST_TIMEOUT = 120.0
 SECURITY_HEADERS = {
@@ -80,6 +80,15 @@ def request_timeout_seconds() -> float:
     except ValueError:
         return DEFAULT_REQUEST_TIMEOUT
     return max(5.0, min(value, 600.0))
+
+
+def history_budget_chars() -> int:
+    """Allow local models to opt into a larger or smaller history window."""
+    try:
+        value = int(float(env("INK_ECHO_HISTORY_BUDGET", str(DEFAULT_HISTORY_CHARS))))
+    except ValueError:
+        return DEFAULT_HISTORY_CHARS
+    return max(8_000, min(value, 120_000))
 
 
 def public_error(exc: Exception) -> str:
@@ -253,6 +262,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     normalized: list[dict[str, str]] = [{"role": "system", "content": system}]
     selected_history: list[dict[str, str]] = []
     history_chars = 0
+    budget = history_budget_chars()
     for item in reversed(history[-20:]):
         if not isinstance(item, dict):
             continue
@@ -260,7 +270,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         content = item.get("content")
         if role in {"user", "assistant"} and isinstance(content, str) and content.strip():
             bounded_content = content[:4000]
-            if history_chars + len(bounded_content) > MAX_HISTORY_CHARS:
+            if history_chars + len(bounded_content) > budget:
                 break
             selected_history.append({"role": role, "content": bounded_content})
             history_chars += len(bounded_content)
