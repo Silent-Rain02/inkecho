@@ -1260,6 +1260,23 @@ async function copyConversation() {
   await copyText(transcript, "对话已复制", "当前还没有对话内容");
 }
 
+function formatConversationForExport() {
+  return conversationHistory.map((item) => {
+    const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
+    const versions = Array.isArray(item.versions)
+      ? item.versions.filter((version) => typeof version === "string" && version.trim())
+      : [];
+    const alternatives = versions.filter((version) => version !== item.content);
+    const alternativeBlock = alternatives.length
+      ? [
+        "> **备选回复**",
+        ...alternatives.map((version, index) => `> ${index + 1}. ${version.replace(/\r?\n/g, "\n> ")}`),
+      ].join("\n")
+      : "";
+    return [`### ${speaker}`, item.content, alternativeBlock].filter(Boolean).join("\n\n");
+  }).join("\n\n---\n\n");
+}
+
 function highlightKey(item) {
   if (!item || !item.content) return "";
   return [item.role || "assistant", item.name || "角色", item.content].join("\u0000");
@@ -1631,10 +1648,7 @@ function exportSession() {
     const details = card.dataset.details || "";
     return `- **${name}**：${tone}${details ? `\n  - 人物设定：${details}` : ""}`;
   });
-  const transcript = conversationHistory.map((item) => {
-    const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
-    return `### ${speaker}\n\n${item.content}`;
-  });
+  const transcript = formatConversationForExport();
   const markdown = [
     `# ${context.title || "未命名作品"} · InkEcho`,
     "",
@@ -1663,7 +1677,7 @@ function exportSession() {
     "",
     "## 对话记录",
     "",
-    transcript.join("\n\n---\n\n"),
+    transcript,
     "",
     "## 灵感摘录",
     "",
