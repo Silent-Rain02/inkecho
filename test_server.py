@@ -52,6 +52,7 @@ class ServerConfigTests(unittest.TestCase):
                 "context": {
                     "title": "春日札记",
                     "chapter": "第三回 · 潇湘馆夜话",
+                    "sceneGoal": "让两人在雨停之前说出真正的约定。",
                     "era": "江南",
                     "world": "雨巷",
                     "reference": "她把伞留在了门边。",
@@ -65,6 +66,7 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(messages[0]["role"], "system")
         self.assertIn("春日札记", messages[0]["content"])
         self.assertIn("第三回 · 潇湘馆夜话", messages[0]["content"])
+        self.assertIn("让两人在雨停之前说出真正的约定。", messages[0]["content"])
         self.assertIn("沈砚", messages[0]["content"])
         self.assertIn("她把伞留在了门边。", messages[0]["content"])
         self.assertIn("沈砚正在寻找失散的妹妹。", messages[0]["content"])
@@ -178,11 +180,13 @@ class ServerConfigTests(unittest.TestCase):
             "context": {
                 "title": "题" * 200,
                 "era": "时" * 200,
+                "sceneGoal": "目" * 400,
                 "world": "世" * 1000,
             }
         })[0]["content"]
         self.assertNotIn("题" * 121, system_prompt)
         self.assertNotIn("时" * 121, system_prompt)
+        self.assertNotIn("目" * 281, system_prompt)
         self.assertNotIn("世" * 801, system_prompt)
 
     def test_history_budget_keeps_the_most_recent_messages(self) -> None:
