@@ -238,6 +238,16 @@ def response_length_settings(payload: dict[str, Any]) -> tuple[int, str]:
     return RESPONSE_LENGTH_GUIDANCE.get(key, RESPONSE_LENGTH_GUIDANCE["standard"])
 
 
+def configured_provider_settings(payload: dict[str, Any]) -> ProviderSettings:
+    """Validate client-selected provider settings before contacting an upstream service."""
+    settings = provider_settings(payload.get("provider"), payload.get("model"))
+    if not settings.model:
+        raise ValueError(f"{settings.provider} 尚未配置模型名")
+    if not settings.configured:
+        raise ValueError(f"{settings.provider} 尚未完成环境变量配置")
+    return settings
+
+
 def build_client(settings: ProviderSettings) -> OpenAI | AzureOpenAI:
     timeout = request_timeout_seconds()
     if settings.provider == "ollama":
@@ -386,12 +396,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def complete_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
-    settings = provider_settings(payload.get("provider"), payload.get("model"))
-    if not settings.model:
-        raise RuntimeError(f"{settings.provider} 尚未配置模型名")
-    if not settings.configured:
-        raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
-
+    settings = configured_provider_settings(payload)
     client = build_client(settings)
     max_tokens, _ = response_length_settings(payload)
     response = client.chat.completions.create(
@@ -407,12 +412,7 @@ def complete_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
 
 
 def stream_chat(payload: dict[str, Any]) -> tuple[ProviderSettings, Iterator[str]]:
-    settings = provider_settings(payload.get("provider"), payload.get("model"))
-    if not settings.model:
-        raise RuntimeError(f"{settings.provider} 尚未配置模型名")
-    if not settings.configured:
-        raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
-
+    settings = configured_provider_settings(payload)
     client = build_client(settings)
     max_tokens, _ = response_length_settings(payload)
     response = client.chat.completions.create(
@@ -435,12 +435,7 @@ def stream_chat(payload: dict[str, Any]) -> tuple[ProviderSettings, Iterator[str
 
 def probe_provider(payload: dict[str, Any]) -> ProviderSettings:
     """Make an explicit, minimal request to verify credentials and routing."""
-    settings = provider_settings(payload.get("provider"), payload.get("model"))
-    if not settings.model:
-        raise RuntimeError(f"{settings.provider} 尚未配置模型名")
-    if not settings.configured:
-        raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
-
+    settings = configured_provider_settings(payload)
     build_client(settings).chat.completions.create(
         model=settings.model,
         messages=[{"role": "user", "content": "请只回复：好"}],
@@ -452,12 +447,7 @@ def probe_provider(payload: dict[str, Any]) -> ProviderSettings:
 
 def summarize_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
     """Turn the recent conversation into a compact, reusable story summary."""
-    settings = provider_settings(payload.get("provider"), payload.get("model"))
-    if not settings.model:
-        raise RuntimeError(f"{settings.provider} 尚未配置模型名")
-    if not settings.configured:
-        raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
-
+    settings = configured_provider_settings(payload)
     target = str(payload.get("summary_target") or "story").lower()
     messages = build_messages({**payload, "summary_target": target})
     if target == "scene":
