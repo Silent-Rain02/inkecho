@@ -1259,7 +1259,7 @@ async function checkProviderHealth(provider = providerSelect.value) {
     if (!response.ok || !payload.ok) throw new Error("健康检查失败");
     if (requestId !== providerHealthRequestId) return;
     const configured = Boolean(payload.providers && payload.providers[provider]);
-    setProviderBadge(configured ? "已配置" : "待配置", configured ? "#6f8b6a" : "#a26b46");
+    setProviderBadge(configured ? "配置完整" : "待配置", configured ? "#6f8b6a" : "#a26b46");
   } catch (error) {
     if (requestId !== providerHealthRequestId) return;
     setProviderBadge(error?.name === "AbortError" ? "连接超时" : "离线演示", "#a26b46");
@@ -1286,8 +1286,13 @@ async function refreshModels() {
       modelName.value = payload.models[0];
       saveServiceSettings();
     }
-    setProviderBadge("已连接", "#6f8b6a");
-    showToast(payload.models.length ? `已找到 ${payload.models.length} 个模型` : "当前服务未返回模型列表");
+    const verified = payload.verified !== false;
+    setProviderBadge(verified ? "已连接" : "配置完成", "#6f8b6a");
+    if (payload.models.length) {
+      showToast(verified ? `已连接并找到 ${payload.models.length} 个模型` : "已读取部署配置（办公网端点不提供模型列表）");
+    } else {
+      showToast(verified ? "当前服务未返回模型列表" : "配置已读取，当前端点不提供模型列表");
+    }
   } catch (error) {
     if (providerSelect.value !== provider) return;
     setProviderBadge(error?.name === "AbortError" ? "连接超时" : "连接失败", "#a26b46");
