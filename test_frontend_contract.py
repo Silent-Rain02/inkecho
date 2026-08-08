@@ -40,6 +40,7 @@ class FrontendContractTests(unittest.TestCase):
             "messageInput",
             "providerSelect",
             "openProviderDiagnostics",
+            "copyProviderConfigKeys",
             "providerDiagnosticsDialog",
             "providerDiagnosticsStats",
             "providerDiagnosticsText",
@@ -213,6 +214,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("missing_keys", self.javascript)
         self.assertIn("const missingKeysText", self.javascript)
         self.assertIn("请补：${missingKeys.join", self.javascript)
+        self.assertIn("async function copyProviderConfigKeys", self.javascript)
+        self.assertIn("配置键名已复制", self.javascript)
+        self.assertIn('copyProviderConfigKeysButton.addEventListener("click", copyProviderConfigKeys)', self.javascript)
         self.assertIn("当前缺少变量", self.javascript)
         self.assertIn("连接诊断已复制", self.javascript)
         self.assertIn("不包含 API key、端点或请求头值", self.javascript)
