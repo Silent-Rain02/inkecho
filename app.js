@@ -2769,19 +2769,26 @@ function providerDisplayName(provider) {
 function formatProviderDiagnostics(payload, provider, model) {
   const details = payload.provider_details?.[provider] || {};
   const missing = Array.isArray(details.missing) && details.missing.length ? details.missing.join("、") : "无";
+  const missingKeys = Array.isArray(details.missing_keys) && details.missing_keys.length
+    ? details.missing_keys.join("、")
+    : "无";
   const providers = Object.keys(providerDefaults).map((name) => {
     const providerDetails = payload.provider_details?.[name] || {};
     const configured = Boolean(payload.providers?.[name]);
     const missingFields = Array.isArray(providerDetails.missing) && providerDetails.missing.length
       ? `（缺少：${providerDetails.missing.join("、")}）`
       : "";
-    return `- ${providerDisplayName(name)}：${configured ? "配置完整" : "待配置"}${missingFields}`;
+    const missingKeys = Array.isArray(providerDetails.missing_keys) && providerDetails.missing_keys.length
+      ? `；变量：${providerDetails.missing_keys.join("、")}`
+      : "";
+    return `- ${providerDisplayName(name)}：${configured ? "配置完整" : "待配置"}${missingFields}${missingKeys}`;
   });
   return [
     `当前服务：${providerDisplayName(provider)}`,
     `当前模型：${model || "未填写"}`,
     `当前状态：${details.configured ? "配置完整" : "待配置"}`,
     `当前缺少：${missing}`,
+    `当前缺少变量：${missingKeys}`,
     "",
     "服务配置概览：",
     ...providers,
