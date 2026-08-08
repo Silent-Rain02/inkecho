@@ -425,3 +425,10 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
   .template-list { grid-template-columns: 1fr; max-height: 340px; }
   .footer { display: block; line-height: 2; }
 }
+
+body.focus-mode .sidebar,
+body.focus-mode .rightbar { display: none; }
+body.focus-mode .studio-grid { display: grid; grid-template-columns: minmax(0, 980px); justify-content: center; }
+body.focus-mode .conversation { min-height: calc(100vh - 175px); box-shadow: 0 24px 70px rgba(47, 55, 46, 0.11); }
+body.focus-mode .focus-mode-button { color: var(--accent); background: #f0f5eb; border-radius: 50%; }
+body.focus-mode .intro { padding-bottom: 30px; }
