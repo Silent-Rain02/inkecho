@@ -30,6 +30,7 @@ const modelName = document.querySelector("#modelName");
 const providerBadge = document.querySelector("#providerBadge");
 const providerDescription = document.querySelector("#providerDescription");
 const refreshModelsButton = document.querySelector("#refreshModels");
+const testProviderButton = document.querySelector("#testProvider");
 const modelOptions = document.querySelector("#modelOptions");
 const creativitySelect = document.querySelector("#creativitySelect");
 const creativityValue = document.querySelector("#creativityValue");
@@ -113,6 +114,7 @@ const maxPrompts = 12;
 const maxHighlights = 30;
 const maxCheckpoints = 12;
 const providerRequestTimeout = 12000;
+const providerProbeTimeout = 30000;
 const streamIdleTimeout = 90000;
 
 const replyTemplates = {
@@ -1303,6 +1305,44 @@ async function refreshModels() {
   }
 }
 
+async function testProviderConnection() {
+  const provider = providerSelect.value;
+  const model = modelName.value.trim();
+  if (!model) {
+    showToast("请先填写模型名称");
+    modelName.focus();
+    return;
+  }
+  testProviderButton.disabled = true;
+  testProviderButton.textContent = "测试中";
+  setProviderBadge("测试中", "#a26b46");
+  try {
+    const response = await fetchWithTimeout("/api/probe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, model }),
+    }, providerProbeTimeout);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) {
+      const error = new Error(payload.error || "模型服务测试失败");
+      error.userMessage = payload.error || "模型服务测试失败";
+      throw error;
+    }
+    if (providerSelect.value === provider && modelName.value.trim() === model) {
+      setProviderBadge("已连接", "#6f8b6a");
+    }
+    showToast(`连接成功：${payload.model || model}`);
+  } catch (error) {
+    if (providerSelect.value === provider && modelName.value.trim() === model) {
+      setProviderBadge(error?.name === "AbortError" ? "连接超时" : "连接失败", "#a26b46");
+    }
+    showToast(error?.name === "AbortError" ? "连接测试超时，请检查服务状态" : (error?.userMessage || "模型服务测试失败"));
+  } finally {
+    testProviderButton.disabled = false;
+    testProviderButton.textContent = "测试连接";
+  }
+}
+
 async function requestModelReply() {
   const response = await fetch("/api/chat", {
     method: "POST",
@@ -1751,6 +1791,7 @@ responseLengthSelect.addEventListener("change", () => {
 });
 
 refreshModelsButton.addEventListener("click", refreshModels);
+testProviderButton.addEventListener("click", testProviderConnection);
 
 ["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
   document.querySelector(selector).addEventListener("input", saveWorkspace);
