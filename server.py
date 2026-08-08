@@ -41,6 +41,11 @@ RESPONSE_LENGTH_GUIDANCE = {
     "standard": (700, "标准回复：完整推进一个小场景，兼顾动作、氛围与人物反应。"),
     "expanded": (1200, "展开回复：充分铺陈场景和人物变化，但不要为了拉长篇幅重复表达。"),
 }
+PLACEHOLDER_VALUES = {
+    "replace_with_your_key",
+    "replace_with_your_logid",
+    "your-deployment-name",
+}
 
 
 def load_local_env() -> None:
@@ -71,6 +76,18 @@ class ProviderSettings:
 
 def env(name: str, default: str = "") -> str:
     return os.getenv(name, default).strip()
+
+
+def is_placeholder(value: str) -> bool:
+    normalized = value.strip().lower()
+    return (
+        not normalized
+        or normalized in PLACEHOLDER_VALUES
+        or normalized.startswith("your-")
+        or normalized.startswith("your_")
+        or normalized.startswith("replace_with_")
+        or "your-resource" in normalized
+    )
 
 
 def request_timeout_seconds() -> float:
@@ -117,7 +134,7 @@ def provider_settings(provider: str | None = None, requested_model: str | None =
     }
     model_key, required_keys = defaults[selected]
     model = (requested_model or env(model_key)).strip()
-    configured = bool(model and all(env(key) for key in required_keys))
+    configured = bool(model and not is_placeholder(model) and all(not is_placeholder(env(key)) for key in required_keys))
     return ProviderSettings(provider=selected, model=model, configured=configured)
 
 
@@ -204,7 +221,7 @@ def list_provider_models(provider: str) -> list[str]:
     # Azure deployments are user-defined names and the deployment list is not
     # consistently exposed by compatible enterprise endpoints.
     if selected in {"custom_azure", "azure"}:
-        return [configured_model] if configured_model else []
+        return [configured_model] if configured_model and not is_placeholder(configured_model) else []
 
     settings = provider_settings(selected, configured_model or "__probe__")
     if not settings.configured:
