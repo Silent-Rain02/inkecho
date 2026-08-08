@@ -217,6 +217,7 @@ textarea { resize: vertical; }
 .message-row.user .message-actions { justify-content: flex-end; }
 .message-action { padding: 0; border: 0; color: var(--muted); background: transparent; font: 9px var(--mono); }
 .message-action:hover { color: var(--accent); }
+.message-action:focus-visible, .highlight-main:focus-visible, .highlight-remove:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
 .version-controls { display: inline-flex; align-items: center; gap: 3px; margin-left: 3px; color: var(--muted); font: 9px var(--mono); }
 .version-button { width: 15px; height: 15px; padding: 0; border: 0; color: var(--ink-soft); background: transparent; font: 13px var(--mono); line-height: 1; }
 .version-button:hover:not(:disabled) { color: var(--accent); }
@@ -309,6 +310,10 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+@media (hover: none) {
+  .message-actions { opacity: 1; }
 }
 
 @media (max-width: 1050px) {
