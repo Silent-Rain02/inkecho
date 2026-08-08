@@ -314,7 +314,7 @@ def list_provider_models(provider: str) -> list[str]:
 
     settings = provider_settings(selected, configured_model or "__probe__")
     if not settings.configured:
-        raise RuntimeError(f"{selected} 尚未完成环境变量配置")
+        raise ValueError(f"{selected} 尚未完成环境变量配置")
     response = build_client(settings).models.list()
     model_ids = [str(item.id) for item in getattr(response, "data", []) if getattr(item, "id", None)]
     return sorted(set(model_ids))[:100]
@@ -504,7 +504,8 @@ class InkEchoHandler(BaseHTTPRequestHandler):
                 self.send_json({"ok": True, "provider": provider, "models": models, "verified": verified})
             except Exception as exc:  # noqa: BLE001
                 print(f"[InkEcho] model listing failed: {type(exc).__name__}")
-                self.send_json({"ok": False, "provider": provider, "models": [], "error": "无法读取模型列表"}, status=error_status(exc))
+                message = public_error(exc) if isinstance(exc, ValueError) else "无法读取模型列表"
+                self.send_json({"ok": False, "provider": provider, "models": [], "error": message}, status=error_status(exc))
             return
         self.serve_static(unquote(parsed.path))
 
