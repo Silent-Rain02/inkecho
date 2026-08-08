@@ -244,6 +244,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function matchesProjectStatus", self.javascript)
         self.assertIn("projectStatusFilter.addEventListener(\"change\", renderProjectSelect)", self.javascript)
         self.assertIn("需要处理", self.html)
+        self.assertIn("当前项目未在筛选结果", self.javascript)
         self.assertIn("有 ${health.staleOutcomes} 个场景结果没有覆盖最新剧情", self.javascript)
         self.assertIn("仍会发送这些结果", self.javascript)
         self.assertIn("function getContextFreshnessNotices", self.javascript)
