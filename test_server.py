@@ -190,6 +190,29 @@ class HttpRouteTests(unittest.TestCase):
         self.assertTrue(payload["ok"])
         self.assertTrue(payload["providers"]["ollama"])
 
+    def test_model_route_marks_azure_deployment_as_configuration_only(self) -> None:
+        query = urlencode({"provider": "custom_azure"})
+        handler = CaptureHandler(f"/api/models?{query}")
+        environment = {"INK_ECHO_CUSTOM_AZURE_MODEL": "office-model"}
+        with patch.dict(os.environ, environment, clear=False):
+            handler.do_GET()
+        _, payload = handler.responses[0]
+        self.assertTrue(payload["ok"])
+        self.assertFalse(payload["verified"])
+        self.assertEqual(payload["models"], ["office-model"])
+
+    def test_model_route_marks_ollama_listing_as_verified(self) -> None:
+        query = urlencode({"provider": "ollama"})
+        handler = CaptureHandler(f"/api/models?{query}")
+        fake_response = SimpleNamespace(data=[SimpleNamespace(id="qwen3:8b")])
+        fake_client = SimpleNamespace(models=SimpleNamespace(list=lambda: fake_response))
+        with patch.dict(os.environ, {"INK_ECHO_OLLAMA_MODEL": "qwen3:8b"}, clear=False), patch("server.build_client", return_value=fake_client):
+            handler.do_GET()
+        _, payload = handler.responses[0]
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["verified"])
+        self.assertEqual(payload["models"], ["qwen3:8b"])
+
     def test_malformed_chat_body_returns_bad_request(self) -> None:
         handler = CaptureHandler("/api/chat", b"not-json")
         handler.do_POST()
