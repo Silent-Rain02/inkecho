@@ -3002,16 +3002,20 @@ function closePromptEditor() {
   promptDialog.close();
 }
 
-function savePromptToLibrary(title, text) {
+function savePromptToLibrary(title, text, previousText = "") {
   const normalized = normalizeLibraryPrompt({ title, text });
   if (!normalized.text) return false;
   const existingIndex = promptLibrary.findIndex((item) => item.text === normalized.text);
+  const previousIndex = previousText
+    ? promptLibrary.findIndex((item) => item.text === previousText)
+    : -1;
   if (existingIndex >= 0) normalized.id = promptLibrary[existingIndex].id;
-  if (existingIndex < 0 && promptLibrary.length >= maxLibraryPrompts) {
+  else if (previousIndex >= 0) normalized.id = promptLibrary[previousIndex].id;
+  if (existingIndex < 0 && previousIndex < 0 && promptLibrary.length >= maxLibraryPrompts) {
     showToast(`灵感库最多保存 ${maxLibraryPrompts} 条`);
     return false;
   }
-  promptLibrary = [normalized, ...promptLibrary.filter((item) => item.text !== normalized.text)].slice(0, maxLibraryPrompts);
+  promptLibrary = [normalized, ...promptLibrary.filter((item) => item.text !== normalized.text && item.text !== previousText)].slice(0, maxLibraryPrompts);
   persistPromptLibrary();
   return true;
 }
@@ -3026,9 +3030,10 @@ function savePrompt(event) {
   if (editingPromptIndex !== null) {
     const prompt = project.prompts[editingPromptIndex];
     if (!prompt) return;
+    const previousText = prompt.text;
     prompt.title = title;
     prompt.text = text;
-    if (saveToLibrary) savePromptToLibrary(title, text);
+    if (saveToLibrary) savePromptToLibrary(title, text, previousText);
     persistActiveProject();
     renderCustomPrompts();
     closePromptEditor();
