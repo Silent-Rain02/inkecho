@@ -120,6 +120,10 @@ const checkpointDialog = document.querySelector("#checkpointDialog");
 const checkpointList = document.querySelector("#checkpointList");
 const checkpointSearchInput = document.querySelector("#checkpointSearchInput");
 const checkpointCount = document.querySelector("#checkpointCount");
+const checkpointCompareDialog = document.querySelector("#checkpointCompareDialog");
+const checkpointCompareStats = document.querySelector("#checkpointCompareStats");
+const checkpointCompareText = document.querySelector("#checkpointCompareText");
+const copyCheckpointCompareButton = document.querySelector("#copyCheckpointCompare");
 const closeCheckpointButton = document.querySelector("#closeCheckpoint");
 const openArchiveHistoryButton = document.querySelector("#openArchiveHistory");
 const archiveDialog = document.querySelector("#archiveDialog");
@@ -1811,6 +1815,12 @@ function renderCheckpoints() {
     branch.textContent = "支线";
     branch.setAttribute("aria-label", `从检查点 ${checkpoint.name} 创建支线`);
     branch.addEventListener("click", () => branchFromCheckpoint(checkpoint.id));
+    const compare = document.createElement("button");
+    compare.type = "button";
+    compare.className = "checkpoint-compare";
+    compare.textContent = "对比";
+    compare.setAttribute("aria-label", `对比检查点 ${checkpoint.name} 与当前进度`);
+    compare.addEventListener("click", () => compareCheckpoint(checkpoint.id));
     const rename = document.createElement("button");
     rename.type = "button";
     rename.className = "checkpoint-rename";
@@ -1823,7 +1833,7 @@ function renderCheckpoints() {
     remove.textContent = "×";
     remove.setAttribute("aria-label", `删除检查点 ${checkpoint.name}`);
     remove.addEventListener("click", () => deleteCheckpoint(checkpoint.id));
-    actions.append(restore, branch, rename, remove);
+    actions.append(restore, branch, compare, rename, remove);
     card.append(main, actions);
     checkpointList.appendChild(card);
   });
@@ -1861,6 +1871,58 @@ function renameCheckpoint(checkpointId) {
   persistProjects();
   renderCheckpoints();
   showToast(`检查点已改名为「${checkpoint.name}」`);
+}
+
+function compareCheckpoint(checkpointId) {
+  if (preventWorkspaceMutation("查看检查点对比")) return;
+  persistActiveProject();
+  const project = getActiveProject();
+  const checkpoint = project.checkpoints.find((item) => item.id === checkpointId);
+  if (!checkpoint) return;
+  const currentBeat = getActiveSceneBeat(project);
+  const checkpointBeat = checkpoint.beats?.find((beat) => beat.id === checkpoint.activeBeatId);
+  const currentMessages = getConversationMessageCount(project);
+  const checkpointMessages = getCheckpointMessageCount(checkpoint);
+  const messageDelta = currentMessages - checkpointMessages;
+  const currentScene = currentBeat?.title || project.context.chapter || "未选择";
+  const checkpointScene = checkpointBeat?.title || checkpoint.context?.chapter || "未选择";
+  const currentBeats = new Map((project.beats || []).map((beat) => [beat.id, beat]));
+  const checkpointBeats = new Map((checkpoint.beats || []).map((beat) => [beat.id, beat]));
+  const beatDiffs = [];
+  new Set([...currentBeats.keys(), ...checkpointBeats.keys()]).forEach((beatId) => {
+    const current = currentBeats.get(beatId);
+    const saved = checkpointBeats.get(beatId);
+    if (!current || !saved) {
+      const beat = current || saved;
+      beatDiffs.push(`${current ? "当前新增" : "检查点独有"}：${beat.title}（${sceneBeatStatusLabels[beat.status] || "未知"}）`);
+      return;
+    }
+    if (current.status !== saved.status) {
+      beatDiffs.push(`状态变化：${current.title}（${sceneBeatStatusLabels[saved.status] || "未知"} → ${sceneBeatStatusLabels[current.status] || "未知"}）`);
+    }
+    if ((current.outcome || "") !== (saved.outcome || "")) {
+      beatDiffs.push(`结果变化：${current.title}（检查点：${saved.outcome || "未记录"}；当前：${current.outcome || "未记录"}）`);
+    }
+  });
+  const signedDelta = messageDelta > 0 ? `+${messageDelta}` : String(messageDelta);
+  const lines = [
+    `检查点：${checkpoint.name}`,
+    `保存时间：${formatCheckpointDate(checkpoint.createdAt)}`,
+    "",
+    "基础状态",
+    `消息：当前 ${currentMessages} 条 · 检查点 ${checkpointMessages} 条 · 差值 ${signedDelta}`,
+    `场景：当前 ${currentScene} · 检查点 ${checkpointScene}`,
+    `角色：当前 ${project.selectedCharacterName || "未选择"} · 检查点 ${checkpoint.selectedCharacterName || "未选择"}`,
+    `摘要：当前${project.context.summary ? "有" : "无"} · 检查点${checkpoint.context?.summary ? "有" : "无"}`,
+    `草稿：当前${project.draft ? "有" : "无"} · 检查点${checkpoint.draft ? "有" : "无"}`,
+    "",
+    "场景计划变化",
+    ...(beatDiffs.length ? beatDiffs : ["没有检测到场景状态或结果变化"]),
+  ];
+  checkpointCompareStats.textContent = `当前 ${currentMessages} 条 · 检查点 ${checkpointMessages} 条 · 当前 ${currentBeats.size} 张场景卡 · 检查点 ${checkpointBeats.size} 张场景卡`;
+  checkpointCompareText.textContent = lines.join("\n");
+  closeCheckpointDialog();
+  checkpointCompareDialog.showModal();
 }
 
 function openCheckpointDialog() {
@@ -3577,6 +3639,10 @@ checkpointDialog.addEventListener("click", (event) => {
 });
 checkpointSearchInput.addEventListener("input", renderCheckpoints);
 checkpointDialog.querySelector("form").addEventListener("submit", (event) => event.preventDefault());
+copyCheckpointCompareButton.addEventListener("click", () => copyText(checkpointCompareText.textContent, "检查点对比已复制"));
+checkpointCompareDialog.addEventListener("click", (event) => {
+  if (event.target === checkpointCompareDialog) checkpointCompareDialog.close();
+});
 openArchiveHistoryButton.addEventListener("click", () => {
   closeConversationMenu();
   openArchiveHistory();
