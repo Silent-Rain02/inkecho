@@ -142,6 +142,7 @@ const checkpointDialog = document.querySelector("#checkpointDialog");
 const checkpointList = document.querySelector("#checkpointList");
 const checkpointSearchInput = document.querySelector("#checkpointSearchInput");
 const checkpointCount = document.querySelector("#checkpointCount");
+const quickSaveCheckpointButton = document.querySelector("#quickSaveCheckpoint");
 const checkpointCompareDialog = document.querySelector("#checkpointCompareDialog");
 const checkpointCompareStats = document.querySelector("#checkpointCompareStats");
 const checkpointCompareText = document.querySelector("#checkpointCompareText");
@@ -2038,7 +2039,7 @@ function renderCheckpoints() {
   });
 }
 
-function saveCheckpoint() {
+function saveCheckpoint({ quick = false } = {}) {
   if (preventWorkspaceMutation("保存检查点")) return;
   persistActiveProject();
   const project = getActiveProject();
@@ -2046,7 +2047,11 @@ function saveCheckpoint() {
     showToast(`每个项目最多保存 ${maxCheckpoints} 个检查点`);
     return;
   }
-  const name = window.prompt("给当前检查点取一个名字：", `检查点 ${project.checkpoints.length + 1}`);
+  const activeBeat = getActiveSceneBeat(project);
+  const defaultName = activeBeat?.title || project.context.chapter || `检查点 ${project.checkpoints.length + 1}`;
+  const name = quick
+    ? `${defaultName} · ${new Date().toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}`
+    : window.prompt("给当前检查点取一个名字：", defaultName);
   if (!name || !name.trim()) return;
   project.checkpoints.push({
     id: `checkpoint-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -2056,7 +2061,7 @@ function saveCheckpoint() {
   });
   persistProjects();
   renderCheckpoints();
-  showToast(`已保存检查点「${name.trim()}」`);
+  showToast(quick ? `已快速保存「${name.trim()}」` : `已保存检查点「${name.trim()}」`);
 }
 
 function renameCheckpoint(checkpointId) {
@@ -4026,6 +4031,7 @@ checkpointDialog.addEventListener("click", (event) => {
 });
 checkpointSearchInput.addEventListener("input", renderCheckpoints);
 checkpointDialog.querySelector("form").addEventListener("submit", (event) => event.preventDefault());
+quickSaveCheckpointButton.addEventListener("click", () => saveCheckpoint({ quick: true }));
 copyCheckpointCompareButton.addEventListener("click", () => copyText(checkpointCompareText.textContent, "检查点对比已复制"));
 checkpointCompareDialog.addEventListener("click", (event) => {
   if (event.target === checkpointCompareDialog) checkpointCompareDialog.close();
@@ -4134,6 +4140,11 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "s") {
+    event.preventDefault();
+    saveCheckpoint({ quick: true });
+    return;
+  }
   if (event.key === "Escape" && !conversationSearch.hidden) {
     setConversationSearchOpen(false);
   }
