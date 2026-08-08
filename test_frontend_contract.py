@@ -67,6 +67,7 @@ class FrontendContractTests(unittest.TestCase):
             "checkpointDialog",
             "checkpointSearchInput",
             "checkpointCount",
+            "quickSaveCheckpoint",
             "checkpointCompareDialog",
             "checkpointCompareStats",
             "checkpointCompareText",
@@ -221,6 +222,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function clearArchivedHistory", self.javascript)
         self.assertIn("建议先导出 JSON 备份", self.javascript)
         self.assertIn("function getCheckpointMessageCount", self.javascript)
+        self.assertIn("function saveCheckpoint({ quick = false } = {})", self.javascript)
+        self.assertIn("已快速保存", self.javascript)
+        self.assertIn('quickSaveCheckpointButton.addEventListener("click", () => saveCheckpoint({ quick: true }))', self.javascript)
+        self.assertIn('event.key.toLowerCase() === "s"', self.javascript)
         self.assertIn("checkpoint-preview", self.javascript)
         self.assertIn("基础设定快照", self.javascript)
         self.assertIn("function branchFromCheckpoint", self.javascript)
