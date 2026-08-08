@@ -394,6 +394,9 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .checkpoint-restore:hover, .checkpoint-branch:hover, .checkpoint-remove:hover { border-color: #d0daca; color: var(--accent-dark); background: #f3f6ee; }
 .checkpoint-dialog-actions { margin-top: 0; }
 .character-library-list { display: grid; gap: 8px; max-height: 390px; margin-bottom: 20px; overflow: auto; }
+.character-library-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
+.character-library-search { flex: 1; min-width: 0; margin: 0; }
+.character-library-count { flex: none; color: var(--muted); font: 9px var(--mono); }
 .character-library-empty { margin: 0; padding: 15px 12px; border: 1px dashed #dfe2d9; color: var(--muted); font-size: 11px; line-height: 1.7; }
 .library-character-card { display: flex; align-items: flex-start; gap: 12px; padding: 11px 12px; border: 1px solid var(--line); background: #fbfbf7; }
 .library-character-info { min-width: 0; flex: 1; }
