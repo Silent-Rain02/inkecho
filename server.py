@@ -78,6 +78,15 @@ def provider_settings(provider: str | None = None, requested_model: str | None =
     return ProviderSettings(provider=selected, model=model, configured=configured)
 
 
+def provider_health_snapshot(provider: str | None = None, requested_model: str | None = None) -> dict[str, Any]:
+    """Report configuration using the model currently selected in the UI."""
+    selected = (provider or env("INK_ECHO_PROVIDER", "custom_azure")).lower()
+    providers = {name: provider_settings(name).configured for name in sorted(SUPPORTED_PROVIDERS)}
+    if selected in SUPPORTED_PROVIDERS:
+        providers[selected] = provider_settings(selected, requested_model).configured
+    return {"ok": True, "provider": selected, "providers": providers}
+
+
 def build_client(settings: ProviderSettings) -> OpenAI | AzureOpenAI:
     if settings.provider == "ollama":
         return OpenAI(
@@ -240,15 +249,13 @@ class InkEchoHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         if parsed.path == "/api/health":
-            self.send_json(
-                {
-                    "ok": True,
-                    "provider": env("INK_ECHO_PROVIDER", "custom_azure"),
-                    "providers": {
-                        name: provider_settings(name).configured for name in sorted(SUPPORTED_PROVIDERS)
-                    },
-                }
-            )
+            query = parse_qs(parsed.query)
+            provider = query.get("provider", [env("INK_ECHO_PROVIDER", "custom_azure")])[0]
+            model = query.get("model", [""])[0]
+            try:
+                self.send_json(provider_health_snapshot(provider, model or None))
+            except ValueError as exc:
+                self.send_json({"ok": False, "error": public_error(exc)}, status=HTTPStatus.BAD_REQUEST)
             return
         if parsed.path == "/api/models":
             provider = parse_qs(parsed.query).get("provider", [env("INK_ECHO_PROVIDER", "custom_azure")])[0]
