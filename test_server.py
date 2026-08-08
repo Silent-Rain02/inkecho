@@ -15,6 +15,7 @@ from server import (
     provider_health_snapshot,
     provider_settings,
     probe_provider,
+    summarize_chat,
     public_error,
     request_timeout_seconds,
     response_length_settings,
@@ -131,6 +132,34 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(completions.kwargs["model"], "office-model")
         self.assertEqual(completions.kwargs["max_tokens"], 2)
         self.assertEqual(completions.kwargs["messages"], [{"role": "user", "content": "请只回复：好"}])
+
+    def test_summarize_chat_requests_a_compact_story_summary(self) -> None:
+        class FakeCompletions:
+            def __init__(self) -> None:
+                self.kwargs = {}
+
+            def create(self, **kwargs):
+                self.kwargs = kwargs
+                return SimpleNamespace(
+                    choices=[SimpleNamespace(message=SimpleNamespace(content="两人重逢，新的悬念仍未揭开。"))]
+                )
+
+        completions = FakeCompletions()
+        fake_client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+        environment = {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "test-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
+        }
+        with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
+            summary, settings = summarize_chat({
+                "provider": "custom_azure",
+                "model": "office-model",
+                "messages": [{"role": "user", "content": "他们终于重逢了。"}],
+            })
+        self.assertEqual(summary, "两人重逢，新的悬念仍未揭开。")
+        self.assertEqual(settings.model, "office-model")
+        self.assertEqual(completions.kwargs["max_tokens"], 500)
+        self.assertIn("整理剧情摘要", completions.kwargs["messages"][0]["content"])
 
     def test_azure_model_listing_uses_configured_deployment_without_network(self) -> None:
         with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_MODEL": "office-model"}, clear=False):
@@ -265,6 +294,16 @@ class HttpRouteTests(unittest.TestCase):
         status, payload = handler.responses[0]
         self.assertEqual(status, 200)
         self.assertEqual(payload, {"ok": True, "provider": "ollama", "model": "qwen3:8b"})
+
+    def test_summarize_route_returns_summary_payload(self) -> None:
+        body = json.dumps({"provider": "ollama", "model": "qwen3:8b", "messages": []}).encode("utf-8")
+        handler = CaptureHandler("/api/summarize", body)
+        settings = SimpleNamespace(provider="ollama", model="qwen3:8b")
+        with patch("server.summarize_chat", return_value=("一段摘要。", settings)):
+            handler.do_POST()
+        status, payload = handler.responses[0]
+        self.assertEqual(status, 200)
+        self.assertEqual(payload, {"ok": True, "summary": "一段摘要。", "provider": "ollama", "model": "qwen3:8b"})
 
 
 if __name__ == "__main__":
