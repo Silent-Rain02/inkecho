@@ -361,21 +361,33 @@ def summarize_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
         raise RuntimeError(f"{settings.provider} 尚未完成环境变量配置")
 
     messages = build_messages(payload)
-    messages[0]["content"] += (
-        "\n\n当前任务是整理剧情摘要，不是续写或角色对话。请根据已有设定和最近对话，"
-        "提炼已经发生的关键事件、人物关系变化、未解决的悬念与下一步方向。"
-        "只输出一段简洁的中文摘要，不要解释过程，不要添加标题，不要虚构对话中没有出现的事实。"
-    )
+    target = str(payload.get("summary_target") or "story").lower()
+    if target == "scene":
+        messages[0]["content"] += (
+            "\n\n当前任务是整理当前场景的结果，不是续写或角色对话。请根据当前场景目标、"
+            "已发生的对话和留下的线索，提炼这一幕已经发生的关键动作、人物变化、信息揭示和待承接线索。"
+            "只输出一段简洁的中文记录，最多 600 字，不要解释过程，不要添加标题，不要虚构对话中没有出现的事实。"
+        )
+        max_tokens = 240
+        limit = 600
+    else:
+        messages[0]["content"] += (
+            "\n\n当前任务是整理剧情摘要，不是续写或角色对话。请根据已有设定和最近对话，"
+            "提炼已经发生的关键事件、人物关系变化、未解决的悬念与下一步方向。"
+            "只输出一段简洁的中文摘要，不要解释过程，不要添加标题，不要虚构对话中没有出现的事实。"
+        )
+        max_tokens = 500
+        limit = 2000
     response = build_client(settings).chat.completions.create(
         model=settings.model,
         messages=messages,
-        max_tokens=500,
+        max_tokens=max_tokens,
         stream=False,
     )
     content = response.choices[0].message.content if response.choices else ""
     if not isinstance(content, str) or not content.strip():
         raise RuntimeError("模型没有返回可用的剧情摘要")
-    return content.strip()[:2000], settings
+    return content.strip()[:limit], settings
 
 
 class InkEchoHandler(BaseHTTPRequestHandler):
