@@ -1137,6 +1137,14 @@ function renderProjectSelect() {
     projectSelect.appendChild(empty);
     return;
   }
+  const activeVisible = Boolean(active && visibleProjects.some((project) => project.id === active.id));
+  if (active && !activeVisible) {
+    const hiddenActive = document.createElement("option");
+    hiddenActive.value = "";
+    hiddenActive.disabled = true;
+    hiddenActive.textContent = `当前项目未在筛选结果：${active.name || "未命名作品"}`;
+    projectSelect.appendChild(hiddenActive);
+  }
   visibleProjects.forEach((project) => {
     const option = document.createElement("option");
     option.value = project.id;
@@ -1147,7 +1155,7 @@ function renderProjectSelect() {
     ].join("\n");
     projectSelect.appendChild(option);
   });
-  if (active && visibleProjects.some((project) => project.id === active.id)) projectSelect.value = active.id;
+  projectSelect.value = activeVisible ? active.id : "";
 }
 
 function saveConversation() {
