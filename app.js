@@ -86,6 +86,8 @@ const promptTextInput = document.querySelector("#promptTextInput");
 const savePromptToLibraryCheckbox = document.querySelector("#savePromptToLibrary");
 const cancelPromptButton = document.querySelector("#cancelPrompt");
 const promptLibraryDialog = document.querySelector("#promptLibraryDialog");
+const promptLibrarySearch = document.querySelector("#promptLibrarySearch");
+const promptLibraryCount = document.querySelector("#promptLibraryCount");
 const promptLibraryList = document.querySelector("#promptLibraryList");
 const closePromptLibraryButton = document.querySelector("#closePromptLibrary");
 const openTemplatesButton = document.querySelector("#openTemplates");
@@ -3063,6 +3065,13 @@ function deleteCustomPrompt(index) {
 
 function renderPromptLibrary() {
   if (!promptLibraryList) return;
+  const query = promptLibrarySearch?.value.trim().toLocaleLowerCase() || "";
+  const matches = promptLibrary.filter((prompt) => !query || `${prompt.title} ${prompt.text}`.toLocaleLowerCase().includes(query));
+  if (promptLibraryCount) {
+    promptLibraryCount.textContent = query
+      ? `${matches.length} / ${promptLibrary.length} 条`
+      : `${promptLibrary.length} / ${maxLibraryPrompts} 条`;
+  }
   promptLibraryList.innerHTML = "";
   if (!promptLibrary.length) {
     const empty = document.createElement("p");
@@ -3071,7 +3080,14 @@ function renderPromptLibrary() {
     promptLibraryList.appendChild(empty);
     return;
   }
-  promptLibrary.forEach((prompt) => {
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.className = "prompt-library-empty";
+    empty.textContent = "没有匹配的灵感。试试搜索另一个关键词。";
+    promptLibraryList.appendChild(empty);
+    return;
+  }
+  matches.forEach((prompt) => {
     const card = document.createElement("article");
     card.className = "library-prompt-card";
     const main = document.createElement("div");
@@ -3101,8 +3117,10 @@ function renderPromptLibrary() {
 
 function openPromptLibrary() {
   if (preventWorkspaceMutation("查看灵感库")) return;
+  promptLibrarySearch.value = "";
   renderPromptLibrary();
   promptLibraryDialog.showModal();
+  promptLibrarySearch.focus();
 }
 
 function closePromptLibrary() {
@@ -3319,6 +3337,7 @@ promptDialog.addEventListener("click", (event) => {
   if (event.target === promptDialog) closePromptEditor();
 });
 openPromptLibraryButton.addEventListener("click", openPromptLibrary);
+promptLibrarySearch.addEventListener("input", renderPromptLibrary);
 closePromptLibraryButton.addEventListener("click", closePromptLibrary);
 promptLibraryDialog.addEventListener("click", (event) => {
   if (event.target === promptLibraryDialog) closePromptLibrary();
