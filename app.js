@@ -901,6 +901,24 @@ function getActiveSceneBeat(project = getActiveProject()) {
   return project?.beats?.find((beat) => beat.id === project.activeBeatId) || null;
 }
 
+function getSceneOutcomeFreshness(beat, project = getActiveProject()) {
+  if (!beat?.outcome?.trim()) return "";
+  if (!beat.outcomeThrough) return "结果来源未记录（旧数据）";
+  const messages = getConversationForDisplay(project);
+  let sourceIndex = -1;
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (highlightKey(messages[index]) === beat.outcomeThrough) {
+      sourceIndex = index;
+      break;
+    }
+  }
+  if (sourceIndex < 0) return "结果来源不在当前历史 · 建议重新提炼";
+  const newMessages = messages.length - sourceIndex - 1;
+  return newMessages > 0
+    ? `结果截至第 ${sourceIndex + 1} 条消息 · 之后新增 ${newMessages} 条`
+    : `结果覆盖到第 ${sourceIndex + 1} 条消息`;
+}
+
 function activateSceneBeat(project, beatId) {
   const selected = project?.beats?.find((beat) => beat.id === beatId);
   if (!selected) return null;
@@ -929,7 +947,8 @@ function renderActiveBeat() {
     return;
   }
   activeBeatHint.textContent = active.goal ? `当前：${active.goal}` : `当前：${active.title}`;
-  activeBeatHint.title = `${active.title} · ${sceneBeatStatusLabels[active.status]}`;
+  activeBeatHint.title = [active.title, sceneBeatStatusLabels[active.status], getSceneOutcomeFreshness(active, project)]
+    .filter(Boolean).join(" · ");
   conversationContext.textContent = `场景 · ${active.title}`;
   conversationContext.title = active.goal || `${active.title} · ${sceneBeatStatusLabels[active.status]}`;
   const index = beats.findIndex((beat) => beat.id === active.id);
@@ -4467,6 +4486,11 @@ function renderSceneBeats() {
       beat.goal,
       beat.outcome ? `已发生 / 线索：${beat.outcome}` : "",
     ].filter(Boolean).join("\n") || "这一幕暂未写下明确目标。";
+    const provenance = getSceneOutcomeFreshness(beat, project);
+    const provenanceNote = document.createElement("small");
+    provenanceNote.className = "beat-provenance";
+    provenanceNote.classList.toggle("is-stale", provenance.includes("新增") || provenance.includes("不在当前"));
+    provenanceNote.textContent = provenance;
     const actions = document.createElement("div");
     actions.className = "beat-card-actions";
     const moveUp = document.createElement("button");
@@ -4502,7 +4526,9 @@ function renderSceneBeats() {
     remove.textContent = "删除";
     remove.addEventListener("click", () => deleteBeat(beat.id));
     actions.append(moveUp, moveDown, use, edit, remove);
-    card.append(head, goal, actions);
+    card.append(head, goal);
+    if (provenance) card.appendChild(provenanceNote);
+    card.appendChild(actions);
     beatList.appendChild(card);
   });
 }
