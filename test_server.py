@@ -141,6 +141,18 @@ class ServerConfigTests(unittest.TestCase):
         system_prompt = build_messages({"context": {"reference": reference}})[0]["content"]
         self.assertEqual(system_prompt.count("雨"), 4000)
 
+    def test_context_fields_are_capped_before_prompt_construction(self) -> None:
+        system_prompt = build_messages({
+            "context": {
+                "title": "题" * 200,
+                "era": "时" * 200,
+                "world": "世" * 1000,
+            }
+        })[0]["content"]
+        self.assertNotIn("题" * 121, system_prompt)
+        self.assertNotIn("时" * 121, system_prompt)
+        self.assertNotIn("世" * 801, system_prompt)
+
     def test_instructions_are_capped_before_prompt_construction(self) -> None:
         instructions = "要求" * 800
         system_prompt = build_messages({"context": {"instructions": instructions}})[0]["content"]
