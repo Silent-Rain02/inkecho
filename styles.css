@@ -217,6 +217,11 @@ textarea { resize: vertical; }
 .message-row.user .message-actions { justify-content: flex-end; }
 .message-action { padding: 0; border: 0; color: var(--muted); background: transparent; font: 9px var(--mono); }
 .message-action:hover { color: var(--accent); }
+.version-controls { display: inline-flex; align-items: center; gap: 3px; margin-left: 3px; color: var(--muted); font: 9px var(--mono); }
+.version-button { width: 15px; height: 15px; padding: 0; border: 0; color: var(--ink-soft); background: transparent; font: 13px var(--mono); line-height: 1; }
+.version-button:hover:not(:disabled) { color: var(--accent); }
+.version-button:disabled { color: #c9cec6; cursor: default; }
+.version-label { min-width: 24px; text-align: center; }
 .composer { margin: 0 18px 18px; padding: 14px 15px 11px; border: 1px solid #d9ded4; background: rgba(250, 251, 246, 0.9); transition: border-color 0.2s, box-shadow 0.2s; }
 .composer:focus-within { border-color: var(--sage); box-shadow: 0 6px 20px rgba(98, 119, 90, 0.08); }
 .composer-tools { display: flex; align-items: center; gap: 10px; color: var(--muted); }
