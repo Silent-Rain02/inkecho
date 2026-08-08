@@ -50,6 +50,7 @@ const deleteProjectButton = document.querySelector("#deleteProject");
 const workReference = document.querySelector("#workReference");
 const workSummary = document.querySelector("#workSummary");
 const workInstructions = document.querySelector("#workInstructions");
+const generateSummaryButton = document.querySelector("#generateSummary");
 const referenceCount = document.querySelector("#referenceCount");
 const importReferenceButton = document.querySelector("#importReference");
 const referenceFile = document.querySelector("#referenceFile");
@@ -116,6 +117,7 @@ const maxHighlights = 30;
 const maxCheckpoints = 12;
 const providerRequestTimeout = 12000;
 const providerProbeTimeout = 30000;
+const summaryRequestTimeout = 45000;
 const streamIdleTimeout = 90000;
 
 const replyTemplates = {
@@ -1381,6 +1383,51 @@ async function testProviderConnection() {
   }
 }
 
+async function summarizeConversation() {
+  if (isSending) {
+    showToast("模型回复完成后再提炼摘要");
+    return;
+  }
+  if (conversationHistory.length < 2) {
+    showToast("先完成一轮对话，再提炼剧情摘要");
+    return;
+  }
+  saveServiceSettings();
+  const provider = providerSelect.value;
+  const model = modelName.value.trim();
+  generateSummaryButton.disabled = true;
+  generateSummaryButton.textContent = "提炼中";
+  try {
+    const response = await fetchWithTimeout("/api/summarize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider,
+        model,
+        context: getContext(),
+        messages: conversationHistory,
+      }),
+    }, summaryRequestTimeout);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.summary) {
+      const error = new Error(payload.error || "剧情摘要生成失败");
+      error.userMessage = payload.error || "剧情摘要生成失败";
+      throw error;
+    }
+    const current = workSummary.value.trim();
+    if (current && !window.confirm("用新摘要替换当前剧情摘要吗？")) return;
+    workSummary.value = payload.summary.slice(0, 2000);
+    setProviderBadge("已连接", "#6f8b6a");
+    saveWorkspace();
+    showToast("剧情摘要已更新");
+  } catch (error) {
+    showToast(error?.name === "AbortError" ? "摘要生成超时，请检查服务状态" : (error?.userMessage || "剧情摘要生成失败"));
+  } finally {
+    generateSummaryButton.disabled = false;
+    generateSummaryButton.textContent = "提炼摘要";
+  }
+}
+
 async function requestModelReply() {
   const response = await fetch("/api/chat", {
     method: "POST",
@@ -1833,6 +1880,7 @@ responseLengthSelect.addEventListener("change", () => {
 
 refreshModelsButton.addEventListener("click", refreshModels);
 testProviderButton.addEventListener("click", testProviderConnection);
+generateSummaryButton.addEventListener("click", summarizeConversation);
 
 ["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
   document.querySelector(selector).addEventListener("input", saveWorkspace);
