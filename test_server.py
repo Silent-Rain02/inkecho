@@ -276,6 +276,7 @@ class HttpRouteTests(unittest.TestCase):
         _, payload = handler.responses[0]
         self.assertTrue(payload["ok"])
         self.assertTrue(payload["providers"]["ollama"])
+        self.assertEqual(payload["history_budget"], 48000)
 
     def test_model_route_marks_azure_deployment_as_configuration_only(self) -> None:
         query = urlencode({"provider": "custom_azure"})
