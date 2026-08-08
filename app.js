@@ -908,9 +908,12 @@ function updateContextUsage() {
   if (!contextUsage) return;
   const context = getContext();
   const contextChars = Object.values(context).reduce((total, value) => total + value.length, 0);
+  const characterChars = [selectedCharacter.name, selectedCharacter.tone, selectedCharacter.details]
+    .filter(Boolean)
+    .join("").length;
   const historyChars = getModelMessages()
     .reduce((total, message) => total + (message.content || "").length, 0);
-  const total = contextChars + historyChars;
+  const total = contextChars + characterChars + historyChars;
   contextUsage.textContent = `${isSummaryContextMode() ? "发送上下文" : "上下文"}约 ${total.toLocaleString("zh-CN")} 字`;
   const warningThreshold = serverHistoryBudget + 12000;
   contextUsage.classList.toggle("is-heavy", total > warningThreshold);
@@ -929,6 +932,8 @@ function getContextPreviewText() {
     "InkEcho · 模型上下文预览",
     `模型：${modelName.value.trim() || "未填写"}`,
     `模式：${selectedMode}`,
+    `创作倾向：${creativityLabels[creativitySelect.value] || "平衡"}`,
+    `回复长度：${responseLengthLabels[responseLengthSelect.value] || "标准"}`,
     `上下文策略：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : "完整对话"}`,
     "",
     "【作品设定】",
