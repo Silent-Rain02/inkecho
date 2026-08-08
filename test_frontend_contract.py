@@ -41,6 +41,7 @@ class FrontendContractTests(unittest.TestCase):
             "contextDialog",
             "advanceBeat",
             "beatOutcomeInput",
+            "generateBeatOutcome",
             "beatProgressText",
             "beatProgressBar",
             "checkpointDialog",
@@ -50,6 +51,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("记为结果", self.javascript)
         self.assertIn("sourceActiveProjectId", self.javascript)
         self.assertIn("selectedImported", self.javascript)
+        self.assertIn("summarizeCurrentSceneOutcome", self.javascript)
 
 
 if __name__ == "__main__":
