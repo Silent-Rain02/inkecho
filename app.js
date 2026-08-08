@@ -58,6 +58,7 @@ const draftStatus = document.querySelector("#draftStatus");
 const toggleFocusModeButton = document.querySelector("#toggleFocusMode");
 const projectSelect = document.querySelector("#projectSelect");
 const projectSearchInput = document.querySelector("#projectSearch");
+const projectSearchCount = document.querySelector("#projectSearchCount");
 const newProjectButton = document.querySelector("#newProject");
 const duplicateProjectButton = document.querySelector("#duplicateProject");
 const exportProjectsButton = document.querySelector("#exportProjects");
@@ -747,9 +748,10 @@ function getActiveProject() {
 }
 
 function getConversationForDisplay(project = getActiveProject()) {
+  const workspace = project?.id === activeProjectId ? conversationHistory : project?.conversation;
   return [
     ...(Array.isArray(project?.conversationArchive) ? project.conversationArchive : []),
-    ...conversationHistory,
+    ...(Array.isArray(workspace) ? workspace : []),
   ];
 }
 
@@ -955,7 +957,24 @@ function renderProjectSelect() {
   const visibleProjects = projects
     .slice()
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-    .filter((project) => !query || (project.name || "未命名作品").toLocaleLowerCase().includes(query));
+    .filter((project) => {
+      if (!query) return true;
+      const activeBeat = project.beats?.find((beat) => beat.id === project.activeBeatId);
+      return [
+        project.name,
+        project.context?.title,
+        project.context?.chapter,
+        activeBeat?.title,
+        activeBeat?.goal,
+        project.selectedCharacterName,
+      ].filter(Boolean).join(" ").toLocaleLowerCase().includes(query);
+    });
+  if (projectSearchCount) {
+    const activeMeta = active
+      ? ` · 当前 ${getConversationMessageCount(active)} 条消息 · ${active.beats?.length || 0} 张场景卡`
+      : "";
+    projectSearchCount.textContent = `${query ? `${visibleProjects.length} / ` : ""}${projects.length} 个项目${activeMeta}`;
+  }
   projectSelect.innerHTML = "";
   if (!visibleProjects.length) {
     const empty = document.createElement("option");
