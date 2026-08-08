@@ -102,6 +102,12 @@ class ServerConfigTests(unittest.TestCase):
         system_prompt = build_messages({"response_length": "expanded"})[0]["content"]
         self.assertIn("充分铺陈场景", system_prompt)
 
+    def test_prompt_contains_character_details_with_a_safe_length_cap(self) -> None:
+        details = "叙" * 800
+        system_prompt = build_messages({"character": {"name": "沈砚", "details": details}})[0]["content"]
+        self.assertIn("叙" * 500, system_prompt)
+        self.assertNotIn("叙" * 501, system_prompt)
+
     def test_modes_have_distinct_writing_guidance(self) -> None:
         rewrite_prompt = build_messages({"mode": "改写"})[0]["content"]
         monologue_prompt = build_messages({"mode": "独白"})[0]["content"]
