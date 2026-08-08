@@ -385,6 +385,7 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .checkpoint-main { min-width: 0; flex: 1; }
 .checkpoint-main strong { display: block; overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .checkpoint-meta { display: block; margin-top: 4px; color: var(--muted); font: 9px var(--mono); }
+.checkpoint-preview { display: -webkit-box; margin: 6px 0 0; overflow: hidden; color: var(--ink-soft); font-size: 10px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .checkpoint-actions { display: inline-flex; align-items: center; gap: 5px; flex: none; }
 .checkpoint-restore, .checkpoint-branch, .checkpoint-remove { border: 1px solid var(--line); background: transparent; font-size: 10px; }
 .checkpoint-restore { padding: 5px 8px; color: var(--accent); }
