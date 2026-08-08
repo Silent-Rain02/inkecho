@@ -1381,10 +1381,15 @@ function renderConversation() {
 function getContext() {
   const chapter = safeText(workChapter.value, "", 120);
   const activeBeat = getActiveSceneBeat();
+  const scenePlan = (getActiveProject()?.beats || [])
+    .map((beat, index) => `${index + 1}. [${sceneBeatStatusLabels[beat.status]}] ${beat.title}${beat.goal ? `：${beat.goal}` : ""}`)
+    .join("\n")
+    .slice(0, 2000);
   return {
     title: safeText(document.querySelector("#workTitle").value, "", 120),
     chapter,
     sceneGoal: activeBeat && chapter === activeBeat.title ? safeText(activeBeat.goal, "", 280) : "",
+    scenePlan,
     era: safeText(document.querySelector("#workEra").value, "", 120),
     world: safeText(document.querySelector("#workWorld").value, "", 800),
     reference: safeText(workReference.value, "", 4000),
