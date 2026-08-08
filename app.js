@@ -75,6 +75,7 @@ const draftStatus = document.querySelector("#draftStatus");
 const toggleFocusModeButton = document.querySelector("#toggleFocusMode");
 const projectSelect = document.querySelector("#projectSelect");
 const projectSearchInput = document.querySelector("#projectSearch");
+const projectStatusFilter = document.querySelector("#projectStatusFilter");
 const projectSearchCount = document.querySelector("#projectSearchCount");
 const projectLineage = document.querySelector("#projectLineage");
 const projectHealth = document.querySelector("#projectHealth");
@@ -176,6 +177,14 @@ const modeHints = {
   续写: "续写这一段故事……",
   改写: "告诉我想改写的情节……",
   独白: "让角色说出心里话……",
+};
+
+const projectStatusLabels = {
+  all: "全部项目",
+  attention: "需要处理",
+  summary: "摘要待更新",
+  outcome: "结果待更新",
+  draft: "有草稿",
 };
 
 const providerDefaults = {
@@ -842,6 +851,16 @@ function formatProjectHealth(project = getActiveProject()) {
   return parts.join(" · ");
 }
 
+function matchesProjectStatus(project, filter = "all") {
+  if (filter === "all") return true;
+  const health = getProjectHealth(project);
+  if (filter === "attention") return !health.hasSummary || health.summaryNewMessages > 0 || health.staleOutcomes > 0 || health.hasDraft;
+  if (filter === "summary") return !health.hasSummary || health.summaryNewMessages > 0;
+  if (filter === "outcome") return health.staleOutcomes > 0;
+  if (filter === "draft") return health.hasDraft;
+  return true;
+}
+
 function archiveConversationOverflow(project = getActiveProject()) {
   if (!project || conversationHistory.length <= maxConversationMessages) return false;
   const overflowCount = conversationHistory.length - maxConversationMessages;
@@ -1057,10 +1076,12 @@ function hydrateActiveProject() {
 function renderProjectSelect() {
   const active = getActiveProject();
   const query = projectSearchInput?.value.trim().toLocaleLowerCase() || "";
+  const statusFilter = projectStatusFilter?.value || "all";
   const visibleProjects = projects
     .slice()
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
     .filter((project) => {
+      if (!matchesProjectStatus(project, statusFilter)) return false;
       if (!query) return true;
       const activeBeat = project.beats?.find((beat) => beat.id === project.activeBeatId);
       return [
@@ -1078,7 +1099,9 @@ function renderProjectSelect() {
     const activeMeta = active
       ? ` · 当前 ${getConversationMessageCount(active)} 条消息 · ${active.beats?.length || 0} 张场景卡`
       : "";
-    projectSearchCount.textContent = `${query ? `${visibleProjects.length} / ` : ""}${projects.length} 个项目${activeMeta}`;
+    const isFiltered = query || statusFilter !== "all";
+    const filterLabel = statusFilter !== "all" ? ` · ${projectStatusLabels[statusFilter]}` : "";
+    projectSearchCount.textContent = `${isFiltered ? `${visibleProjects.length} / ` : ""}${projects.length} 个项目${filterLabel}${activeMeta}`;
   }
   if (projectLineage) {
     const source = formatBranchSource(active);
@@ -4926,6 +4949,7 @@ function deleteCurrentProject() {
 
 projectSelect.addEventListener("change", () => switchProject(projectSelect.value));
 projectSearchInput.addEventListener("input", renderProjectSelect);
+projectStatusFilter.addEventListener("change", renderProjectSelect);
 newProjectButton.addEventListener("click", createNewProject);
 duplicateProjectButton.addEventListener("click", duplicateCurrentProject);
 exportProjectsButton.addEventListener("click", exportProjectsBackup);
