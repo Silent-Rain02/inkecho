@@ -1728,13 +1728,19 @@ function renderCheckpoints() {
     restore.className = "checkpoint-restore";
     restore.textContent = "恢复";
     restore.addEventListener("click", () => restoreCheckpoint(checkpoint.id));
+    const branch = document.createElement("button");
+    branch.type = "button";
+    branch.className = "checkpoint-branch";
+    branch.textContent = "支线";
+    branch.setAttribute("aria-label", `从检查点 ${checkpoint.name} 创建支线`);
+    branch.addEventListener("click", () => branchFromCheckpoint(checkpoint.id));
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "checkpoint-remove";
     remove.textContent = "×";
     remove.setAttribute("aria-label", `删除检查点 ${checkpoint.name}`);
     remove.addEventListener("click", () => deleteCheckpoint(checkpoint.id));
-    actions.append(restore, remove);
+    actions.append(restore, branch, remove);
     card.append(main, actions);
     checkpointList.appendChild(card);
   });
@@ -1768,6 +1774,54 @@ function openCheckpointDialog() {
 
 function closeCheckpointDialog() {
   checkpointDialog.close();
+}
+
+function branchFromCheckpoint(checkpointId) {
+  if (projects.length >= maxProjects) {
+    showToast(`项目数量已达到上限（${maxProjects} 个）`);
+    return;
+  }
+  if (preventWorkspaceMutation("创建支线")) return;
+  persistActiveProject();
+  const current = getActiveProject();
+  const checkpoint = current.checkpoints.find((item) => item.id === checkpointId);
+  if (!checkpoint) return;
+  const name = window.prompt("给这条检查点支线取一个名字：", `${current.name} · ${checkpoint.name}支线`);
+  if (!name || !name.trim()) return;
+  const cleanName = name.trim().slice(0, 80);
+  const state = cloneProjectState(checkpoint);
+  const project = createProject({
+    id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name: cleanName,
+    context: { ...state.context, title: cleanName },
+    conversation: state.conversation,
+    conversationArchive: state.conversationArchive,
+    service: state.service,
+    characters: state.characters,
+    selectedCharacterName: state.selectedCharacterName,
+    mode: state.mode,
+    draft: state.draft,
+    prompts: state.prompts,
+    highlights: state.highlights,
+    checkpoints: current.checkpoints
+      .filter((item) => Number(item.createdAt) <= Number(checkpoint.createdAt))
+      .map(cloneCheckpoint),
+    beats: state.beats,
+    activeBeatId: state.activeBeatId,
+    contextMode: state.contextMode,
+    summaryMessageCount: state.summaryMessageCount,
+    summaryUpdatedAt: state.summaryUpdatedAt,
+  });
+  projects.push(project);
+  activeProjectId = project.id;
+  persistProjects();
+  hydrateActiveProject();
+  renderProjectSelect();
+  renderCharacters();
+  renderConversation();
+  updateProviderUI();
+  closeCheckpointDialog();
+  showToast(`已从「${checkpoint.name}」创建支线「${cleanName}」`);
 }
 
 function quoteArchiveMessage(item) {
@@ -3817,7 +3871,7 @@ function duplicateCurrentProject() {
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: cleanName,
-    context: { ...current.context },
+    context: { ...current.context, title: cleanName },
     conversation: current.conversation.map((item) => ({ ...item })),
     conversationArchive: current.conversationArchive.map((item) => ({ ...item })),
     service: { ...current.service },
@@ -3873,7 +3927,7 @@ function branchFromMessage(historyIndex) {
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: cleanName,
-    context: { ...current.context },
+    context: { ...current.context, title: cleanName },
     conversation: branchConversation,
     conversationArchive: current.conversationArchive.map((item) => ({ ...item })),
     service: { ...current.service },
