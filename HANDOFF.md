@@ -31,6 +31,8 @@ python3 server.py
 - `POST /api/probe`：用最小请求验证当前服务的密钥、端点和模型部署
 - `POST /api/summarize`：用当前模型把最近对话整理为可复用的剧情摘要；传入 `summary_target: "scene"` 时返回不超过 600 字的当前场景结果
 
+模型上游的认证、权限、模型不存在、限流、超时和连接失败会被服务端转换为安全的中文提示；响应状态码也会分别反映认证、权限、限流或网关超时，便于定位配置问题。
+
 项目菜单支持全量项目 JSON 备份，也支持从对话菜单导出当前单个项目 JSON；导入时两种格式都会被识别。导入前会确认数量并提示现有项目不会被覆盖。全量备份导入后会按备份里的 `activeProjectId` 恢复当时正在编辑的项目（若该项目不在导入范围，则回退到第一项）。
 - `POST /api/chat`：非流式回复
 - `POST /api/chat/stream`：SSE 流式回复
@@ -49,7 +51,7 @@ python3 -m unittest -q test_server.py test_frontend_contract.py
 python3 -m py_compile server.py test_server.py test_frontend_contract.py
 ```
 
-当前服务端回归测试共 34 项，另有前端契约检查；其中包含流式接口对选定模型、输出预算和增量内容的回归验证。GitHub Actions 还会启动本地服务进行首页、健康检查和静态资源白名单烟测。服务端会在最近 20 条消息中执行历史预算，默认 48000 字，可通过 `INK_ECHO_HISTORY_BUDGET` 调整并优先保留最新内容。发布前检查本地 `.env` 没有被加入版本控制，并确认 GitHub Actions CI 通过。
+当前服务端回归测试共 37 项，另有前端契约检查；其中包含流式接口对选定模型、输出预算和增量内容的回归验证，以及上游认证、限流和超时诊断的状态码验证。GitHub Actions 还会启动本地服务进行首页、健康检查和静态资源白名单烟测。服务端会在最近 20 条消息中执行历史预算，默认 48000 字，可通过 `INK_ECHO_HISTORY_BUDGET` 调整并优先保留最新内容。发布前检查本地 `.env` 没有被加入版本控制，并确认 GitHub Actions CI 通过。
 
 ## 后续可选方向
 
