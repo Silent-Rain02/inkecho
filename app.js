@@ -3,6 +3,7 @@ const composer = document.querySelector("#composer");
 const messageInput = document.querySelector("#messageInput");
 const messageCount = document.querySelector("#messageCount");
 const conversationTitle = document.querySelector("#conversationTitle");
+const conversationContext = document.querySelector("#conversationContext");
 const conversationMenuButton = document.querySelector("#conversationMenuButton");
 const conversationMenu = document.querySelector("#conversationMenu");
 const copyConversationButton = document.querySelector("#copyConversation");
@@ -581,6 +582,8 @@ function renderActiveBeat() {
   if (!active) {
     activeBeatHint.textContent = "未选择场景卡";
     activeBeatHint.title = "打开场景计划，添加并设为当前";
+    conversationContext.textContent = "未选择场景";
+    conversationContext.title = "打开场景计划，设定当前场景";
     advanceBeatButton.disabled = true;
     advanceBeatButton.textContent = "推进下一幕 →";
     advanceBeatButton.title = "先在场景计划中设定当前场景";
@@ -588,6 +591,8 @@ function renderActiveBeat() {
   }
   activeBeatHint.textContent = active.goal ? `当前：${active.goal}` : `当前：${active.title}`;
   activeBeatHint.title = `${active.title} · ${sceneBeatStatusLabels[active.status]}`;
+  conversationContext.textContent = `场景 · ${active.title}`;
+  conversationContext.title = active.goal || `${active.title} · ${sceneBeatStatusLabels[active.status]}`;
   const index = beats.findIndex((beat) => beat.id === active.id);
   const next = index >= 0 ? beats[index + 1] : null;
   advanceBeatButton.disabled = !next;
