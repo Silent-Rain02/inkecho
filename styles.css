@@ -131,6 +131,8 @@ h2 { margin: 7px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.06em
 .project-search input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--ink-soft); background: transparent; font-size: 10px; }
 .project-search input::placeholder { color: #a6aba3; }
 .project-search:focus-within { color: var(--accent-dark); }
+.project-status-filter { grid-column: 1 / -1; width: 100%; height: 25px; padding: 0 5px; border: 0; border-top: 1px solid rgba(215, 217, 207, 0.7); outline: 0; color: var(--muted); background: transparent; font-size: 9px; }
+.project-status-filter:focus { color: var(--ink-soft); }
 .project-search-count { grid-column: 1 / -1; margin: -1px 0 0; color: var(--muted); font: 8px var(--mono); }
 .project-lineage { grid-column: 1 / -1; min-height: 12px; margin: -1px 0 0; color: var(--muted); font: 8px var(--mono); line-height: 1.5; overflow-wrap: anywhere; }
 .project-lineage.is-branch { color: var(--accent); }
