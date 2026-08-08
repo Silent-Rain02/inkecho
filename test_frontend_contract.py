@@ -55,6 +55,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("summarizeCurrentSceneOutcome", self.javascript)
         self.assertIn("getModelMessages({ fullHistory: true })", self.javascript)
         self.assertIn("现有项目不会被覆盖", self.javascript)
+        self.assertIn("provider_details", self.javascript)
 
 
 if __name__ == "__main__":
