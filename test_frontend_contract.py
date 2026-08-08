@@ -46,6 +46,8 @@ class FrontendContractTests(unittest.TestCase):
             "beatProgressText",
             "beatProgressBar",
             "checkpointDialog",
+            "checkpointSearchInput",
+            "checkpointCount",
             "characterDetailsInput",
             "summaryFreshness",
             "storageStatus",
@@ -141,6 +143,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("checkpoint-branch", self.javascript)
         self.assertIn("function renameCheckpoint", self.javascript)
         self.assertIn("checkpoint-rename", self.javascript)
+        self.assertIn("const query = checkpointSearchInput", self.javascript)
+        self.assertIn("没有匹配的检查点", self.javascript)
+        self.assertIn('checkpointDialog.querySelector("form").addEventListener("submit"', self.javascript)
         self.assertIn("从这一刻创建一条安全的剧情支线", self.html)
         self.assertIn("const characterLibraryStorageKey", self.javascript)
         self.assertIn("function renderCharacterLibrary", self.javascript)
