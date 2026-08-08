@@ -15,6 +15,7 @@ from server import (
     provider_health_snapshot,
     provider_settings,
     probe_provider,
+    stream_chat,
     summarize_chat,
     public_error,
     request_timeout_seconds,
@@ -133,6 +134,39 @@ class ServerConfigTests(unittest.TestCase):
             })
         self.assertEqual(text, "一段展开的回复。")
         self.assertEqual(fake_completions.kwargs["max_tokens"], 1200)
+
+    def test_stream_chat_yields_incremental_content_with_selected_model(self) -> None:
+        class FakeCompletions:
+            def __init__(self) -> None:
+                self.kwargs = {}
+
+            def create(self, **kwargs):
+                self.kwargs = kwargs
+                return iter([
+                    SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="第一段"))]),
+                    SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="第二段"))]),
+                    SimpleNamespace(choices=[]),
+                ])
+
+        completions = FakeCompletions()
+        fake_client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+        environment = {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "test-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
+        }
+        with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
+            settings, deltas = stream_chat({
+                "provider": "custom_azure",
+                "model": "office-model",
+                "response_length": "expanded",
+                "messages": [{"role": "user", "content": "继续"}],
+            })
+
+        self.assertEqual(settings.model, "office-model")
+        self.assertEqual(list(deltas), ["第一段", "第二段"])
+        self.assertEqual(completions.kwargs["model"], "office-model")
+        self.assertEqual(completions.kwargs["max_tokens"], 1200)
+        self.assertTrue(completions.kwargs["stream"])
 
     def test_probe_provider_makes_a_minimal_request_with_selected_model(self) -> None:
         class FakeCompletions:
