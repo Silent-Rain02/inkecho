@@ -412,6 +412,8 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .archive-card-meta span { color: var(--muted); font: 8px var(--mono); }
 .archive-card p { margin: 7px 0 0; color: var(--ink-soft); font-size: 11px; line-height: 1.7; white-space: pre-wrap; }
 .archive-copy { position: absolute; right: 10px; bottom: 7px; }
+.archive-clear-button { color: #a26b46; }
+.archive-clear-button:disabled { color: #c9cec6; cursor: default; }
 .dialog-input, .dialog-textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--line); outline: 0; color: var(--ink); background: #fbfbf7; font-size: 13px; }
 .dialog-input { height: 38px; margin-bottom: 18px; padding: 0 10px; }
 .dialog-textarea { min-height: 84px; margin-bottom: 21px; padding: 9px 10px; line-height: 1.7; resize: vertical; }
