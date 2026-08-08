@@ -101,6 +101,7 @@ const saveCurrentTemplateButton = document.querySelector("#saveCurrentTemplate")
 const manageBeatsButton = document.querySelector("#manageBeats");
 const activeBeatHint = document.querySelector("#activeBeatHint");
 const beatCount = document.querySelector("#beatCount");
+const copyScenePlanButton = document.querySelector("#copyScenePlan");
 const advanceBeatButton = document.querySelector("#advanceBeat");
 const beatDialog = document.querySelector("#beatDialog");
 const beatForm = document.querySelector("#beatForm");
@@ -860,6 +861,8 @@ function renderActiveBeat() {
   const beats = project?.beats || [];
   const active = getActiveSceneBeat(project);
   beatCount.textContent = `${String(beats.length).padStart(2, "0")} / ${maxSceneBeats}`;
+  copyScenePlanButton.disabled = !beats.length;
+  copyScenePlanButton.title = beats.length ? "复制完整场景计划" : "先添加场景卡";
   if (!active) {
     activeBeatHint.textContent = "未选择场景卡";
     activeBeatHint.title = "打开场景计划，添加并设为当前";
@@ -879,6 +882,27 @@ function renderActiveBeat() {
   advanceBeatButton.disabled = !next;
   advanceBeatButton.textContent = next ? "完成并推进 →" : "已到最后一幕";
   advanceBeatButton.title = next ? `完成「${active.title}」，进入「${next.title}」` : "添加下一张场景卡后即可继续推进";
+}
+
+async function copyScenePlan() {
+  const project = getActiveProject();
+  const beats = project?.beats || [];
+  if (!beats.length) {
+    showToast("先在场景计划中添加场景卡");
+    return;
+  }
+  const text = [
+    "InkEcho · 场景计划",
+    `作品：${project.context.title || "未命名作品"}`,
+    `当前场景：${getActiveSceneBeat(project)?.title || project.context.chapter || "未选择"}`,
+    "",
+    ...beats.map((beat, index) => [
+      `${index + 1}. [${sceneBeatStatusLabels[beat.status]}] ${beat.title}`,
+      beat.goal ? `目标：${beat.goal}` : "",
+      beat.outcome ? `已发生 / 线索：${beat.outcome}` : "",
+    ].filter(Boolean).join("\n")),
+  ].join("\n\n");
+  await copyText(text, "场景计划已复制");
 }
 
 function hydrateActiveProject() {
@@ -3501,6 +3525,7 @@ beatDialog.addEventListener("click", (event) => {
   if (event.target === beatDialog) closeScenePlanner();
 });
 advanceBeatButton.addEventListener("click", advanceCurrentBeat);
+copyScenePlanButton.addEventListener("click", copyScenePlan);
 closeCheckpointButton.addEventListener("click", closeCheckpointDialog);
 checkpointDialog.addEventListener("click", (event) => {
   if (event.target === checkpointDialog) closeCheckpointDialog();
