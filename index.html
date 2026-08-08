@@ -127,12 +127,13 @@
           <label class="field-label" for="workInstructions">本次创作要求</label>
           <textarea id="workInstructions" rows="3" maxlength="1200" placeholder="例如：保持古典语感，用第三人称，不改变人物结局……"></textarea>
 
-          <div class="subheading-row">
-            <span class="field-label">角色卡</span>
-            <span class="character-actions">
-              <button class="text-button" id="manageCharacter" type="button">管理</button>
-              <button class="text-button" id="addCharacter" type="button">+ 添加</button>
-            </span>
+            <div class="subheading-row">
+              <span class="field-label">角色卡</span>
+              <span class="character-actions">
+                <button class="text-button" id="manageCharacter" type="button">管理</button>
+                <button class="text-button" id="openCharacterLibrary" type="button">角色库</button>
+                <button class="text-button" id="addCharacter" type="button">+ 添加</button>
+              </span>
           </div>
           <div class="character-list" id="characterList">
             <button class="character-card active" type="button" data-character="林黛玉" data-tone="清冷、敏锐，却藏着很深的真心。">
@@ -349,6 +350,20 @@
           <span></span>
           <button class="dialog-cancel" id="cancelCharacter" type="button">取消</button>
           <button class="dialog-save" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog character-library-dialog" id="characterLibraryDialog" aria-labelledby="characterLibraryTitle">
+      <form method="dialog">
+        <span class="section-kicker">CHARACTER LIBRARY</span>
+        <h2 id="characterLibraryTitle">角色库</h2>
+        <p class="template-description">把常用角色保存下来，在不同作品之间复用。加入项目后仍可继续单独编辑。</p>
+        <div class="character-library-list" id="characterLibraryList"></div>
+        <div class="dialog-actions">
+          <button class="text-button" id="saveSelectedCharacter" type="button">保存当前角色</button>
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" id="closeCharacterLibrary" type="button">关闭</button>
         </div>
       </form>
     </dialog>
