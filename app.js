@@ -2166,6 +2166,7 @@ async function importProjectsBackup() {
   }
   try {
     const backup = JSON.parse(await file.text());
+    const sourceBackupVersion = Number.isFinite(Number(backup?.version)) ? Number(backup.version) : 1;
     const sourceProjects = backup?.format === "inkecho-project"
       ? [backup.project]
       : backup?.format === "inkecho-projects" && Array.isArray(backup.projects)
@@ -2207,10 +2208,13 @@ async function importProjectsBackup() {
       ? sourceProjects.find((project) => String(project?.id || "") === sourceActiveProjectId)
       : sourceProjects[0];
     const activeLabel = sourceActiveProject?.name ? `\n备份中的当前项目：${sourceActiveProject.name}` : "";
+    const versionLabel = backup?.format === "inkecho-projects"
+      ? `\n备份格式：v${sourceBackupVersion}，会按当前版本可识别字段导入。`
+      : "";
     const templateLabel = importedTemplates.length ? `\n另含 ${importedTemplates.length} 个自定义模板。` : "";
     const libraryLabel = importedLibraryCharacters.length ? `\n另含 ${importedLibraryCharacters.length} 个角色库条目。` : "";
     const promptLabel = importedLibraryPrompts.length ? `\n另含 ${importedLibraryPrompts.length} 个灵感库条目。` : "";
-    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${activeLabel}${templateLabel}${libraryLabel}${promptLabel}\n确定继续吗？`)) return;
+    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${versionLabel}${activeLabel}${templateLabel}${libraryLabel}${promptLabel}\n确定继续吗？`)) return;
     const importedEntries = sourceProjects.slice(0, slots).map((project, index) => {
       const source = project && typeof project === "object" ? project : {};
       return {
