@@ -97,6 +97,7 @@ python3 server.py
 然后访问 <http://localhost:5173>。
 
 服务只会提供 InkEcho 的前端运行文件，不会把 `.env`、README 或测试文件作为静态资源暴露。
+服务响应还会限制脚本、连接、嵌入和浏览器权限来源，保留 Google Fonts 所需的最小例外。
 
 ## 开发计划
 
