@@ -8,6 +8,8 @@ const conversationMenu = document.querySelector("#conversationMenu");
 const copyConversationButton = document.querySelector("#copyConversation");
 const exportFromMenuButton = document.querySelector("#exportFromMenu");
 const resetFromMenuButton = document.querySelector("#resetFromMenu");
+const saveCheckpointFromMenuButton = document.querySelector("#saveCheckpointFromMenu");
+const openCheckpointsButton = document.querySelector("#openCheckpoints");
 const searchConversationButton = document.querySelector("#searchConversationButton");
 const conversationSearch = document.querySelector("#conversationSearch");
 const conversationSearchInput = document.querySelector("#conversationSearchInput");
@@ -61,6 +63,9 @@ const promptDialogTitle = document.querySelector("#promptDialogTitle");
 const promptTitleInput = document.querySelector("#promptTitleInput");
 const promptTextInput = document.querySelector("#promptTextInput");
 const cancelPromptButton = document.querySelector("#cancelPrompt");
+const checkpointDialog = document.querySelector("#checkpointDialog");
+const checkpointList = document.querySelector("#checkpointList");
+const closeCheckpointButton = document.querySelector("#closeCheckpoint");
 const conversationStorageKey = "inkecho.conversation.v1";
 const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
@@ -106,6 +111,7 @@ const responseLengthLabels = {
 const maxProjects = 50;
 const maxPrompts = 12;
 const maxHighlights = 30;
+const maxCheckpoints = 12;
 const providerRequestTimeout = 12000;
 const streamIdleTimeout = 90000;
 
@@ -157,7 +163,7 @@ function safeText(value, fallback = "", maxLength = 240) {
   return text.trim().slice(0, maxLength) || fallback;
 }
 
-function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights }) {
+function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints }) {
   const safeContext = context && typeof context === "object" ? context : {};
   const safeService = service && typeof service === "object" ? service : {};
   const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
@@ -196,6 +202,9 @@ function createProject({ id, name, context, conversation, service, characters, s
         createdAt: Number.isFinite(Number(source.createdAt)) ? Number(source.createdAt) : Date.now(),
       };
     }).filter((item) => item.content)
+    : [];
+  const safeCheckpoints = Array.isArray(checkpoints)
+    ? checkpoints.slice(-maxCheckpoints).map((item) => normalizeCheckpoint(item))
     : [];
   const safeConversation = Array.isArray(conversation) && conversation.length
     ? conversation.slice(-40).map((item) => {
@@ -245,10 +254,42 @@ function createProject({ id, name, context, conversation, service, characters, s
     draft: safeText(draft, "", 10000),
     prompts: safePrompts,
     highlights: safeHighlights,
+    checkpoints: safeCheckpoints,
     characters: safeCharacters,
     selectedCharacterName: selected.name,
     mode: modeHints[mode] ? mode : "续写",
     updatedAt: Number.isFinite(Number(updatedAt)) ? Number(updatedAt) : Date.now(),
+  };
+}
+
+function normalizeCheckpoint(item) {
+  const source = item && typeof item === "object" ? item : {};
+  const normalized = createProject({
+    id: source.id,
+    name: source.name || "检查点",
+    context: source.context,
+    conversation: source.conversation,
+    service: source.service,
+    characters: source.characters,
+    selectedCharacterName: source.selectedCharacterName,
+    mode: source.mode,
+    draft: source.draft,
+    prompts: source.prompts,
+    highlights: source.highlights,
+  });
+  return {
+    id: safeText(source.id, `checkpoint-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+    name: safeText(source.name, "未命名检查点", 60),
+    createdAt: Number.isFinite(Number(source.createdAt)) ? Number(source.createdAt) : Date.now(),
+    context: normalized.context,
+    conversation: normalized.conversation,
+    service: normalized.service,
+    characters: normalized.characters,
+    selectedCharacterName: normalized.selectedCharacterName,
+    mode: normalized.mode,
+    draft: normalized.draft,
+    prompts: normalized.prompts,
+    highlights: normalized.highlights,
   };
 }
 
@@ -354,6 +395,7 @@ function hydrateActiveProject() {
   workInstructions.value = project.context.instructions || "";
   renderCustomPrompts();
   renderHighlights();
+  renderCheckpoints();
   updateReferenceCount();
   messageInput.value = project.draft || "";
   draftStatus.textContent = messageInput.value ? "草稿已恢复" : "草稿自动保存";
@@ -828,6 +870,145 @@ function removeHighlight(highlightId) {
   renderHighlights();
   renderConversation();
   showToast("摘录已删除");
+}
+
+function cloneProjectState(source) {
+  return {
+    context: { ...(source.context || {}) },
+    conversation: (source.conversation || []).map((item) => ({
+      ...item,
+      ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
+    })),
+    service: { ...(source.service || {}) },
+    characters: (source.characters || []).map((item) => ({ ...item })),
+    selectedCharacterName: source.selectedCharacterName,
+    mode: source.mode,
+    draft: source.draft || "",
+    prompts: (source.prompts || []).map((item) => ({ ...item })),
+    highlights: (source.highlights || []).map((item) => ({ ...item })),
+  };
+}
+
+function cloneCheckpoint(checkpoint) {
+  return {
+    id: checkpoint.id,
+    name: checkpoint.name,
+    createdAt: checkpoint.createdAt,
+    ...cloneProjectState(checkpoint),
+  };
+}
+
+function formatCheckpointDate(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "时间未知";
+  return date.toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function renderCheckpoints() {
+  if (!checkpointList) return;
+  const checkpoints = getActiveProject()?.checkpoints || [];
+  checkpointList.innerHTML = "";
+  if (!checkpoints.length) {
+    const empty = document.createElement("p");
+    empty.className = "checkpoint-empty";
+    empty.textContent = "保存一个检查点，随时回到这一刻。";
+    checkpointList.appendChild(empty);
+    return;
+  }
+  checkpoints.slice().reverse().forEach((checkpoint) => {
+    const card = document.createElement("div");
+    card.className = "checkpoint-card";
+    const main = document.createElement("div");
+    main.className = "checkpoint-main";
+    const title = document.createElement("strong");
+    title.textContent = checkpoint.name;
+    const meta = document.createElement("small");
+    meta.className = "checkpoint-meta";
+    meta.textContent = `${formatCheckpointDate(checkpoint.createdAt)} · ${checkpoint.conversation.length} 条消息`;
+    main.append(title, meta);
+    const actions = document.createElement("div");
+    actions.className = "checkpoint-actions";
+    const restore = document.createElement("button");
+    restore.type = "button";
+    restore.className = "checkpoint-restore";
+    restore.textContent = "恢复";
+    restore.addEventListener("click", () => restoreCheckpoint(checkpoint.id));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "checkpoint-remove";
+    remove.textContent = "×";
+    remove.setAttribute("aria-label", `删除检查点 ${checkpoint.name}`);
+    remove.addEventListener("click", () => deleteCheckpoint(checkpoint.id));
+    actions.append(restore, remove);
+    card.append(main, actions);
+    checkpointList.appendChild(card);
+  });
+}
+
+function saveCheckpoint() {
+  if (isSending) {
+    showToast("模型回复完成后再保存检查点");
+    return;
+  }
+  persistActiveProject();
+  const project = getActiveProject();
+  if (project.checkpoints.length >= maxCheckpoints) {
+    showToast(`每个项目最多保存 ${maxCheckpoints} 个检查点`);
+    return;
+  }
+  const name = window.prompt("给当前检查点取一个名字：", `检查点 ${project.checkpoints.length + 1}`);
+  if (!name || !name.trim()) return;
+  project.checkpoints.push({
+    id: `checkpoint-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name: name.trim().slice(0, 60),
+    createdAt: Date.now(),
+    ...cloneProjectState(project),
+  });
+  persistProjects();
+  renderCheckpoints();
+  showToast(`已保存检查点「${name.trim()}」`);
+}
+
+function openCheckpointDialog() {
+  renderCheckpoints();
+  checkpointDialog.showModal();
+}
+
+function closeCheckpointDialog() {
+  checkpointDialog.close();
+}
+
+function restoreCheckpoint(checkpointId) {
+  if (isSending) {
+    showToast("模型回复完成后再恢复检查点");
+    return;
+  }
+  const project = getActiveProject();
+  const checkpoint = project.checkpoints.find((item) => item.id === checkpointId);
+  if (!checkpoint) return;
+  if (!window.confirm(`恢复「${checkpoint.name}」？当前未保存的对话状态会被替换。`)) return;
+  Object.assign(project, cloneProjectState(checkpoint));
+  project.updatedAt = Date.now();
+  persistProjects();
+  hydrateActiveProject();
+  renderProjectSelect();
+  renderCharacters();
+  renderConversation();
+  updateProviderUI();
+  closeCheckpointDialog();
+  showToast(`已恢复「${checkpoint.name}」`);
+}
+
+function deleteCheckpoint(checkpointId) {
+  const project = getActiveProject();
+  const index = project.checkpoints.findIndex((item) => item.id === checkpointId);
+  if (index < 0) return;
+  const checkpoint = project.checkpoints[index];
+  if (!window.confirm(`删除检查点「${checkpoint.name}」吗？`)) return;
+  project.checkpoints.splice(index, 1);
+  persistProjects();
+  renderCheckpoints();
+  showToast("检查点已删除");
 }
 
 function editMessage(historyIndex) {
@@ -1653,6 +1834,10 @@ cancelPromptButton.addEventListener("click", closePromptEditor);
 promptDialog.addEventListener("click", (event) => {
   if (event.target === promptDialog) closePromptEditor();
 });
+closeCheckpointButton.addEventListener("click", closeCheckpointDialog);
+checkpointDialog.addEventListener("click", (event) => {
+  if (event.target === checkpointDialog) closeCheckpointDialog();
+});
 
 document.addEventListener("pointermove", (event) => {
   document.documentElement.style.setProperty("--pointer-x", `${event.clientX}px`);
@@ -1710,6 +1895,14 @@ exportFromMenuButton.addEventListener("click", () => {
 resetFromMenuButton.addEventListener("click", () => {
   closeConversationMenu();
   document.querySelector("#resetSession").click();
+});
+saveCheckpointFromMenuButton.addEventListener("click", () => {
+  closeConversationMenu();
+  saveCheckpoint();
+});
+openCheckpointsButton.addEventListener("click", () => {
+  closeConversationMenu();
+  openCheckpointDialog();
 });
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".conversation-tools")) closeConversationMenu();
@@ -1799,6 +1992,7 @@ function duplicateCurrentProject() {
     draft: current.draft,
     prompts: current.prompts.map((item) => ({ ...item })),
     highlights: current.highlights.map((item) => ({ ...item })),
+    checkpoints: current.checkpoints.map(cloneCheckpoint),
   });
   projects.push(project);
   activeProjectId = project.id;
@@ -1835,6 +2029,9 @@ function branchFromMessage(historyIndex) {
     ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
   }));
   const branchKeys = new Set(branchConversation.map((item) => highlightKey(item)).filter(Boolean));
+  const branchCheckpoints = current.checkpoints
+    .filter((checkpoint) => checkpoint.conversation.every((item) => branchKeys.has(highlightKey(item))))
+    .map(cloneCheckpoint);
   const cleanName = name.trim();
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -1850,6 +2047,7 @@ function branchFromMessage(historyIndex) {
     highlights: current.highlights
       .filter((highlight) => branchKeys.has(highlightKey(highlight)))
       .map((item) => ({ ...item })),
+    checkpoints: branchCheckpoints,
   });
   projects.push(project);
   activeProjectId = project.id;
