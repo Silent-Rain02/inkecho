@@ -942,6 +942,11 @@ function getContextPreviewText() {
     context.scenePlan ? `场景计划：\n${context.scenePlan}` : "场景计划：未填写",
     context.reference ? `参考片段：\n${context.reference}` : "参考片段：未填写",
     "",
+    "【当前角色卡】",
+    `角色：${selectedCharacter.name || "未填写"}`,
+    `性格与说话方式：${selectedCharacter.tone || "未填写"}`,
+    `人物设定：${selectedCharacter.details || "未填写"}`,
+    "",
     `【本次对话 · ${modelMessages.length} 条】`,
     conversation,
   ].join("\n");
