@@ -53,6 +53,7 @@ const workReference = document.querySelector("#workReference");
 const workSummary = document.querySelector("#workSummary");
 const workInstructions = document.querySelector("#workInstructions");
 const generateSummaryButton = document.querySelector("#generateSummary");
+const toggleContextModeButton = document.querySelector("#toggleContextMode");
 const referenceCount = document.querySelector("#referenceCount");
 const importReferenceButton = document.querySelector("#importReference");
 const referenceFile = document.querySelector("#referenceFile");
@@ -292,7 +293,7 @@ function safeText(value, fallback = "", maxLength = 240) {
   return text.trim().slice(0, maxLength) || fallback;
 }
 
-function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId }) {
+function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId, contextMode }) {
   const safeContext = context && typeof context === "object" ? context : {};
   const safeService = service && typeof service === "object" ? service : {};
   const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
@@ -413,6 +414,7 @@ function createProject({ id, name, context, conversation, service, characters, s
     checkpoints: safeCheckpoints,
     beats: safeBeats,
     activeBeatId: safeActiveBeatId,
+    contextMode: contextMode === "summary" ? "summary" : "full",
     characters: safeCharacters,
     selectedCharacterName: selected.name,
     mode: modeHints[mode] ? mode : "续写",
@@ -436,6 +438,7 @@ function normalizeCheckpoint(item) {
     highlights: source.highlights,
     beats: source.beats,
     activeBeatId: source.activeBeatId,
+    contextMode: source.contextMode,
   });
   return {
     id: safeText(source.id, `checkpoint-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
@@ -452,6 +455,7 @@ function normalizeCheckpoint(item) {
     highlights: normalized.highlights,
     beats: normalized.beats,
     activeBeatId: normalized.activeBeatId,
+    contextMode: normalized.contextMode,
   };
 }
 
@@ -603,6 +607,7 @@ function hydrateActiveProject() {
     tab.setAttribute("aria-selected", String(active));
   });
   composerHint.textContent = modeHints[selectedMode];
+  updateContextModeUI();
 }
 
 function renderProjectSelect() {
@@ -765,18 +770,52 @@ function updateCount() {
   updateContextUsage();
 }
 
+function isSummaryContextMode() {
+  return getActiveProject()?.contextMode === "summary";
+}
+
+function getModelMessages() {
+  return isSummaryContextMode() ? conversationHistory.slice(-4) : conversationHistory;
+}
+
+function updateContextModeUI() {
+  if (!toggleContextModeButton) return;
+  const compact = isSummaryContextMode();
+  toggleContextModeButton.textContent = compact ? "恢复完整上下文" : "只发摘要 + 最近两轮";
+  toggleContextModeButton.classList.toggle("is-active", compact);
+  toggleContextModeButton.setAttribute("aria-pressed", String(compact));
+  toggleContextModeButton.title = compact
+    ? "模型请求只带剧情摘要和最近两轮对话，完整历史仍保存在本地"
+    : "模型请求会带上当前保留的完整对话";
+}
+
+function toggleContextMode() {
+  if (preventWorkspaceMutation("切换上下文模式")) return;
+  const project = getActiveProject();
+  if (!isSummaryContextMode() && !workSummary.value.trim()) {
+    showToast("先提炼剧情摘要，再启用精简上下文");
+    return;
+  }
+  project.contextMode = isSummaryContextMode() ? "full" : "summary";
+  persistActiveProject();
+  updateContextModeUI();
+  updateContextUsage();
+  showToast(project.contextMode === "summary" ? "已启用精简上下文，完整对话仍会保留" : "已恢复发送完整上下文");
+}
+
 function updateContextUsage() {
   if (!contextUsage) return;
   const context = getContext();
   const contextChars = Object.values(context).reduce((total, value) => total + value.length, 0);
-  const historyChars = conversationHistory
-    .slice(-20)
+  const historyChars = getModelMessages()
     .reduce((total, message) => total + (message.content || "").length, 0);
   const total = contextChars + historyChars;
-  contextUsage.textContent = `上下文约 ${total.toLocaleString("zh-CN")} 字`;
+  contextUsage.textContent = `${isSummaryContextMode() ? "发送上下文" : "上下文"}约 ${total.toLocaleString("zh-CN")} 字`;
   const warningThreshold = serverHistoryBudget + 12000;
   contextUsage.classList.toggle("is-heavy", total > warningThreshold);
-  contextUsage.title = `服务端历史预算约 ${serverHistoryBudget.toLocaleString("zh-CN")} 字`;
+  contextUsage.title = isSummaryContextMode()
+    ? "已启用精简上下文：剧情摘要 + 最近两轮对话；完整历史仍保存在本地"
+    : `服务端历史预算约 ${serverHistoryBudget.toLocaleString("zh-CN")} 字`;
 }
 
 function escapeHtml(value) {
@@ -1156,6 +1195,7 @@ function cloneProjectState(source) {
     highlights: (source.highlights || []).map((item) => ({ ...item })),
     beats: (source.beats || []).map((item) => ({ ...item })),
     activeBeatId: source.activeBeatId || "",
+    contextMode: source.contextMode === "summary" ? "summary" : "full",
   };
 }
 
@@ -1352,6 +1392,7 @@ function exportSession() {
     `- **时代 / 氛围**：${context.era || "未填写"}`,
     `- **当前章节 / 场景**：${context.chapter || "未填写"}`,
     `- **本幕目标**：${context.sceneGoal || "未填写"}`,
+    `- **模型上下文**：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : "完整对话"}`,
     `- **世界观备注**：${context.world || "未填写"}`,
     context.reference ? `- **参考片段**：\n\n${context.reference}` : "",
     context.summary ? `- **剧情摘要**：\n\n${context.summary}` : "",
@@ -1729,7 +1770,7 @@ async function requestModelReply() {
       response_length: responseLengthSelect.value,
       character: selectedCharacter,
       context: getContext(),
-      messages: conversationHistory,
+      messages: getModelMessages(),
     }),
   });
   const payload = await response.json();
@@ -1757,7 +1798,7 @@ async function requestStreamReply(onDelta, character = selectedCharacter) {
       response_length: responseLengthSelect.value,
       character,
       context: getContext(),
-      messages: conversationHistory,
+      messages: getModelMessages(),
     }),
   }), controller, streamIdleTimeout, "模型长时间没有响应，请检查服务状态");
   if (!response.ok || !response.body) {
@@ -2168,6 +2209,7 @@ responseLengthSelect.addEventListener("change", () => {
 refreshModelsButton.addEventListener("click", refreshModels);
 testProviderButton.addEventListener("click", testProviderConnection);
 generateSummaryButton.addEventListener("click", summarizeConversation);
+toggleContextModeButton.addEventListener("click", toggleContextMode);
 
 ["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
   document.querySelector(selector).addEventListener("input", saveWorkspace);
@@ -2721,6 +2763,7 @@ function duplicateCurrentProject() {
     checkpoints: current.checkpoints.map(cloneCheckpoint),
     beats: current.beats.map((item) => ({ ...item })),
     activeBeatId: current.activeBeatId,
+    contextMode: current.contextMode,
   });
   projects.push(project);
   activeProjectId = project.id;
@@ -2775,6 +2818,7 @@ function branchFromMessage(historyIndex) {
     checkpoints: branchCheckpoints,
     beats: current.beats.map((item) => ({ ...item })),
     activeBeatId: current.activeBeatId,
+    contextMode: current.contextMode,
   });
   projects.push(project);
   activeProjectId = project.id;
