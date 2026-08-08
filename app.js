@@ -1078,12 +1078,12 @@ function renderConversation() {
 
 function getContext() {
   return {
-    title: document.querySelector("#workTitle").value,
-    era: document.querySelector("#workEra").value,
-    world: document.querySelector("#workWorld").value,
-    reference: workReference.value,
-    summary: workSummary.value,
-    instructions: workInstructions.value,
+    title: safeText(document.querySelector("#workTitle").value, "", 120),
+    era: safeText(document.querySelector("#workEra").value, "", 120),
+    world: safeText(document.querySelector("#workWorld").value, "", 800),
+    reference: safeText(workReference.value, "", 4000),
+    summary: safeText(workSummary.value, "", 2000),
+    instructions: safeText(workInstructions.value, "", 1200),
   };
 }
 
