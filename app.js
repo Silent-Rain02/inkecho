@@ -1720,7 +1720,16 @@ function renderCheckpoints() {
     const meta = document.createElement("small");
     meta.className = "checkpoint-meta";
     meta.textContent = `${formatCheckpointDate(checkpoint.createdAt)} · ${getCheckpointMessageCount(checkpoint)} 条消息`;
-    main.append(title, meta);
+    const activeBeat = checkpoint.beats?.find((beat) => beat.id === checkpoint.activeBeatId);
+    const preview = document.createElement("p");
+    preview.className = "checkpoint-preview";
+    preview.textContent = [
+      checkpoint.context?.chapter ? `场景：${checkpoint.context.chapter}` : activeBeat?.title ? `场景：${activeBeat.title}` : "",
+      activeBeat?.goal ? `目标：${activeBeat.goal}` : "",
+      checkpoint.selectedCharacterName ? `角色：${checkpoint.selectedCharacterName}` : "",
+      checkpoint.draft?.trim() ? "含草稿" : "",
+    ].filter(Boolean).join(" · ") || "基础设定快照";
+    main.append(title, meta, preview);
     const actions = document.createElement("div");
     actions.className = "checkpoint-actions";
     const restore = document.createElement("button");
