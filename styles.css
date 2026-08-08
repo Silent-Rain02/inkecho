@@ -139,6 +139,8 @@ h2 { margin: 7px 0 0; font-size: 20px; font-weight: 600; letter-spacing: -0.06em
 .field-label-row .text-button { font-size: 9px; }
 .summary-actions { display: inline-flex; align-items: center; gap: 8px; }
 .summary-actions .text-button.is-active { color: #6f8b6a; }
+.summary-meta { margin: -14px 0 20px; color: var(--muted); font: 9px var(--mono); }
+.summary-meta.is-stale { color: var(--accent); }
 .scene-meta { display: flex; justify-content: space-between; gap: 8px; margin: -13px 0 19px; color: var(--muted); font: 9px var(--mono); }
 .scene-meta span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scene-meta > span:last-of-type { flex: none; color: var(--accent); }
