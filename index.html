@@ -287,7 +287,7 @@
               <span class="section-kicker">03 / PROMPTS</span>
               <h2>创作灵感</h2>
             </div>
-            <span class="panel-icon prompt-heading-actions"><button class="text-button" id="addPrompt" type="button">+ 自定义</button> ✦</span>
+            <span class="panel-icon prompt-heading-actions"><button class="text-button" id="openPromptLibrary" type="button">库</button><button class="text-button" id="addPrompt" type="button">+ 自定义</button> ✦</span>
           </div>
           <p class="panel-description">不知道从哪里开始？试试这些切入点。</p>
           <div class="prompt-list" id="promptList">
@@ -375,11 +375,26 @@
         <input class="dialog-input" id="promptTitleInput" type="text" maxlength="32" required placeholder="例如：一场迟到的重逢" />
         <label class="field-label" for="promptTextInput">写作提示</label>
         <textarea class="dialog-textarea" id="promptTextInput" rows="5" maxlength="500" required placeholder="写下希望角色或故事尝试的方向……"></textarea>
+        <label class="library-toggle" for="savePromptToLibrary"><input id="savePromptToLibrary" type="checkbox" /> 同时保存到跨项目灵感库</label>
         <div class="dialog-actions prompt-dialog-actions">
           <span></span>
           <span></span>
           <button class="dialog-cancel" id="cancelPrompt" type="button">取消</button>
           <button class="dialog-save" type="submit">保存灵感</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog prompt-library-dialog" id="promptLibraryDialog" aria-labelledby="promptLibraryTitle">
+      <form method="dialog">
+        <span class="section-kicker">PROMPT LIBRARY</span>
+        <h2 id="promptLibraryTitle">灵感库</h2>
+        <p class="template-description">把常用的写作切入点保存下来，在不同作品之间快速复用。</p>
+        <div class="prompt-library-list" id="promptLibraryList"></div>
+        <div class="dialog-actions">
+          <span></span>
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" id="closePromptLibrary" type="button">关闭</button>
         </div>
       </form>
     </dialog>
