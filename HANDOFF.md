@@ -19,7 +19,7 @@ python3 server.py
 - `styles.css`：整体视觉、响应式布局、模板卡片和场景计划交互状态
 - `app.js`：项目状态、场景计划、浏览器本地保存、流式对话和全部前端交互
 - `server.py`：模型服务适配、请求超时、安全静态资源和 HTTP 路由
-- `test_server.py`：服务端配置、路由、安全和模型请求回归测试
+- `test_server.py`：服务端配置、路由、安全、流式增量输出和模型请求回归测试
 - `test_frontend_contract.py`：前端 HTML id、静态资源和关键控件契约检查
 - `README.md`：用户向项目说明
 
@@ -49,7 +49,7 @@ python3 -m unittest -q test_server.py test_frontend_contract.py
 python3 -m py_compile server.py test_server.py test_frontend_contract.py
 ```
 
-当前服务端回归测试共 33 项，另有前端契约检查。GitHub Actions 还会启动本地服务进行首页、健康检查和静态资源白名单烟测。服务端会在最近 20 条消息中执行历史预算，默认 48000 字，可通过 `INK_ECHO_HISTORY_BUDGET` 调整并优先保留最新内容。发布前检查本地 `.env` 没有被加入版本控制，并确认 GitHub Actions CI 通过。
+当前服务端回归测试共 34 项，另有前端契约检查；其中包含流式接口对选定模型、输出预算和增量内容的回归验证。GitHub Actions 还会启动本地服务进行首页、健康检查和静态资源白名单烟测。服务端会在最近 20 条消息中执行历史预算，默认 48000 字，可通过 `INK_ECHO_HISTORY_BUDGET` 调整并优先保留最新内容。发布前检查本地 `.env` 没有被加入版本控制，并确认 GitHub Actions CI 通过。
 
 ## 后续可选方向
 
