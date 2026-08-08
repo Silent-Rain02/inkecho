@@ -7,6 +7,7 @@ const conversationMenuButton = document.querySelector("#conversationMenuButton")
 const conversationMenu = document.querySelector("#conversationMenu");
 const copyConversationButton = document.querySelector("#copyConversation");
 const exportFromMenuButton = document.querySelector("#exportFromMenu");
+const exportProjectJsonButton = document.querySelector("#exportProjectJson");
 const resetFromMenuButton = document.querySelector("#resetFromMenu");
 const saveCheckpointFromMenuButton = document.querySelector("#saveCheckpointFromMenu");
 const openCheckpointsButton = document.querySelector("#openCheckpoints");
@@ -1193,6 +1194,33 @@ function exportProjectsBackup() {
   showToast(`已备份 ${projects.length} 个项目`);
 }
 
+function exportCurrentProjectBackup() {
+  if (isSending) {
+    showToast("模型回复完成后再备份项目");
+    return;
+  }
+  flushDraft();
+  persistActiveProject();
+  const project = getActiveProject();
+  const backup = {
+    format: "inkecho-project",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    project,
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const safeTitle = (project.context.title || project.name || "inkecho-project").replace(/[\\/:*?"<>|\s]+/g, "-").slice(0, 60);
+  link.href = url;
+  link.download = `${safeTitle || "inkecho-project"}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast("当前项目已导出为 JSON");
+}
+
 async function importProjectsBackup() {
   const file = projectBackupFile.files?.[0];
   if (!file) return;
@@ -1203,7 +1231,12 @@ async function importProjectsBackup() {
   }
   try {
     const backup = JSON.parse(await file.text());
-    if (backup?.format !== "inkecho-projects" || !Array.isArray(backup.projects)) {
+    const sourceProjects = backup?.format === "inkecho-project"
+      ? [backup.project]
+      : backup?.format === "inkecho-projects" && Array.isArray(backup.projects)
+        ? backup.projects
+        : null;
+    if (!sourceProjects?.length || !sourceProjects[0] || typeof sourceProjects[0] !== "object") {
       throw new Error("invalid backup");
     }
     const slots = Math.max(0, maxProjects - projects.length);
@@ -1211,7 +1244,7 @@ async function importProjectsBackup() {
       showToast(`项目数量已达到上限（${maxProjects} 个）`);
       return;
     }
-    const imported = backup.projects.slice(0, slots).map((project, index) => {
+    const imported = sourceProjects.slice(0, slots).map((project, index) => {
       const source = project && typeof project === "object" ? project : {};
       return createProject({
         ...source,
@@ -2040,6 +2073,10 @@ copyConversationButton.addEventListener("click", async () => {
 exportFromMenuButton.addEventListener("click", () => {
   closeConversationMenu();
   exportSession();
+});
+exportProjectJsonButton.addEventListener("click", () => {
+  closeConversationMenu();
+  exportCurrentProjectBackup();
 });
 resetFromMenuButton.addEventListener("click", () => {
   closeConversationMenu();
