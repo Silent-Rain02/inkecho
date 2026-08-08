@@ -136,7 +136,12 @@ const defaultConversationHistory = [
   { role: "assistant", name: "林黛玉", content: "那便去看一场没有结局的雨吧。雨停之前，谁也不必急着把心事说完。" },
 ];
 let projects = loadProjects();
-let activeProjectId = localStorage.getItem(activeProjectStorageKey) || projects[0].id;
+let activeProjectId = projects[0].id;
+try {
+  activeProjectId = localStorage.getItem(activeProjectStorageKey) || projects[0].id;
+} catch {
+  notifyStorageIssue();
+}
 if (!projects.some((project) => project.id === activeProjectId)) activeProjectId = projects[0].id;
 let conversationHistory = loadConversation();
 
@@ -283,7 +288,7 @@ function getActiveProject() {
 function notifyStorageIssue() {
   if (storageWarningShown) return;
   storageWarningShown = true;
-  showToast("本地保存空间不足，请先导出项目 JSON 备份");
+  showToast("本地保存不可用或空间不足，请先导出项目 JSON 备份");
 }
 
 function persistProjects() {
