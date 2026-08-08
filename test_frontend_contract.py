@@ -75,6 +75,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("selectedImported", self.javascript)
         self.assertIn("summarizeCurrentSceneOutcome", self.javascript)
         self.assertIn("getModelMessages({ fullHistory: true })", self.javascript)
+        self.assertIn("if (getConversationMessageCount() < 2)", self.javascript)
+        self.assertIn("if (getConversationMessageCount() < 1)", self.javascript)
         self.assertIn("const maxConversationMessages = 120", self.javascript)
         self.assertIn("const maxArchivedMessages = 360", self.javascript)
         self.assertIn("function archiveConversationOverflow", self.javascript)
