@@ -476,6 +476,15 @@ class HttpRouteTests(unittest.TestCase):
         self.assertTrue(payload["verified"])
         self.assertEqual(payload["models"], ["qwen3:8b"])
 
+    def test_model_route_reports_missing_provider_configuration_as_bad_request(self) -> None:
+        query = urlencode({"provider": "openai"})
+        handler = CaptureHandler(f"/api/models?{query}")
+        with patch.dict(os.environ, {}, clear=True):
+            handler.do_GET()
+        status, payload = handler.responses[0]
+        self.assertEqual(status, 400)
+        self.assertIn("尚未完成环境变量配置", payload["error"])
+
     def test_malformed_chat_body_returns_bad_request(self) -> None:
         handler = CaptureHandler("/api/chat", b"not-json")
         handler.do_POST()
