@@ -23,6 +23,7 @@ InkEcho 是一个用于文学作品对话、续写和二次创作的项目。
 - 会话工具菜单支持复制当前对话、导出和重新开始
 - 创作灵感卡片，可一键填入写作提示
 - 模型服务切换：办公网自定义 Azure、Ollama、OpenAI、Azure OpenAI、OpenAI-compatible
+- 模型状态会按当前选择的模型名判断，直接在界面填写 `qwen3:8b` 也能正确显示 Ollama 配置状态
 - 支持从 Ollama、OpenAI 和 OpenAI-compatible 服务读取可用模型列表
 - Ollama 本地模型支持，可配置 `qwen3:8b` 等模型
 - 模型流式输出，回复会逐字出现在对话框中
