@@ -1770,6 +1770,22 @@ function closeCheckpointDialog() {
   checkpointDialog.close();
 }
 
+function quoteArchiveMessage(item) {
+  if (preventWorkspaceMutation("引用归档消息")) return;
+  const content = typeof item?.content === "string" ? item.content.trim() : "";
+  if (!content) return;
+  const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
+  const quote = `【归档引用 · ${speaker}】\n${content}`;
+  const current = messageInput.value.trim();
+  const next = current ? `${current}\n\n${quote}` : quote;
+  const clipped = next.length > 10000;
+  messageInput.value = next.slice(0, 10000);
+  saveDraft();
+  closeArchiveHistory();
+  messageInput.focus();
+  showToast(clipped ? "已引用归档消息（已按输入上限截取）" : "已引用归档消息");
+}
+
 function renderArchiveHistory() {
   if (!archiveList || !archiveCount) return;
   const archive = getActiveProject()?.conversationArchive || [];
@@ -1801,13 +1817,22 @@ function renderArchiveHistory() {
     meta.append(speaker, role);
     const content = document.createElement("p");
     content.textContent = item.content;
+    const actions = document.createElement("div");
+    actions.className = "archive-actions";
+    const quote = document.createElement("button");
+    quote.type = "button";
+    quote.className = "message-action archive-quote";
+    quote.textContent = "引用";
+    quote.setAttribute("aria-label", `引用${speaker.textContent}的归档消息到输入框`);
+    quote.addEventListener("click", () => quoteArchiveMessage(item));
     const copy = document.createElement("button");
     copy.type = "button";
     copy.className = "message-action archive-copy";
     copy.textContent = "复制";
     copy.setAttribute("aria-label", `复制${speaker.textContent}的归档消息`);
     copy.addEventListener("click", () => copyText(item.content, "归档消息已复制"));
-    card.append(meta, content, copy);
+    actions.append(quote, copy);
+    card.append(meta, content, actions);
     archiveList.appendChild(card);
   });
 }
