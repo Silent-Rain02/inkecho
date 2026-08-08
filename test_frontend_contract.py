@@ -52,6 +52,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("sourceActiveProjectId", self.javascript)
         self.assertIn("selectedImported", self.javascript)
         self.assertIn("summarizeCurrentSceneOutcome", self.javascript)
+        self.assertIn("getModelMessages({ fullHistory: true })", self.javascript)
 
 
 if __name__ == "__main__":
