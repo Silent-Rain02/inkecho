@@ -779,6 +779,54 @@ function updateContextUsage() {
   contextUsage.title = `服务端历史预算约 ${serverHistoryBudget.toLocaleString("zh-CN")} 字`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[character]));
+}
+
+function formatInlineMarkdown(value) {
+  const codeSpans = [];
+  let formatted = value.replace(/`([^`\n]+)`/g, (_, code) => {
+    const index = codeSpans.push(`<code>${code}</code>`) - 1;
+    return `\u0000${index}\u0000`;
+  });
+  formatted = formatted
+    .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/__([^_\n]+)__/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>")
+    .replace(/(^|[^_])_([^_\n]+)_(?!_)/g, "$1<em>$2</em>");
+  return formatted.replace(/\u0000(\d+)\u0000/g, (_, index) => codeSpans[Number(index)] || "");
+}
+
+function renderAssistantMarkdown(text) {
+  return escapeHtml(text)
+    .split(/\r?\n/)
+    .map((line) => {
+      if (!line.trim()) return "";
+      const heading = line.match(/^#{1,3}\s+(.+)$/);
+      if (heading) return `<span class="message-heading">${formatInlineMarkdown(heading[1])}</span>`;
+      const quote = line.match(/^&gt;\s?(.*)$/);
+      if (quote) return `<span class="message-quote">${formatInlineMarkdown(quote[1])}</span>`;
+      const bullet = line.match(/^[-*]\s+(.+)$/);
+      if (bullet) return `<span class="message-list-item">• ${formatInlineMarkdown(bullet[1])}</span>`;
+      const numbered = line.match(/^\d+\.\s+(.+)$/);
+      if (numbered) return `<span class="message-list-item">${line.match(/^\d+/)[0]}. ${formatInlineMarkdown(numbered[1])}</span>`;
+      return formatInlineMarkdown(line);
+    })
+    .join("<br>");
+}
+
+function setAssistantBubbleText(bubble, text) {
+  const rawText = String(text ?? "");
+  bubble.dataset.rawText = rawText;
+  bubble.innerHTML = renderAssistantMarkdown(rawText);
+}
+
 function addMessage({ role, name, text, avatarClass, historyIndex, versions, versionIndex = 0 }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
@@ -799,7 +847,8 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, ver
   meta.append(nameElement, time);
   const bubble = document.createElement("div");
   bubble.className = "bubble";
-  bubble.textContent = text;
+  if (role === "assistant") setAssistantBubbleText(bubble, text);
+  else bubble.textContent = text;
   content.append(meta, bubble);
   if (role === "assistant") {
     const actions = document.createElement("div");
@@ -809,7 +858,7 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, ver
     copyButton.className = "message-action";
     copyButton.textContent = "复制";
     copyButton.setAttribute("aria-label", "复制这条回复");
-    copyButton.addEventListener("click", () => copyMessage(bubble.textContent));
+    copyButton.addEventListener("click", () => copyMessage(bubble.dataset.rawText || ""));
     actions.appendChild(copyButton);
     if (Number.isInteger(historyIndex)) {
       const highlightButton = document.createElement("button");
@@ -1776,23 +1825,24 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
   let reply = "";
   try {
     reply = await requestStreamReply((delta) => {
-      assistantMessage.bubble.textContent += delta;
+      const currentText = assistantMessage.bubble.dataset.rawText || "";
+      setAssistantBubbleText(assistantMessage.bubble, `${currentText}${delta}`);
       messages.scrollTop = messages.scrollHeight;
     }, character);
   } catch (error) {
     const timedOut = error?.name === "StreamTimeoutError";
     const stopped = error?.name === "AbortError" && !timedOut;
-    reply = assistantMessage.bubble.textContent.trim();
+    reply = (assistantMessage.bubble.dataset.rawText || "").trim();
     if (!stopped) setProviderBadge("连接失败", "#a26b46");
     if (!reply && !stopped) {
       reply = fallbackReply();
-      assistantMessage.bubble.textContent = reply;
+      setAssistantBubbleText(assistantMessage.bubble, reply);
       showToast(`${error?.userMessage || "模型服务暂不可用"}，当前使用演示回复`);
     } else if (!stopped && reply) {
       showToast(`${error?.userMessage || "模型流式响应中断"}，已保留当前内容`);
     } else if (stopped && !reply) {
       reply = "（生成已停止）";
-      assistantMessage.bubble.textContent = reply;
+      setAssistantBubbleText(assistantMessage.bubble, reply);
       }
   } finally {
     streamController = null;
