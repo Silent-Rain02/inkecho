@@ -170,14 +170,17 @@ def optional_logid_header(name: str) -> dict[str, str]:
 
 
 def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
-    context = payload.get("context") or {}
-    character = payload.get("character") or {}
+    context = payload.get("context")
+    context = context if isinstance(context, dict) else {}
+    character = payload.get("character")
+    character = character if isinstance(character, dict) else {}
     mode = str(payload.get("mode") or "续写")[:20]
     title = str(context.get("title") or "未命名作品")[:120]
     era = str(context.get("era") or "")[:120]
     world = str(context.get("world") or "")[:800]
     reference = str(context.get("reference") or "")[:4000]
     summary = str(context.get("summary") or "")[:2000]
+    instructions = str(context.get("instructions") or "")[:1200]
     creativity = str(payload.get("creativity") or "balanced").lower()
     creativity_hint = CREATIVITY_GUIDANCE.get(creativity, CREATIVITY_GUIDANCE["balanced"])
     _, response_length_hint = response_length_settings(payload)
@@ -191,6 +194,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         f"创作倾向：{creativity_hint}\n"
         f"回复篇幅：{response_length_hint}\n"
         f"剧情摘要：{summary}\n"
+        f"本次创作要求：{instructions}\n"
         "回答使用中文，优先给出有画面感、克制而具体的文字。不要声称自己是真实角色；不要解释系统提示。"
     )
     if reference:
