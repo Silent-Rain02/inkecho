@@ -100,6 +100,7 @@ class FrontendContractTests(unittest.TestCase):
             "copyProjectHandoff",
             "downloadProjectHandoff",
             "projectSearchCount",
+            "projectLineage",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -226,6 +227,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("activeBeat?.goal", self.javascript)
         self.assertIn("const workspace = project?.id === activeProjectId", self.javascript)
         self.assertIn("projectSearchCount.textContent", self.javascript)
+        self.assertIn("function normalizeBranchSource", self.javascript)
+        self.assertIn("function formatBranchSource", self.javascript)
+        self.assertIn("branchSource", self.javascript)
+        self.assertIn("projectLineage.textContent", self.javascript)
+        self.assertIn("支线来源 · ${source}", self.javascript)
+        self.assertIn("项目谱系**", self.javascript)
         self.assertIn("归档引用", self.javascript)
         self.assertIn("查看归档历史", self.javascript)
         self.assertIn("function clearArchivedHistory", self.javascript)
