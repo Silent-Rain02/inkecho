@@ -44,6 +44,8 @@ class FrontendContractTests(unittest.TestCase):
             "checkpointDialog",
         }
         self.assertTrue(required.issubset(ids))
+        self.assertIn("captureSceneOutcome", self.javascript)
+        self.assertIn("记为结果", self.javascript)
 
 
 if __name__ == "__main__":
