@@ -40,6 +40,7 @@ const responseLengthSelect = document.querySelector("#responseLengthSelect");
 const responseLengthValue = document.querySelector("#responseLengthValue");
 const sendButton = document.querySelector(".send-button");
 const draftStatus = document.querySelector("#draftStatus");
+const toggleFocusModeButton = document.querySelector("#toggleFocusMode");
 const projectSelect = document.querySelector("#projectSelect");
 const projectSearchInput = document.querySelector("#projectSearch");
 const newProjectButton = document.querySelector("#newProject");
@@ -92,6 +93,7 @@ const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
 const projectsStorageKey = "inkecho.projects.v1";
 const activeProjectStorageKey = "inkecho.active-project.v1";
+const focusModeStorageKey = "inkecho.focus-mode.v1";
 const defaultCharacters = [
   { name: "林黛玉", tone: "清冷、敏锐，却藏着很深的真心。" },
   { name: "贾宝玉", tone: "真挚、叛逆，对世俗规矩总有自己的看法。" },
@@ -750,6 +752,29 @@ function showToast(message) {
   toast.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+
+function setFocusMode(enabled, persist = true) {
+  const active = Boolean(enabled);
+  document.body.classList.toggle("focus-mode", active);
+  toggleFocusModeButton.classList.toggle("is-active", active);
+  toggleFocusModeButton.setAttribute("aria-pressed", String(active));
+  toggleFocusModeButton.setAttribute("aria-label", active ? "退出专注模式" : "进入专注模式");
+  toggleFocusModeButton.title = active ? "退出专注模式" : "进入专注模式";
+  if (!persist) return;
+  try {
+    localStorage.setItem(focusModeStorageKey, String(active));
+  } catch {
+    // Focus mode is a visual preference; keep it available for the current page.
+  }
+}
+
+function restoreFocusMode() {
+  try {
+    setFocusMode(localStorage.getItem(focusModeStorageKey) === "true", false);
+  } catch {
+    setFocusMode(false, false);
+  }
 }
 
 function preventWorkspaceMutation(action) {
@@ -2356,6 +2381,11 @@ document.querySelector("#focusComposer").addEventListener("click", () => {
   document.querySelector(".conversation").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
+toggleFocusModeButton.addEventListener("click", () => {
+  setFocusMode(!document.body.classList.contains("focus-mode"));
+  showToast(document.body.classList.contains("focus-mode") ? "已进入专注模式" : "已退出专注模式");
+});
+
 document.querySelector("#exportSession").addEventListener("click", exportSession);
 
 function closeConversationMenu() {
@@ -2865,3 +2895,4 @@ renderCharacters();
 renderConversation();
 updateProviderUI();
 updateCount();
+restoreFocusMode();
