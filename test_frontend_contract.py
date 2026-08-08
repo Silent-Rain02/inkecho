@@ -75,6 +75,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("摘要后新增", self.javascript)
         self.assertIn("function updateStorageStatus", self.javascript)
         self.assertIn("请立即导出 JSON 备份", self.javascript)
+        self.assertIn("function formatConversationForExport", self.javascript)
+        self.assertIn("备选回复", self.javascript)
 
 
 if __name__ == "__main__":
