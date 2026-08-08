@@ -59,6 +59,10 @@ class FrontendContractTests(unittest.TestCase):
             "characterLibraryDialog",
             "openCharacterLibrary",
             "characterLibraryList",
+            "openPromptLibrary",
+            "promptLibraryDialog",
+            "promptLibraryList",
+            "savePromptToLibrary",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -94,7 +98,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function saveCurrentAsTemplate", self.javascript)
         self.assertIn("function deleteCustomTemplate", self.javascript)
         self.assertIn("customTemplates", self.javascript)
-        self.assertIn('version: 3', self.javascript)
+        self.assertIn('version: 4', self.javascript)
         self.assertIn("sourceTemplates", self.javascript)
         self.assertIn("function renderArchiveHistory", self.javascript)
         self.assertIn("function openArchiveHistory", self.javascript)
@@ -107,6 +111,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function saveSelectedCharacterToLibrary", self.javascript)
         self.assertIn("function addLibraryCharacter", self.javascript)
         self.assertIn("characterLibrary", self.javascript)
+        self.assertIn("const promptLibraryStorageKey", self.javascript)
+        self.assertIn("function renderPromptLibrary", self.javascript)
+        self.assertIn("function savePromptToLibrary", self.javascript)
+        self.assertIn("function addLibraryPrompt", self.javascript)
+        self.assertIn("promptLibrary", self.javascript)
+        self.assertIn('version: 4', self.javascript)
         self.assertIn("function formatConversationForExport", self.javascript)
         self.assertIn("备选回复", self.javascript)
 
