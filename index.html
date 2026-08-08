@@ -73,6 +73,13 @@
               <span aria-hidden="true">⌕</span>
               <input id="projectSearch" type="search" placeholder="搜索名称、章节、场景、角色或状态……" aria-label="搜索项目名称、章节、场景、角色或状态" autocomplete="off" />
             </label>
+            <select class="project-status-filter" id="projectStatusFilter" aria-label="按项目状态筛选">
+              <option value="all">全部项目</option>
+              <option value="attention">需要处理</option>
+              <option value="summary">摘要待更新</option>
+              <option value="outcome">结果待更新</option>
+              <option value="draft">有草稿</option>
+            </select>
             <p class="project-search-count" id="projectSearchCount" aria-live="polite">1 个项目</p>
             <p class="project-lineage" id="projectLineage">独立项目 · 可从检查点或角色回复创建支线</p>
             <p class="project-health" id="projectHealth" aria-live="polite">项目状态计算中</p>
