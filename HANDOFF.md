@@ -30,7 +30,7 @@ python3 server.py
 - `POST /api/chat`：非流式回复
 - `POST /api/chat/stream`：SSE 流式回复
 
-支持 `custom_azure`、`ollama`、`openai`、`azure` 和 `compatible`。办公网端点与本地 Ollama 的配置示例都在 `.env.example`。
+支持 `custom_azure`、`ollama`、`openai`、`azure` 和 `compatible`。每个项目会按服务分别记住模型名，办公网端点与本地 Ollama 的配置示例都在 `.env.example`。
 
 ## 当前功能
 
