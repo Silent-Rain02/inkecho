@@ -40,6 +40,11 @@ class FrontendContractTests(unittest.TestCase):
             "providerSelect",
             "conversationContext",
             "contextDialog",
+            "summaryPreviewDialog",
+            "summaryPreviewStats",
+            "currentSummaryPreview",
+            "nextSummaryPreview",
+            "applySummaryPreview",
             "advanceBeat",
             "beatOutcomeInput",
             "generateBeatOutcome",
@@ -160,6 +165,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function formatContextUsageBreakdown", self.javascript)
         self.assertIn("角色卡 ${breakdown.characterChars", self.javascript)
         self.assertIn("formatContextUsageBreakdown(breakdown)", self.javascript)
+        self.assertIn("function openSummaryPreview", self.javascript)
+        self.assertIn("function applySummaryPreview", self.javascript)
+        self.assertIn("当前摘要 ${current.length} 字", self.javascript)
+        self.assertIn('applySummaryPreviewButton.addEventListener("click", applySummaryPreview)', self.javascript)
+        self.assertIn("pendingSummaryPreview = null", self.javascript)
         self.assertIn("project.context?.chapter", self.javascript)
         self.assertIn("activeBeat?.goal", self.javascript)
         self.assertIn("const workspace = project?.id === activeProjectId", self.javascript)
