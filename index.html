@@ -81,10 +81,17 @@
             <input id="workTitle" type="text" maxlength="120" value="红楼梦" />
           </div>
 
-          <label class="field-label" for="workChapter">当前章节 / 场景</label>
+          <div class="field-label-row">
+            <label class="field-label" for="workChapter">当前章节 / 场景</label>
+            <button class="text-button" id="manageBeats" type="button">场景计划</button>
+          </div>
           <div class="field-input has-icon">
             <span>§</span>
             <input id="workChapter" type="text" maxlength="120" placeholder="例如：第三回 · 潇湘馆夜话" />
+          </div>
+          <div class="scene-meta">
+            <span id="activeBeatHint">未选择场景卡</span>
+            <span id="beatCount">00 / 24</span>
           </div>
 
           <label class="field-label" for="workEra">时代 / 氛围</label>
@@ -362,6 +369,30 @@
           <span></span>
           <button class="dialog-cancel" id="cancelTemplate" type="button">关闭</button>
         </div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog beat-dialog" id="beatDialog" aria-labelledby="beatDialogTitle">
+      <form id="beatForm">
+        <span class="section-kicker">SCENE MAP</span>
+        <h2 id="beatDialogTitle">添加场景卡</h2>
+        <p class="template-description">把长篇拆成一个个可推进的瞬间。设为当前后，场景目标会随下一次提问一起交给模型。</p>
+        <label class="field-label" for="beatTitleInput">场景名称</label>
+        <input class="dialog-input" id="beatTitleInput" type="text" maxlength="80" required placeholder="例如：站台上的最后一分钟" />
+        <label class="field-label" for="beatGoalInput">这一幕要发生什么</label>
+        <textarea class="dialog-textarea" id="beatGoalInput" rows="3" maxlength="280" placeholder="例如：让主角第一次发现车票上的名字与自己有关。"></textarea>
+        <label class="field-label" for="beatStatusInput">推进状态</label>
+        <select class="dialog-select" id="beatStatusInput">
+          <option value="planned">待写</option>
+          <option value="active">进行中</option>
+          <option value="done">已完成</option>
+        </select>
+        <div class="dialog-actions beat-form-actions">
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" id="cancelBeat" type="button">关闭</button>
+          <button class="dialog-save" type="submit">保存场景</button>
+        </div>
+        <div class="beat-list" id="beatList"></div>
       </form>
     </dialog>
     <dialog class="character-dialog checkpoint-dialog" id="checkpointDialog" aria-labelledby="checkpointDialogTitle">
