@@ -148,6 +148,7 @@ let isSending = false;
 let isSummarizing = false;
 let streamController = null;
 let providerHealthRequestId = 0;
+let serverHistoryBudget = 48000;
 let editingCharacterName = null;
 let editingPromptIndex = null;
 let storageWarningShown = false;
@@ -612,7 +613,9 @@ function updateContextUsage() {
     .reduce((total, message) => total + (message.content || "").length, 0);
   const total = contextChars + historyChars;
   contextUsage.textContent = `上下文约 ${total.toLocaleString("zh-CN")} 字`;
-  contextUsage.classList.toggle("is-heavy", total > 60000);
+  const warningThreshold = serverHistoryBudget + 12000;
+  contextUsage.classList.toggle("is-heavy", total > warningThreshold);
+  contextUsage.title = `服务端历史预算约 ${serverHistoryBudget.toLocaleString("zh-CN")} 字`;
 }
 
 function addMessage({ role, name, text, avatarClass, historyIndex, versions, versionIndex = 0 }) {
@@ -1342,6 +1345,10 @@ async function checkProviderHealth(provider = providerSelect.value) {
     const payload = await response.json();
     if (!response.ok || !payload.ok) throw new Error("健康检查失败");
     if (requestId !== providerHealthRequestId) return;
+    if (Number.isFinite(Number(payload.history_budget))) {
+      serverHistoryBudget = Math.max(8000, Math.min(Number(payload.history_budget), 120000));
+      updateContextUsage();
+    }
     const configured = Boolean(payload.providers && payload.providers[provider]);
     setProviderBadge(configured ? "配置完整" : "待配置", configured ? "#6f8b6a" : "#a26b46");
   } catch (error) {
