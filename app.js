@@ -58,6 +58,7 @@ const deleteProjectButton = document.querySelector("#deleteProject");
 const workChapter = document.querySelector("#workChapter");
 const workReference = document.querySelector("#workReference");
 const workSummary = document.querySelector("#workSummary");
+const summaryFreshness = document.querySelector("#summaryFreshness");
 const workInstructions = document.querySelector("#workInstructions");
 const generateSummaryButton = document.querySelector("#generateSummary");
 const toggleContextModeButton = document.querySelector("#toggleContextMode");
@@ -310,7 +311,7 @@ function safeText(value, fallback = "", maxLength = 240) {
   return text.trim().slice(0, maxLength) || fallback;
 }
 
-function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId, contextMode }) {
+function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId, contextMode, summaryMessageCount, summaryUpdatedAt }) {
   const safeContext = context && typeof context === "object" ? context : {};
   const safeService = service && typeof service === "object" ? service : {};
   const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
@@ -440,6 +441,8 @@ function createProject({ id, name, context, conversation, service, characters, s
     beats: safeBeats,
     activeBeatId: safeActiveBeatId,
     contextMode: contextMode === "summary" ? "summary" : "full",
+    summaryMessageCount: Number.isFinite(Number(summaryMessageCount)) ? Math.max(0, Math.min(Number(summaryMessageCount), maxConversationMessages)) : 0,
+    summaryUpdatedAt: Number.isFinite(Number(summaryUpdatedAt)) ? Number(summaryUpdatedAt) : 0,
     characters: safeCharacters,
     selectedCharacterName: selected.name,
     mode: modeHints[mode] ? mode : "续写",
@@ -464,6 +467,8 @@ function normalizeCheckpoint(item) {
     beats: source.beats,
     activeBeatId: source.activeBeatId,
     contextMode: source.contextMode,
+    summaryMessageCount: source.summaryMessageCount,
+    summaryUpdatedAt: source.summaryUpdatedAt,
   });
   return {
     id: safeText(source.id, `checkpoint-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
@@ -481,6 +486,8 @@ function normalizeCheckpoint(item) {
     beats: normalized.beats,
     activeBeatId: normalized.activeBeatId,
     contextMode: normalized.contextMode,
+    summaryMessageCount: normalized.summaryMessageCount,
+    summaryUpdatedAt: normalized.summaryUpdatedAt,
   };
 }
 
@@ -654,6 +661,7 @@ function hydrateActiveProject() {
   messageInput.value = project.draft || "";
   draftStatus.textContent = messageInput.value ? "草稿已恢复" : "草稿自动保存";
   conversationHistory = project.conversation.map((item) => ({ ...item }));
+  renderSummaryFreshness();
   selectedMode = project.mode || "续写";
   selectedCharacter = project.characters.find((item) => item.name === project.selectedCharacterName) || project.characters[0];
   providerSelect.value = project.service.provider;
@@ -703,6 +711,30 @@ function saveConversation() {
     notifyStorageIssue();
   }
   persistActiveProject();
+  renderSummaryFreshness();
+}
+
+function renderSummaryFreshness() {
+  if (!summaryFreshness) return;
+  const project = getActiveProject();
+  const hasSummary = Boolean(workSummary.value.trim());
+  summaryFreshness.classList.toggle("is-stale", false);
+  if (!hasSummary) {
+    summaryFreshness.textContent = "暂无摘要";
+    return;
+  }
+  const summarizedAt = Number.isFinite(Number(project?.summaryMessageCount))
+    ? Number(project.summaryMessageCount)
+    : 0;
+  const newMessages = Math.max(0, conversationHistory.length - summarizedAt);
+  if (newMessages > 0) {
+    summaryFreshness.textContent = `摘要后新增 ${newMessages} 条消息 · 建议重新提炼`;
+    summaryFreshness.classList.toggle("is-stale", true);
+    return;
+  }
+  summaryFreshness.textContent = project?.summaryUpdatedAt
+    ? `摘要已更新 · ${formatCheckpointDate(project.summaryUpdatedAt)}`
+    : "已有摘要 · 尚未记录更新时间";
 }
 
 function restoreWorkspace() {
@@ -1385,6 +1417,8 @@ function cloneProjectState(source) {
     beats: (source.beats || []).map((item) => ({ ...item })),
     activeBeatId: source.activeBeatId || "",
     contextMode: source.contextMode === "summary" ? "summary" : "full",
+    summaryMessageCount: source.summaryMessageCount || 0,
+    summaryUpdatedAt: source.summaryUpdatedAt || 0,
   };
 }
 
@@ -1958,6 +1992,10 @@ async function summarizeConversation() {
     const current = workSummary.value.trim();
     if (current && !window.confirm("用新摘要替换当前剧情摘要吗？")) return;
     workSummary.value = payload.summary.slice(0, 2000);
+    const project = getActiveProject();
+    project.summaryMessageCount = conversationHistory.length;
+    project.summaryUpdatedAt = Date.now();
+    renderSummaryFreshness();
     setProviderBadge("已连接", "#6f8b6a");
     saveWorkspace();
     showToast("剧情摘要已更新");
@@ -2519,6 +2557,10 @@ workReference.addEventListener("input", () => {
 });
 workSummary.addEventListener("input", () => {
   if (workSummary.value.length > 2000) workSummary.value = workSummary.value.slice(0, 2000);
+  const project = getActiveProject();
+  project.summaryMessageCount = conversationHistory.length;
+  project.summaryUpdatedAt = Date.now();
+  renderSummaryFreshness();
   saveWorkspace();
 });
 workInstructions.addEventListener("input", () => {
@@ -3101,6 +3143,8 @@ function duplicateCurrentProject() {
     beats: current.beats.map((item) => ({ ...item })),
     activeBeatId: current.activeBeatId,
     contextMode: current.contextMode,
+    summaryMessageCount: current.summaryMessageCount,
+    summaryUpdatedAt: current.summaryUpdatedAt,
   });
   projects.push(project);
   activeProjectId = project.id;
@@ -3156,6 +3200,8 @@ function branchFromMessage(historyIndex) {
     beats: current.beats.map((item) => ({ ...item })),
     activeBeatId: current.activeBeatId,
     contextMode: current.contextMode,
+    summaryMessageCount: current.summaryMessageCount,
+    summaryUpdatedAt: current.summaryUpdatedAt,
   });
   projects.push(project);
   activeProjectId = project.id;
