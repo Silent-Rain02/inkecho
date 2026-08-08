@@ -2704,14 +2704,16 @@ async function importProjectsBackup() {
     const skippedProjects = Array.isArray(rawSourceProjects)
       ? rawSourceProjects.length - sourceProjects.length
       : 0;
+    const capacitySkippedProjects = Math.max(0, sourceProjects.length - slots);
     const skippedLabel = skippedProjects ? `\n另有 ${skippedProjects} 个无效项目条目，将跳过。` : "";
+    const capacitySkippedLabel = capacitySkippedProjects ? `\n另有 ${capacitySkippedProjects} 个有效项目因本地项目上限，将跳过。` : "";
     const versionLabel = backup?.format === "inkecho-projects"
       ? `\n备份格式：v${sourceBackupVersion}，会按当前版本可识别字段导入。`
       : "";
     const templateLabel = importedTemplates.length ? `\n另含 ${importedTemplates.length} 个自定义模板。` : "";
     const libraryLabel = importedLibraryCharacters.length ? `\n另含 ${importedLibraryCharacters.length} 个角色库条目。` : "";
     const promptLabel = importedLibraryPrompts.length ? `\n另含 ${importedLibraryPrompts.length} 个灵感库条目。` : "";
-    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${versionLabel}${activeLabel}${skippedLabel}${templateLabel}${libraryLabel}${promptLabel}\n确定继续吗？`)) return;
+    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${versionLabel}${activeLabel}${skippedLabel}${capacitySkippedLabel}${templateLabel}${libraryLabel}${promptLabel}\n确定继续吗？`)) return;
     const importedEntries = sourceProjects.slice(0, slots).map((project, index) => {
       const source = project && typeof project === "object" ? project : {};
       return {
@@ -2749,7 +2751,8 @@ async function importProjectsBackup() {
     renderConversation();
     updateProviderUI();
     const skippedToast = skippedProjects ? `，跳过 ${skippedProjects} 个无效项目` : "";
-    showToast(`已导入 ${imported.length} 个项目${skippedToast}${importedTemplates.length ? `、${importedTemplates.length} 个模板` : ""}${importedLibraryCharacters.length ? `、${importedLibraryCharacters.length} 个角色` : ""}${importedLibraryPrompts.length ? `、${importedLibraryPrompts.length} 个灵感` : ""}`);
+    const capacityToast = capacitySkippedProjects ? `，因项目上限跳过 ${capacitySkippedProjects} 个有效项目` : "";
+    showToast(`已导入 ${imported.length} 个项目${skippedToast}${capacityToast}${importedTemplates.length ? `、${importedTemplates.length} 个模板` : ""}${importedLibraryCharacters.length ? `、${importedLibraryCharacters.length} 个角色` : ""}${importedLibraryPrompts.length ? `、${importedLibraryPrompts.length} 个灵感` : ""}`);
   } catch {
     showToast("备份文件无效，请选择 InkEcho 导出的 JSON");
   } finally {
