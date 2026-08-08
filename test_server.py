@@ -15,6 +15,8 @@ from server import (
     provider_settings,
     public_error,
     response_length_settings,
+    STATIC_FILES,
+    static_asset_path,
 )
 
 
@@ -151,6 +153,17 @@ class HttpRouteTests(unittest.TestCase):
         handler = CaptureHandler("/index.html")
         handler.do_GET()
         self.assertEqual(handler.static_path, "/index.html")
+
+    def test_static_route_does_not_expose_environment_file(self) -> None:
+        self.assertNotIn(".env", STATIC_FILES)
+        self.assertNotIn("README.md", STATIC_FILES)
+
+    def test_static_file_allowlist_contains_only_runtime_assets(self) -> None:
+        self.assertEqual(STATIC_FILES, {"index.html", "styles.css", "app.js"})
+        self.assertTrue(static_asset_path("/index.html").is_file())
+        self.assertIsNone(static_asset_path("/.env"))
+        self.assertIsNone(static_asset_path("/../.env"))
+        self.assertIsNone(static_asset_path("/README.md"))
 
     def test_health_route_uses_selected_ollama_model(self) -> None:
         query = urlencode({"provider": "ollama", "model": "qwen3:8b"})
