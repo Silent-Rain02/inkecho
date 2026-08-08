@@ -3351,6 +3351,7 @@ closePromptLibraryButton.addEventListener("click", closePromptLibrary);
 promptLibraryDialog.addEventListener("click", (event) => {
   if (event.target === promptLibraryDialog) closePromptLibrary();
 });
+promptLibraryDialog.querySelector("form").addEventListener("submit", (event) => event.preventDefault());
 openTemplatesButton.addEventListener("click", openTemplateDialog);
 cancelTemplateButton.addEventListener("click", closeTemplateDialog);
 saveCurrentTemplateButton.addEventListener("click", saveCurrentAsTemplate);
@@ -3379,6 +3380,7 @@ clearArchiveButton.addEventListener("click", clearArchivedHistory);
 archiveDialog.addEventListener("click", (event) => {
   if (event.target === archiveDialog) closeArchiveHistory();
 });
+archiveDialog.querySelector("form").addEventListener("submit", (event) => event.preventDefault());
 
 document.addEventListener("pointermove", (event) => {
   document.documentElement.style.setProperty("--pointer-x", `${event.clientX}px`);
