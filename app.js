@@ -1261,6 +1261,13 @@ function toggleContextMode() {
     showToast("先提炼剧情摘要，再启用精简上下文");
     return;
   }
+  if (!isSummaryContextMode()) {
+    const summarizedAt = Number.isFinite(Number(project.summaryMessageCount))
+      ? Number(project.summaryMessageCount)
+      : 0;
+    const newMessages = Math.max(0, getConversationMessageCount(project) - summarizedAt);
+    if (newMessages > 0 && !window.confirm(`当前摘要之后新增了 ${newMessages} 条消息，精简模式可能遗漏最新剧情。仍要启用吗？`)) return;
+  }
   project.contextMode = isSummaryContextMode() ? "full" : "summary";
   persistActiveProject();
   updateContextModeUI();
