@@ -16,6 +16,7 @@ from openai import AzureOpenAI, OpenAI
 ROOT = Path(__file__).resolve().parent
 SUPPORTED_PROVIDERS = {"custom_azure", "ollama", "openai", "azure", "compatible"}
 MAX_BODY_BYTES = 1_000_000
+MAX_HISTORY_CHARS = 48_000
 STATIC_FILES = {"index.html", "styles.css", "app.js"}
 DEFAULT_REQUEST_TIMEOUT = 120.0
 SECURITY_HEADERS = {
@@ -249,13 +250,20 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         )
     history = payload.get("messages") or []
     normalized: list[dict[str, str]] = [{"role": "system", "content": system}]
-    for item in history[-20:]:
+    selected_history: list[dict[str, str]] = []
+    history_chars = 0
+    for item in reversed(history[-20:]):
         if not isinstance(item, dict):
             continue
         role = item.get("role")
         content = item.get("content")
         if role in {"user", "assistant"} and isinstance(content, str) and content.strip():
-            normalized.append({"role": role, "content": content[:4000]})
+            bounded_content = content[:4000]
+            if history_chars + len(bounded_content) > MAX_HISTORY_CHARS:
+                break
+            selected_history.append({"role": role, "content": bounded_content})
+            history_chars += len(bounded_content)
+    normalized.extend(reversed(selected_history))
     return normalized
 
 
