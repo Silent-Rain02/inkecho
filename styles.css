@@ -257,6 +257,20 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .prompt-card-actions { display: inline-flex; align-items: center; gap: 1px; flex: none; align-self: center; margin-right: 5px; }
 .prompt-edit, .prompt-remove { padding: 3px 5px; border: 0; color: #b2b7af; background: transparent; font: 14px var(--mono); line-height: 1; }
 .prompt-edit:hover, .prompt-remove:hover { color: var(--accent); }
+.message-action.is-active { color: var(--accent); }
+.highlight-section { margin-top: 28px; padding-top: 19px; border-top: 1px solid var(--line); }
+.highlight-section .field-label { margin: 0; }
+.highlight-count { color: var(--accent); font: 9px var(--mono); }
+.highlight-hint { margin: 7px 0 12px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.highlight-list { display: grid; gap: 7px; max-height: 238px; overflow: auto; }
+.highlight-empty { margin: 0; padding: 12px 10px; border: 1px dashed #dfe2d9; color: var(--muted); font-size: 10px; line-height: 1.7; }
+.highlight-card { display: flex; align-items: stretch; min-width: 0; border: 1px solid var(--line); background: rgba(249, 249, 243, 0.56); }
+.highlight-main { display: grid; gap: 4px; min-width: 0; flex: 1; padding: 10px; border: 0; color: inherit; background: transparent; text-align: left; }
+.highlight-main:hover { background: #f3f6ee; }
+.highlight-speaker { color: var(--accent); font: 9px var(--mono); }
+.highlight-excerpt { display: -webkit-box; overflow: hidden; color: var(--ink-soft); font-size: 10px; line-height: 1.65; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.highlight-remove { align-self: center; padding: 3px 8px; border: 0; color: #b2b7af; background: transparent; font: 14px var(--mono); }
+.highlight-remove:hover { color: var(--accent); }
 .quote-card { position: relative; margin-top: 39px; padding: 24px 17px 18px; background: var(--cream); }
 .spotlight-card { overflow: hidden; border: 1px solid rgba(207, 91, 62, 0.12); box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.25); }
 .spotlight-card::before { content: ""; position: absolute; inset: -1px; z-index: 0; pointer-events: none; background: radial-gradient(180px circle at var(--pointer-x, 80%) var(--pointer-y, 20%), rgba(255, 255, 255, 0.58), transparent 58%); opacity: 0; transition: opacity 0.3s; }
@@ -302,6 +316,7 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
   .rightbar { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1.5fr; gap: 24px; }
   .rightbar .panel-heading, .rightbar .panel-description { grid-column: 1; }
   .rightbar .prompt-list, .rightbar .quote-card { grid-column: 2; }
+  .rightbar .highlight-section { grid-column: 1 / -1; }
   .rightbar .quote-card { margin-top: 0; }
 }
 
