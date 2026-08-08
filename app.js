@@ -1802,6 +1802,12 @@ messageInput.addEventListener("keydown", (event) => {
 window.addEventListener("pagehide", flushDraft);
 
 document.querySelector("#resetSession").addEventListener("click", () => {
+  if (isSending) {
+    showToast("模型回复完成后再重新开始");
+    return;
+  }
+  const hasUnsavedConversation = conversationHistory.length > 1 || messageInput.value.trim();
+  if (hasUnsavedConversation && !window.confirm("重新开始会清空当前对话和草稿，但会保留作品设定、摘录和检查点。确定继续吗？")) return;
   messages.innerHTML = "";
   messageInput.value = "";
   saveDraft();
