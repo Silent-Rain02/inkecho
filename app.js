@@ -127,6 +127,7 @@ let isSending = false;
 let streamController = null;
 let editingCharacterName = null;
 let editingPromptIndex = null;
+let storageWarningShown = false;
 const defaultConversationHistory = [
   { role: "assistant", name: "林黛玉", content: "今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？" },
   { role: "user", name: "我", content: "如果这一回不写离别，你想把故事带到哪里去？" },
@@ -277,12 +278,19 @@ function getActiveProject() {
   return projects.find((project) => project.id === activeProjectId) || projects[0];
 }
 
+function notifyStorageIssue() {
+  if (storageWarningShown) return;
+  storageWarningShown = true;
+  showToast("本地保存空间不足，请先导出项目 JSON 备份");
+}
+
 function persistProjects() {
   try {
     localStorage.setItem(projectsStorageKey, JSON.stringify(projects));
     localStorage.setItem(activeProjectStorageKey, activeProjectId);
+    storageWarningShown = false;
   } catch {
-    // Local storage is an enhancement; the project still works in memory.
+    notifyStorageIssue();
   }
 }
 
@@ -358,7 +366,7 @@ function saveConversation() {
   try {
     localStorage.setItem(conversationStorageKey, JSON.stringify(conversationHistory.slice(-40)));
   } catch {
-    // Local storage is an enhancement; the conversation still works without it.
+    notifyStorageIssue();
   }
   persistActiveProject();
 }
@@ -384,7 +392,7 @@ function saveWorkspace() {
   try {
     localStorage.setItem(workspaceStorageKey, JSON.stringify(getContext()));
   } catch {
-    // Local storage is an enhancement; the workspace still works without it.
+    notifyStorageIssue();
   }
   persistActiveProject();
 }
@@ -458,7 +466,7 @@ function saveServiceSettings() {
       responseLength: responseLengthSelect.value,
     }));
   } catch {
-    // Local storage is an enhancement; the selector still works without it.
+    notifyStorageIssue();
   }
   persistActiveProject();
 }
