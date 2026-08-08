@@ -9,6 +9,7 @@ const conversationMenu = document.querySelector("#conversationMenu");
 const copyConversationButton = document.querySelector("#copyConversation");
 const exportFromMenuButton = document.querySelector("#exportFromMenu");
 const exportProjectJsonButton = document.querySelector("#exportProjectJson");
+const copyProjectHandoffButton = document.querySelector("#copyProjectHandoff");
 const resetFromMenuButton = document.querySelector("#resetFromMenu");
 const saveCheckpointFromMenuButton = document.querySelector("#saveCheckpointFromMenu");
 const openCheckpointsButton = document.querySelector("#openCheckpoints");
@@ -1509,6 +1510,86 @@ async function copyConversation() {
     return `${speaker}：${item.content}`;
   }).join("\n\n");
   await copyText(transcript, "对话已复制", "当前还没有对话内容");
+}
+
+function formatProjectHandoff() {
+  const project = getActiveProject();
+  const context = getContext();
+  const activeBeat = getActiveSceneBeat(project);
+  const recentMessages = getConversationForDisplay(project).slice(-8);
+  const characters = (project.characters || []).map((character) => {
+    const details = character.details ? `；人物设定：${character.details}` : "";
+    return `- **${character.name}**：${character.tone || "待设定"}${details}`;
+  });
+  const sceneBeats = (project.beats || []).map((beat, index) => {
+    const marker = beat.id === project.activeBeatId ? " · 当前" : "";
+    const goal = beat.goal ? `：${beat.goal}` : "";
+    const outcome = beat.outcome ? ` · 结果：${beat.outcome}` : "";
+    return `${index + 1}. [${sceneBeatStatusLabels[beat.status] || "待写"}] ${beat.title}${marker}${goal}${outcome}`;
+  });
+  const transcript = recentMessages.map((item) => {
+    const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
+    const rawContent = String(item.content || "");
+    const content = rawContent.slice(0, 1200);
+    const suffix = rawContent.length > 1200 ? "\n（本段已截取前 1200 字）" : "";
+    return `### ${speaker}\n${content}${suffix}`;
+  });
+  const highlights = (project.highlights || []).slice(-8).map((item) => `- **${item.name || "摘录"}**：${item.content}`);
+  const checkpoints = (project.checkpoints || []).slice().reverse().slice(0, 6).map(
+    (checkpoint) => `- **${checkpoint.name}**：${formatCheckpointDate(checkpoint.createdAt)} · ${getCheckpointMessageCount(checkpoint)} 条消息`,
+  );
+  return [
+    `# InkEcho 项目交接摘要 · ${context.title || project.name || "未命名作品"}`,
+    "",
+    `> 生成时间：${new Date().toLocaleString("zh-CN")}`,
+    "> 本摘要不包含 API key、端点或其他敏感配置。",
+    "",
+    "## 当前定位",
+    "",
+    `- **章节 / 场景**：${context.chapter || "未填写"}`,
+    `- **当前场景卡**：${activeBeat?.title || "未选择"}`,
+    `- **本幕目标**：${activeBeat?.goal || "未填写"}`,
+    `- **当前角色**：${project.selectedCharacterName || "未选择"}`,
+    `- **创作模式**：${project.mode || "续写"}`,
+    `- **模型服务**：${project.service?.provider || "未选择"} / ${project.service?.model || "未填写"}`,
+    `- **上下文模式**：${project.contextMode === "summary" ? "剧情摘要 + 最近两轮" : "完整对话"}`,
+    "",
+    "## 作品设定",
+    "",
+    `- **时代 / 氛围**：${context.era || "未填写"}`,
+    `- **世界观备注**：${context.world || "未填写"}`,
+    context.summary ? `- **剧情摘要**：${context.summary}` : "- **剧情摘要**：暂无",
+    context.instructions ? `- **本次创作要求**：${context.instructions}` : "- **本次创作要求**：暂无",
+    "",
+    "## 角色卡",
+    "",
+    characters.length ? characters.join("\n") : "- 暂无角色卡",
+    "",
+    "## 场景计划",
+    "",
+    sceneBeats.length ? sceneBeats.join("\n") : "- 暂无场景卡",
+    "",
+    "## 最近对话",
+    "",
+    transcript.length ? transcript.join("\n\n---\n\n") : "暂无对话",
+    "",
+    "## 灵感摘录",
+    "",
+    highlights.length ? highlights.join("\n") : "- 暂无摘录",
+    "",
+    "## 最近检查点",
+    "",
+    checkpoints.length ? checkpoints.join("\n") : "- 暂无检查点",
+    "",
+    "---",
+    "由 InkEcho 生成，可直接交给下一位 agent 继续工作。",
+  ].join("\n");
+}
+
+async function copyProjectHandoff() {
+  if (preventWorkspaceMutation("复制项目交接摘要")) return;
+  persistActiveProject();
+  await copyText(formatProjectHandoff(), "项目交接摘要已复制");
 }
 
 function formatConversationForExport() {
@@ -3712,6 +3793,10 @@ conversationMenuButton.addEventListener("click", (event) => {
 });
 copyConversationButton.addEventListener("click", async () => {
   await copyConversation();
+  closeConversationMenu();
+});
+copyProjectHandoffButton.addEventListener("click", async () => {
+  await copyProjectHandoff();
   closeConversationMenu();
 });
 exportFromMenuButton.addEventListener("click", () => {
