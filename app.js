@@ -100,6 +100,7 @@ const responseLengthLabels = {
 };
 const maxProjects = 50;
 const maxPrompts = 12;
+const providerRequestTimeout = 12000;
 
 const replyTemplates = {
   续写: [
@@ -125,6 +126,7 @@ let toastTimer;
 let draftTimer;
 let isSending = false;
 let streamController = null;
+let providerHealthRequestId = 0;
 let editingCharacterName = null;
 let editingPromptIndex = null;
 let storageWarningShown = false;
@@ -852,27 +854,42 @@ function setProviderBadge(label, color) {
   providerBadge.style.color = color;
 }
 
+async function fetchWithTimeout(url, options = {}, timeout = providerRequestTimeout) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function checkProviderHealth(provider = providerSelect.value) {
+  const requestId = ++providerHealthRequestId;
   try {
     const params = new URLSearchParams({ provider, model: modelName.value.trim() });
-    const response = await fetch(`/api/health?${params.toString()}`);
+    const response = await fetchWithTimeout(`/api/health?${params.toString()}`);
     const payload = await response.json();
     if (!response.ok || !payload.ok) throw new Error("健康检查失败");
+    if (requestId !== providerHealthRequestId) return;
     const configured = Boolean(payload.providers && payload.providers[provider]);
     setProviderBadge(configured ? "已配置" : "待配置", configured ? "#6f8b6a" : "#a26b46");
-  } catch {
-    setProviderBadge("离线演示", "#a26b46");
+  } catch (error) {
+    if (requestId !== providerHealthRequestId) return;
+    setProviderBadge(error?.name === "AbortError" ? "连接超时" : "离线演示", "#a26b46");
   }
 }
 
 async function refreshModels() {
+  const provider = providerSelect.value;
   refreshModelsButton.disabled = true;
   refreshModelsButton.textContent = "读取中";
   setProviderBadge("检查中", "#a26b46");
   try {
-    const response = await fetch(`/api/models?provider=${encodeURIComponent(providerSelect.value)}`);
+    const response = await fetchWithTimeout(`/api/models?provider=${encodeURIComponent(provider)}`);
     const payload = await response.json();
     if (!response.ok || !payload.ok) throw new Error("模型列表不可用");
+    if (providerSelect.value !== provider) return;
     modelOptions.innerHTML = "";
     payload.models.forEach((model) => {
       const option = document.createElement("option");
@@ -885,9 +902,10 @@ async function refreshModels() {
     }
     setProviderBadge("已连接", "#6f8b6a");
     showToast(payload.models.length ? `已找到 ${payload.models.length} 个模型` : "当前服务未返回模型列表");
-  } catch {
-    setProviderBadge("连接失败", "#a26b46");
-    showToast("无法读取模型列表，请检查服务配置");
+  } catch (error) {
+    if (providerSelect.value !== provider) return;
+    setProviderBadge(error?.name === "AbortError" ? "连接超时" : "连接失败", "#a26b46");
+    showToast(error?.name === "AbortError" ? "读取模型列表超时，请检查服务是否启动" : "无法读取模型列表，请检查服务配置");
   } finally {
     refreshModelsButton.disabled = false;
     refreshModelsButton.textContent = "刷新模型";
