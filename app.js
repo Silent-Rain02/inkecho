@@ -77,12 +77,17 @@ const highlightCount = document.querySelector("#highlightCount");
 const appendHighlightsButton = document.querySelector("#appendHighlightsToSummary");
 const copyHighlightsButton = document.querySelector("#copyHighlights");
 const addPromptButton = document.querySelector("#addPrompt");
+const openPromptLibraryButton = document.querySelector("#openPromptLibrary");
 const promptDialog = document.querySelector("#promptDialog");
 const promptForm = document.querySelector("#promptForm");
 const promptDialogTitle = document.querySelector("#promptDialogTitle");
 const promptTitleInput = document.querySelector("#promptTitleInput");
 const promptTextInput = document.querySelector("#promptTextInput");
+const savePromptToLibraryCheckbox = document.querySelector("#savePromptToLibrary");
 const cancelPromptButton = document.querySelector("#cancelPrompt");
+const promptLibraryDialog = document.querySelector("#promptLibraryDialog");
+const promptLibraryList = document.querySelector("#promptLibraryList");
+const closePromptLibraryButton = document.querySelector("#closePromptLibrary");
 const openTemplatesButton = document.querySelector("#openTemplates");
 const templateDialog = document.querySelector("#templateDialog");
 const templateList = document.querySelector("#templateList");
@@ -121,6 +126,7 @@ const serviceStorageKey = "inkecho.service.v1";
 const projectsStorageKey = "inkecho.projects.v1";
 const customTemplatesStorageKey = "inkecho.templates.v1";
 const characterLibraryStorageKey = "inkecho.character-library.v1";
+const promptLibraryStorageKey = "inkecho.prompt-library.v1";
 const activeProjectStorageKey = "inkecho.active-project.v1";
 const focusModeStorageKey = "inkecho.focus-mode.v1";
 const defaultCharacters = [
@@ -163,6 +169,7 @@ const responseLengthLabels = {
 const maxProjects = 50;
 const maxCustomTemplates = 12;
 const maxLibraryCharacters = 24;
+const maxLibraryPrompts = 36;
 const maxConversationMessages = 120;
 const maxArchivedMessages = 360;
 const maxStoredConversationMessages = maxConversationMessages + maxArchivedMessages;
@@ -319,6 +326,7 @@ const defaultConversationHistory = [
 let projects = loadProjects();
 let customTemplates = loadCustomTemplates();
 let characterLibrary = loadCharacterLibrary();
+let promptLibrary = loadPromptLibrary();
 let activeProjectId = projects[0].id;
 try {
   activeProjectId = localStorage.getItem(activeProjectStorageKey) || projects[0].id;
@@ -457,6 +465,39 @@ function loadCharacterLibrary() {
 function persistCharacterLibrary() {
   try {
     localStorage.setItem(characterLibraryStorageKey, JSON.stringify(characterLibrary));
+    updateStorageStatus();
+  } catch {
+    notifyStorageIssue();
+  }
+}
+
+function normalizeLibraryPrompt(item, fallbackTitle = "灵感") {
+  const source = item && typeof item === "object" ? item : {};
+  return {
+    id: safeText(source.id, `library-prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+    title: safeText(source.title, fallbackTitle, 32),
+    text: safeText(source.text, "", 500),
+  };
+}
+
+function loadPromptLibrary() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(promptLibraryStorageKey) || "null");
+    if (Array.isArray(saved)) {
+      return saved.slice(0, maxLibraryPrompts)
+        .map((item) => normalizeLibraryPrompt(item))
+        .filter((item) => item.text)
+        .filter((item, index, list) => list.findIndex((candidate) => candidate.text === item.text) === index);
+    }
+  } catch {
+    // Keep the library empty when local storage is unavailable.
+  }
+  return [];
+}
+
+function persistPromptLibrary() {
+  try {
+    localStorage.setItem(promptLibraryStorageKey, JSON.stringify(promptLibrary));
     updateStorageStatus();
   } catch {
     notifyStorageIssue();
@@ -726,7 +767,7 @@ function updateStorageStatus(failed = false) {
     return;
   }
   try {
-    const bytes = new Blob([JSON.stringify({ projects, customTemplates, characterLibrary })]).size;
+    const bytes = new Blob([JSON.stringify({ projects, customTemplates, characterLibrary, promptLibrary })]).size;
     const size = bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1000))} KB`;
     storageStatus.textContent = `本地数据约 ${size}`;
     if (bytes >= 3_500_000) {
@@ -1974,12 +2015,13 @@ function exportProjectsBackup() {
   persistActiveProject();
   const backup = {
     format: "inkecho-projects",
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     activeProjectId,
     projects,
     customTemplates,
     characterLibrary,
+    promptLibrary,
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -2046,6 +2088,9 @@ async function importProjectsBackup() {
     const sourceLibrary = backup?.format === "inkecho-projects" && Array.isArray(backup.characterLibrary)
       ? backup.characterLibrary
       : [];
+    const sourcePromptLibrary = backup?.format === "inkecho-projects" && Array.isArray(backup.promptLibrary)
+      ? backup.promptLibrary
+      : [];
     if (!sourceProjects?.length || !sourceProjects[0] || typeof sourceProjects[0] !== "object") {
       throw new Error("invalid backup");
     }
@@ -2060,7 +2105,11 @@ async function importProjectsBackup() {
       ...character,
       id: `library-character-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
     }));
-    if (!slots && !importedTemplates.length && !importedLibraryCharacters.length) {
+    const importedLibraryPrompts = sourcePromptLibrary.slice(0, maxLibraryPrompts).map((prompt, index) => normalizeLibraryPrompt({
+      ...prompt,
+      id: `library-prompt-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+    })).filter((item) => item.text);
+    if (!slots && !importedTemplates.length && !importedLibraryCharacters.length && !importedLibraryPrompts.length) {
       showToast(`项目数量已达到上限（${maxProjects} 个）`);
       return;
     }
@@ -2070,7 +2119,8 @@ async function importProjectsBackup() {
     const activeLabel = sourceActiveProject?.name ? `\n备份中的当前项目：${sourceActiveProject.name}` : "";
     const templateLabel = importedTemplates.length ? `\n另含 ${importedTemplates.length} 个自定义模板。` : "";
     const libraryLabel = importedLibraryCharacters.length ? `\n另含 ${importedLibraryCharacters.length} 个角色库条目。` : "";
-    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${activeLabel}${templateLabel}${libraryLabel}\n确定继续吗？`)) return;
+    const promptLabel = importedLibraryPrompts.length ? `\n另含 ${importedLibraryPrompts.length} 个灵感库条目。` : "";
+    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${activeLabel}${templateLabel}${libraryLabel}${promptLabel}\n确定继续吗？`)) return;
     const importedEntries = sourceProjects.slice(0, slots).map((project, index) => {
       const source = project && typeof project === "object" ? project : {};
       return {
@@ -2083,25 +2133,31 @@ async function importProjectsBackup() {
       };
     });
     const imported = importedEntries.map((entry) => entry.project);
-    if (!imported.length && !importedTemplates.length) throw new Error("empty backup");
+    if (!imported.length && !importedTemplates.length && !importedLibraryCharacters.length && !importedLibraryPrompts.length) {
+      throw new Error("empty backup");
+    }
     persistActiveProject();
     projects.push(...imported);
     customTemplates = [...importedTemplates, ...customTemplates].slice(0, maxCustomTemplates);
     characterLibrary = [...importedLibraryCharacters, ...characterLibrary]
       .filter((item, index, list) => list.findIndex((candidate) => candidate.name === item.name) === index)
       .slice(0, maxLibraryCharacters);
+    promptLibrary = [...importedLibraryPrompts, ...promptLibrary]
+      .filter((item, index, list) => list.findIndex((candidate) => candidate.text === item.text) === index)
+      .slice(0, maxLibraryPrompts);
     const selectedImported = importedEntries.find((entry) => entry.sourceId === sourceActiveProjectId);
     if (selectedImported?.project) activeProjectId = selectedImported.project.id;
     else if (imported[0]) activeProjectId = imported[0].id;
     persistProjects();
     persistCustomTemplates();
     persistCharacterLibrary();
+    persistPromptLibrary();
     hydrateActiveProject();
     renderProjectSelect();
     renderCharacters();
     renderConversation();
     updateProviderUI();
-    showToast(`已导入 ${imported.length} 个项目${importedTemplates.length ? `、${importedTemplates.length} 个模板` : ""}${importedLibraryCharacters.length ? `、${importedLibraryCharacters.length} 个角色` : ""}`);
+    showToast(`已导入 ${imported.length} 个项目${importedTemplates.length ? `、${importedTemplates.length} 个模板` : ""}${importedLibraryCharacters.length ? `、${importedLibraryCharacters.length} 个角色` : ""}${importedLibraryPrompts.length ? `、${importedLibraryPrompts.length} 个灵感` : ""}`);
   } catch {
     showToast("备份文件无效，请选择 InkEcho 导出的 JSON");
   } finally {
@@ -2845,13 +2901,29 @@ function openPromptEditor(index = null) {
   promptDialogTitle.textContent = prompt ? "编辑灵感" : "添加灵感";
   promptTitleInput.value = prompt?.title || "";
   promptTextInput.value = prompt?.text || "";
+  savePromptToLibraryCheckbox.checked = false;
   promptDialog.showModal();
   promptTitleInput.focus();
 }
 
 function closePromptEditor() {
   editingPromptIndex = null;
+  savePromptToLibraryCheckbox.checked = false;
   promptDialog.close();
+}
+
+function savePromptToLibrary(title, text) {
+  const normalized = normalizeLibraryPrompt({ title, text });
+  if (!normalized.text) return false;
+  const existingIndex = promptLibrary.findIndex((item) => item.text === normalized.text);
+  if (existingIndex >= 0) normalized.id = promptLibrary[existingIndex].id;
+  if (existingIndex < 0 && promptLibrary.length >= maxLibraryPrompts) {
+    showToast(`灵感库最多保存 ${maxLibraryPrompts} 条`);
+    return false;
+  }
+  promptLibrary = [normalized, ...promptLibrary.filter((item) => item.text !== normalized.text)].slice(0, maxLibraryPrompts);
+  persistPromptLibrary();
+  return true;
 }
 
 function savePrompt(event) {
@@ -2860,11 +2932,13 @@ function savePrompt(event) {
   const text = safeText(promptTextInput.value, "", 500);
   if (!title || !text) return;
   const project = getActiveProject();
+  const saveToLibrary = savePromptToLibraryCheckbox.checked;
   if (editingPromptIndex !== null) {
     const prompt = project.prompts[editingPromptIndex];
     if (!prompt) return;
     prompt.title = title;
     prompt.text = text;
+    if (saveToLibrary) savePromptToLibrary(title, text);
     persistActiveProject();
     renderCustomPrompts();
     closePromptEditor();
@@ -2872,6 +2946,7 @@ function savePrompt(event) {
     return;
   }
   if (project.prompts.length >= maxPrompts) {
+    if (saveToLibrary) savePromptToLibrary(title, text);
     closePromptEditor();
     showToast(`自定义灵感最多保存 ${maxPrompts} 条`);
     return;
@@ -2881,6 +2956,7 @@ function savePrompt(event) {
     title,
     text,
   });
+  if (saveToLibrary) savePromptToLibrary(title, text);
   persistActiveProject();
   renderCustomPrompts();
   closePromptEditor();
@@ -2895,6 +2971,86 @@ function deleteCustomPrompt(index) {
   persistActiveProject();
   renderCustomPrompts();
   showToast("灵感已删除");
+}
+
+function renderPromptLibrary() {
+  if (!promptLibraryList) return;
+  promptLibraryList.innerHTML = "";
+  if (!promptLibrary.length) {
+    const empty = document.createElement("p");
+    empty.className = "prompt-library-empty";
+    empty.textContent = "灵感库还是空的。添加灵感时勾选“同时保存到跨项目灵感库”。";
+    promptLibraryList.appendChild(empty);
+    return;
+  }
+  promptLibrary.forEach((prompt) => {
+    const card = document.createElement("article");
+    card.className = "library-prompt-card";
+    const main = document.createElement("div");
+    main.className = "library-prompt-main";
+    const title = document.createElement("strong");
+    title.textContent = prompt.title;
+    const text = document.createElement("p");
+    text.textContent = prompt.text;
+    main.append(title, text);
+    const actions = document.createElement("div");
+    actions.className = "library-prompt-actions";
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "message-action";
+    add.textContent = "加入当前项目";
+    add.addEventListener("click", () => addLibraryPrompt(prompt.id));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "message-action library-prompt-remove";
+    remove.textContent = "删除";
+    remove.addEventListener("click", () => deleteLibraryPrompt(prompt.id));
+    actions.append(add, remove);
+    card.append(main, actions);
+    promptLibraryList.appendChild(card);
+  });
+}
+
+function openPromptLibrary() {
+  if (preventWorkspaceMutation("查看灵感库")) return;
+  renderPromptLibrary();
+  promptLibraryDialog.showModal();
+}
+
+function closePromptLibrary() {
+  promptLibraryDialog.close();
+}
+
+function addLibraryPrompt(promptId) {
+  if (preventWorkspaceMutation("加入灵感")) return;
+  const prompt = promptLibrary.find((item) => item.id === promptId);
+  const project = getActiveProject();
+  if (!prompt || !project) return;
+  if (project.prompts.length >= maxPrompts) {
+    showToast(`当前项目自定义灵感最多保存 ${maxPrompts} 条`);
+    return;
+  }
+  if (project.prompts.some((item) => item.text === prompt.text)) {
+    showToast("当前项目已经有这条灵感");
+    return;
+  }
+  project.prompts.push({
+    id: `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    title: prompt.title,
+    text: prompt.text,
+  });
+  persistActiveProject();
+  renderCustomPrompts();
+  showToast(`已加入灵感「${prompt.title}」`);
+}
+
+function deleteLibraryPrompt(promptId) {
+  const prompt = promptLibrary.find((item) => item.id === promptId);
+  if (!prompt || !window.confirm(`删除灵感库中的「${prompt.title}」吗？不会影响已有项目。`)) return;
+  promptLibrary = promptLibrary.filter((item) => item.id !== promptId);
+  persistPromptLibrary();
+  renderPromptLibrary();
+  showToast("灵感库条目已删除");
 }
 
 document.querySelectorAll(".mode-tab").forEach((tab) => {
@@ -3073,6 +3229,11 @@ promptForm.addEventListener("submit", savePrompt);
 cancelPromptButton.addEventListener("click", closePromptEditor);
 promptDialog.addEventListener("click", (event) => {
   if (event.target === promptDialog) closePromptEditor();
+});
+openPromptLibraryButton.addEventListener("click", openPromptLibrary);
+closePromptLibraryButton.addEventListener("click", closePromptLibrary);
+promptLibraryDialog.addEventListener("click", (event) => {
+  if (event.target === promptLibraryDialog) closePromptLibrary();
 });
 openTemplatesButton.addEventListener("click", openTemplateDialog);
 cancelTemplateButton.addEventListener("click", closeTemplateDialog);
