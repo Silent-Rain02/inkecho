@@ -1787,13 +1787,19 @@ function renderCheckpoints() {
     branch.textContent = "支线";
     branch.setAttribute("aria-label", `从检查点 ${checkpoint.name} 创建支线`);
     branch.addEventListener("click", () => branchFromCheckpoint(checkpoint.id));
+    const rename = document.createElement("button");
+    rename.type = "button";
+    rename.className = "checkpoint-rename";
+    rename.textContent = "改名";
+    rename.setAttribute("aria-label", `重命名检查点 ${checkpoint.name}`);
+    rename.addEventListener("click", () => renameCheckpoint(checkpoint.id));
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "checkpoint-remove";
     remove.textContent = "×";
     remove.setAttribute("aria-label", `删除检查点 ${checkpoint.name}`);
     remove.addEventListener("click", () => deleteCheckpoint(checkpoint.id));
-    actions.append(restore, branch, remove);
+    actions.append(restore, branch, rename, remove);
     card.append(main, actions);
     checkpointList.appendChild(card);
   });
@@ -1818,6 +1824,19 @@ function saveCheckpoint() {
   persistProjects();
   renderCheckpoints();
   showToast(`已保存检查点「${name.trim()}」`);
+}
+
+function renameCheckpoint(checkpointId) {
+  if (preventWorkspaceMutation("重命名检查点")) return;
+  const project = getActiveProject();
+  const checkpoint = project.checkpoints.find((item) => item.id === checkpointId);
+  if (!checkpoint) return;
+  const name = window.prompt("给检查点换一个名字：", checkpoint.name);
+  if (!name || !name.trim()) return;
+  checkpoint.name = name.trim().slice(0, 60);
+  persistProjects();
+  renderCheckpoints();
+  showToast(`检查点已改名为「${checkpoint.name}」`);
 }
 
 function openCheckpointDialog() {
