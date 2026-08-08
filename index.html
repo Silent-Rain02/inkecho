@@ -193,7 +193,7 @@
           <div class="sidebar-footer">
             <span>
               <span>本次创作</span>
-              <small class="context-usage" id="contextUsage">上下文约 0 字</small>
+              <button class="context-usage" id="contextUsage" type="button" aria-label="查看本次发送上下文">上下文约 0 字</button>
             </span>
             <strong id="messageCount">03 条消息</strong>
           </div>
@@ -397,6 +397,21 @@
           <button class="dialog-save" type="submit">保存场景</button>
         </div>
         <div class="beat-list" id="beatList"></div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog context-dialog" id="contextDialog" aria-labelledby="contextDialogTitle">
+      <form method="dialog">
+        <span class="section-kicker">MODEL CONTEXT</span>
+        <h2 id="contextDialogTitle">本次发送给模型的内容</h2>
+        <p class="template-description">这里展示的是当前页面准备发送的作品设定和对话范围。精简模式下，较早的完整历史仍会保存在本地。</p>
+        <div class="context-preview-stats" id="contextPreviewStats"></div>
+        <pre class="context-preview-text" id="contextPreviewText"></pre>
+        <div class="dialog-actions context-dialog-actions">
+          <button class="dialog-copy" id="copyContextPreview" type="button">复制预览</button>
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" type="submit">关闭</button>
+        </div>
       </form>
     </dialog>
     <dialog class="character-dialog checkpoint-dialog" id="checkpointDialog" aria-labelledby="checkpointDialogTitle">
