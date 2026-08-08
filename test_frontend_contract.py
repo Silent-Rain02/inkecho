@@ -129,6 +129,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("const safeConversation = hasConversation", self.javascript)
         self.assertIn("const rawSourceProjects", self.javascript)
         self.assertIn("跳过 ${skippedProjects} 个无效项目", self.javascript)
+        self.assertIn("const capacitySkippedProjects", self.javascript)
+        self.assertIn("因项目上限跳过 ${capacitySkippedProjects} 个有效项目", self.javascript)
         self.assertIn("const source = fullHistory", self.javascript)
         self.assertIn("现有项目不会被覆盖", self.javascript)
         self.assertIn("provider_details", self.javascript)
