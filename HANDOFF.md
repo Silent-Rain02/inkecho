@@ -27,6 +27,7 @@ python3 server.py
 - `GET /api/health`：读取当前服务配置状态，不发起模型请求
 - `GET /api/models`：读取模型列表；Azure 类型端点只返回配置中的部署名，并标记为非实际探测
 - `POST /api/probe`：用最小请求验证当前服务的密钥、端点和模型部署
+- `POST /api/summarize`：用当前模型把最近对话整理为可复用的剧情摘要
 - `POST /api/chat`：非流式回复
 - `POST /api/chat/stream`：SSE 流式回复
 
@@ -34,7 +35,7 @@ python3 server.py
 
 ## 当前功能
 
-作品设定、参考片段导入、剧情摘要、角色卡、续写/改写/独白、项目切换与分支、灵感摘录、命名检查点、Markdown 导出、JSON 备份、模型流式生成、停止/重试、多回复版本、对话搜索、模型连接测试和上下文用量提示均已实现。
+作品设定、参考片段导入、剧情摘要提炼、角色卡、续写/改写/独白、项目切换与分支、灵感摘录、命名检查点、Markdown 导出、JSON 备份、模型流式生成、停止/重试、多回复版本、对话搜索、模型连接测试和上下文用量提示均已实现。
 
 ## 验证
 
@@ -44,7 +45,7 @@ python3 -m unittest -q test_server.py
 python3 -m py_compile server.py test_server.py
 ```
 
-当前服务端回归测试共 25 项。发布前检查本地 `.env` 没有被加入版本控制，并确认 GitHub Actions CI 通过。
+当前服务端回归测试共 27 项。发布前检查本地 `.env` 没有被加入版本控制，并确认 GitHub Actions CI 通过。
 
 ## 后续可选方向
 
