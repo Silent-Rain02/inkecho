@@ -429,6 +429,16 @@
         <span class="section-kicker">SCENE MAP</span>
         <h2 id="beatDialogTitle">添加场景卡</h2>
         <p class="template-description">把长篇拆成一个个可推进的瞬间。目标、已发生的结果和留下的线索都会帮助下一次提问保持连续。</p>
+        <div class="beat-toolbar">
+          <input class="dialog-input beat-search-input" id="beatSearchInput" type="search" placeholder="搜索场景名称、目标或线索……" aria-label="搜索场景卡" autocomplete="off" />
+          <select class="beat-filter-select" id="beatStatusFilter" aria-label="按场景状态筛选">
+            <option value="all">全部状态</option>
+            <option value="planned">待写</option>
+            <option value="active">进行中</option>
+            <option value="done">已完成</option>
+          </select>
+          <span class="beat-list-count" id="beatListCount">0 / 24 张</span>
+        </div>
         <label class="field-label" for="beatTitleInput">场景名称</label>
         <input class="dialog-input" id="beatTitleInput" type="text" maxlength="80" required placeholder="例如：站台上的最后一分钟" />
         <label class="field-label" for="beatGoalInput">这一幕要发生什么</label>
