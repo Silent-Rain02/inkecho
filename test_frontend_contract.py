@@ -125,6 +125,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("旧归档不会再进入上下文", self.javascript)
         self.assertIn("function flushDraft", self.javascript)
         self.assertIn("persistActiveProject();", self.javascript)
+        self.assertIn('if (active.status === "active") active.status = "planned"', self.javascript)
+        self.assertIn("const replacement = project.beats.find((item) => item.status === \"active\")", self.javascript)
         self.assertIn("归档引用", self.javascript)
         self.assertIn("查看归档历史", self.javascript)
         self.assertIn("function clearArchivedHistory", self.javascript)
