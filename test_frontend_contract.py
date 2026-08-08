@@ -47,6 +47,7 @@ class FrontendContractTests(unittest.TestCase):
             "beatProgressBar",
             "beatSearchInput",
             "beatStatusFilter",
+            "focusCurrentBeat",
             "beatListCount",
             "checkpointDialog",
             "checkpointSearchInput",
@@ -87,6 +88,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('const statusFilter = beatStatusFilter?.value || "all"', self.javascript)
         self.assertIn("没有匹配的场景卡。试试清除搜索或切换状态。", self.javascript)
         self.assertIn('beatSearchInput.addEventListener("input", renderSceneBeats)', self.javascript)
+        self.assertIn("function focusCurrentBeat", self.javascript)
+        self.assertIn("card.scrollIntoView", self.javascript)
+        self.assertIn('focusCurrentBeatButton.addEventListener("click", focusCurrentBeat)', self.javascript)
         self.assertIn("beat.status === \"active\" ? \"planned\"", self.javascript)
         self.assertIn("function scheduleProjectPersist", self.javascript)
         self.assertIn("persistActiveProject({ defer: true })", self.javascript)
