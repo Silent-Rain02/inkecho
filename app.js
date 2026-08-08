@@ -35,6 +35,8 @@ const deleteCharacterButton = document.querySelector("#deleteCharacter");
 const cancelCharacterButton = document.querySelector("#cancelCharacter");
 const openCharacterLibraryButton = document.querySelector("#openCharacterLibrary");
 const characterLibraryDialog = document.querySelector("#characterLibraryDialog");
+const characterLibrarySearch = document.querySelector("#characterLibrarySearch");
+const characterLibraryCount = document.querySelector("#characterLibraryCount");
 const characterLibraryList = document.querySelector("#characterLibraryList");
 const saveSelectedCharacterButton = document.querySelector("#saveSelectedCharacter");
 const closeCharacterLibraryButton = document.querySelector("#closeCharacterLibrary");
@@ -2839,6 +2841,13 @@ function deleteCharacter() {
 
 function renderCharacterLibrary() {
   if (!characterLibraryList) return;
+  const query = characterLibrarySearch?.value.trim().toLocaleLowerCase() || "";
+  const matches = characterLibrary.filter((character) => !query || `${character.name} ${character.tone} ${character.details}`.toLocaleLowerCase().includes(query));
+  if (characterLibraryCount) {
+    characterLibraryCount.textContent = query
+      ? `${matches.length} / ${characterLibrary.length} 个`
+      : `${characterLibrary.length} / ${maxLibraryCharacters} 个`;
+  }
   characterLibraryList.innerHTML = "";
   if (!characterLibrary.length) {
     const empty = document.createElement("p");
@@ -2847,7 +2856,14 @@ function renderCharacterLibrary() {
     characterLibraryList.appendChild(empty);
     return;
   }
-  characterLibrary.forEach((character) => {
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.className = "character-library-empty";
+    empty.textContent = "没有匹配的角色。试试搜索另一个关键词。";
+    characterLibraryList.appendChild(empty);
+    return;
+  }
+  matches.forEach((character) => {
     const card = document.createElement("article");
     card.className = "library-character-card";
     const info = document.createElement("div");
@@ -2879,8 +2895,10 @@ function renderCharacterLibrary() {
 
 function openCharacterLibrary() {
   if (preventWorkspaceMutation("查看角色库")) return;
+  characterLibrarySearch.value = "";
   renderCharacterLibrary();
   characterLibraryDialog.showModal();
+  characterLibrarySearch.focus();
 }
 
 function closeCharacterLibrary() {
@@ -3337,6 +3355,8 @@ closeCharacterLibraryButton.addEventListener("click", closeCharacterLibrary);
 characterLibraryDialog.addEventListener("click", (event) => {
   if (event.target === characterLibraryDialog) closeCharacterLibrary();
 });
+characterLibrarySearch.addEventListener("input", renderCharacterLibrary);
+characterLibraryDialog.querySelector("form").addEventListener("submit", (event) => event.preventDefault());
 addPromptButton.addEventListener("click", openPromptEditor);
 appendHighlightsButton.addEventListener("click", appendHighlightsToSummary);
 copyHighlightsButton.addEventListener("click", copyHighlights);
