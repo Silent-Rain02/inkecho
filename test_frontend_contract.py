@@ -41,6 +41,8 @@ class FrontendContractTests(unittest.TestCase):
             "contextDialog",
             "advanceBeat",
             "beatOutcomeInput",
+            "beatProgressText",
+            "beatProgressBar",
             "checkpointDialog",
         }
         self.assertTrue(required.issubset(ids))
