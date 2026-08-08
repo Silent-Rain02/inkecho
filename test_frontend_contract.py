@@ -128,6 +128,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('characterLibraryDialog.querySelector("form").addEventListener("submit"', self.javascript)
         self.assertIn("function saveSelectedCharacterToLibrary", self.javascript)
         self.assertIn("function addLibraryCharacter", self.javascript)
+        self.assertIn("角色库中的「${character.name}」设定与当前项目不同", self.javascript)
         self.assertIn("characterLibrary", self.javascript)
         self.assertIn("const promptLibraryStorageKey", self.javascript)
         self.assertIn("function renderPromptLibrary", self.javascript)
