@@ -2095,6 +2095,33 @@ function renderConversation() {
   filterConversationMessages();
 }
 
+function resetCurrentConversation() {
+  if (preventWorkspaceMutation("重新开始")) return;
+  const project = getActiveProject();
+  const hasConversation = getConversationMessageCount(project) > 1;
+  const hasDraft = Boolean(messageInput.value.trim());
+  const hasSummary = Boolean(workSummary.value.trim());
+  if ((hasConversation || hasDraft || hasSummary) && !window.confirm("重新开始会清空当前工作区、归档历史、剧情摘要和草稿，但会保留作品设定、角色、场景计划、摘录与检查点。确定继续吗？")) return;
+
+  project.conversationArchive = [];
+  project.context.summary = "";
+  project.summaryMessageCount = 0;
+  project.summaryUpdatedAt = 0;
+  project.contextMode = "full";
+  workSummary.value = "";
+  messageInput.value = "";
+  const greeting = `新的对话已经准备好。${selectedCharacter.name}正在等你写下第一句。`;
+  conversationHistory = [{ role: "assistant", name: selectedCharacter.name, content: greeting }];
+  saveDraft();
+  saveConversation();
+  renderConversation();
+  renderSummaryFreshness();
+  updateContextModeUI();
+  updateCount();
+  updateContextUsage();
+  showToast("已开始新对话，旧归档不会再进入上下文");
+}
+
 function getContext() {
   const chapter = safeText(workChapter.value, "", 120);
   const activeBeat = getActiveSceneBeat();
@@ -3423,25 +3450,7 @@ messageInput.addEventListener("keydown", (event) => {
 
 window.addEventListener("pagehide", flushDraft);
 
-document.querySelector("#resetSession").addEventListener("click", () => {
-  if (preventWorkspaceMutation("重新开始")) return;
-  const hasUnsavedConversation = conversationHistory.length > 1 || messageInput.value.trim();
-  if (hasUnsavedConversation && !window.confirm("重新开始会清空当前对话和草稿，但会保留作品设定、摘录和检查点。确定继续吗？")) return;
-  messages.innerHTML = "";
-  messageInput.value = "";
-  saveDraft();
-  const greeting = `新的对话已经准备好。${selectedCharacter.name}正在等你写下第一句。`;
-  conversationHistory = [{ role: "assistant", name: selectedCharacter.name, content: greeting }];
-  saveConversation();
-  addMessage({
-    role: "assistant",
-    name: selectedCharacter.name,
-    text: greeting,
-    historyIndex: conversationHistory.length - 1,
-    avatarClass: selectedCharacter.name === "贾宝玉" ? "avatar-bao" : "avatar-dai",
-  });
-  showToast("对话已重置");
-});
+document.querySelector("#resetSession").addEventListener("click", resetCurrentConversation);
 
 manageCharacterButton.addEventListener("click", () => openCharacterEditor(selectedCharacter));
 document.querySelector("#addCharacter").addEventListener("click", () => openCharacterEditor());
