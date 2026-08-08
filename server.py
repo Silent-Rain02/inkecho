@@ -127,7 +127,7 @@ def provider_health_snapshot(provider: str | None = None, requested_model: str |
     providers = {name: provider_settings(name).configured for name in sorted(SUPPORTED_PROVIDERS)}
     if selected in SUPPORTED_PROVIDERS:
         providers[selected] = provider_settings(selected, requested_model).configured
-    return {"ok": True, "provider": selected, "providers": providers}
+    return {"ok": True, "provider": selected, "providers": providers, "history_budget": history_budget_chars()}
 
 
 def response_length_settings(payload: dict[str, Any]) -> tuple[int, str]:
