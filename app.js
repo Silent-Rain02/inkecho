@@ -633,7 +633,8 @@ function createProject({ id, name, context, conversation, conversationArchive, s
   const safeCheckpoints = Array.isArray(checkpoints)
     ? checkpoints.slice(-maxCheckpoints).map((item) => normalizeCheckpoint(item))
     : [];
-  const safeConversation = Array.isArray(conversation) && conversation.length
+  const hasConversation = Array.isArray(conversation);
+  const safeConversation = hasConversation
     ? conversation.slice(-maxConversationMessages)
       .map((item) => normalizeConversationItem(item, selected.name))
       .filter((item) => item.content)
