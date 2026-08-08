@@ -238,6 +238,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function formatProjectHealth", self.javascript)
         self.assertIn("projectHealth.textContent", self.javascript)
         self.assertIn("项目状态**", self.javascript)
+        self.assertIn("有 ${health.staleOutcomes} 个场景结果没有覆盖最新剧情", self.javascript)
+        self.assertIn("仍会发送这些结果", self.javascript)
         self.assertIn("function getSceneOutcomeFreshness", self.javascript)
         self.assertIn("结果来源不在当前历史 · 建议重新提炼", self.javascript)
         self.assertIn("之后新增 ${newMessages} 条", self.javascript)
