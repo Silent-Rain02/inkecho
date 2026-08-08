@@ -1347,12 +1347,14 @@ function getModelMessages({ fullHistory = false } = {}) {
 function updateContextModeUI() {
   if (!toggleContextModeButton) return;
   const compact = isSummaryContextMode();
+  const health = getProjectHealth();
   toggleContextModeButton.textContent = compact ? "恢复完整上下文" : "只发摘要 + 最近两轮";
   toggleContextModeButton.classList.toggle("is-active", compact);
   toggleContextModeButton.setAttribute("aria-pressed", String(compact));
-  toggleContextModeButton.title = compact
-    ? "模型请求只带剧情摘要和最近两轮对话，完整历史仍保存在本地"
-    : "模型请求会带上当前保留的完整对话";
+  toggleContextModeButton.title = [
+    compact ? "模型请求只带剧情摘要和最近两轮对话，完整历史仍保存在本地" : "模型请求会带上当前保留的完整对话",
+    health.staleOutcomes ? `有 ${health.staleOutcomes} 个场景结果待更新` : "",
+  ].filter(Boolean).join(" · ");
 }
 
 function toggleContextMode() {
@@ -1368,6 +1370,8 @@ function toggleContextMode() {
       : 0;
     const newMessages = Math.max(0, getConversationMessageCount(project) - summarizedAt);
     if (newMessages > 0 && !window.confirm(`当前摘要之后新增了 ${newMessages} 条消息，精简模式可能遗漏最新剧情。仍要启用吗？`)) return;
+    const health = getProjectHealth(project);
+    if (health.staleOutcomes > 0 && !window.confirm(`当前有 ${health.staleOutcomes} 个场景结果没有覆盖最新剧情，精简模式仍会发送这些结果。建议先重新提炼，仍要启用吗？`)) return;
   }
   project.contextMode = isSummaryContextMode() ? "full" : "summary";
   persistActiveProject();
