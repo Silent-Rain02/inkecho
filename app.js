@@ -3385,6 +3385,7 @@ contextDialog.addEventListener("click", (event) => {
 workChapter.addEventListener("input", () => {
   const active = getActiveSceneBeat();
   if (active && workChapter.value.trim() !== active.title) {
+    if (active.status === "active") active.status = "planned";
     getActiveProject().activeBeatId = "";
   }
   saveWorkspace();
@@ -3930,6 +3931,10 @@ function saveSceneBeat(event) {
   if (status === "active") {
     activateSceneBeat(project, beat.id);
     workChapter.value = beat.title;
+  } else if (project.activeBeatId === beat.id) {
+    const replacement = project.beats.find((item) => item.status === "active");
+    project.activeBeatId = replacement?.id || "";
+    workChapter.value = replacement?.title || "";
   }
   persistActiveProject();
   renderActiveBeat();
