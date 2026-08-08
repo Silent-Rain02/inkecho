@@ -76,6 +76,7 @@ const toggleFocusModeButton = document.querySelector("#toggleFocusMode");
 const projectSelect = document.querySelector("#projectSelect");
 const projectSearchInput = document.querySelector("#projectSearch");
 const projectSearchCount = document.querySelector("#projectSearchCount");
+const projectLineage = document.querySelector("#projectLineage");
 const newProjectButton = document.querySelector("#newProject");
 const duplicateProjectButton = document.querySelector("#duplicateProject");
 const exportProjectsButton = document.querySelector("#exportProjects");
@@ -382,6 +383,22 @@ function safeText(value, fallback = "", maxLength = 240) {
   return text.trim().slice(0, maxLength) || fallback;
 }
 
+function normalizeBranchSource(source) {
+  if (!source || typeof source !== "object") return null;
+  const allowedTypes = new Set(["project", "checkpoint", "message", "archive"]);
+  const type = allowedTypes.has(source.type) ? source.type : "";
+  const label = safeText(source.label, "", 80);
+  const detail = safeText(source.detail, "", 160);
+  if (!type || !label) return null;
+  return { type, label, detail };
+}
+
+function formatBranchSource(project) {
+  const source = normalizeBranchSource(project?.branchSource);
+  if (!source) return "";
+  return `「${source.label}」${source.detail ? ` · ${source.detail}` : ""}`;
+}
+
 function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   const source = item && typeof item === "object" ? item : {};
   const content = safeText(source.content, "", 4000);
@@ -554,7 +571,7 @@ function persistCustomTemplates() {
   }
 }
 
-function createProject({ id, name, context, conversation, conversationArchive, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId, contextMode, summaryMessageCount, summaryUpdatedAt }) {
+function createProject({ id, name, context, conversation, conversationArchive, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId, contextMode, summaryMessageCount, summaryUpdatedAt, branchSource }) {
   const safeContext = context && typeof context === "object" ? context : {};
   const safeService = service && typeof service === "object" ? service : {};
   const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
@@ -645,6 +662,7 @@ function createProject({ id, name, context, conversation, conversationArchive, s
   return {
     id: safeText(id, `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
     name: safeName,
+    branchSource: normalizeBranchSource(branchSource),
     context: {
       title: safeTitle,
       chapter: safeText(safeContext.chapter, "", 120),
@@ -996,6 +1014,7 @@ function renderProjectSelect() {
         activeBeat?.title,
         activeBeat?.goal,
         project.selectedCharacterName,
+        formatBranchSource(project),
       ].filter(Boolean).join(" ").toLocaleLowerCase().includes(query);
     });
   if (projectSearchCount) {
@@ -1003,6 +1022,12 @@ function renderProjectSelect() {
       ? ` · 当前 ${getConversationMessageCount(active)} 条消息 · ${active.beats?.length || 0} 张场景卡`
       : "";
     projectSearchCount.textContent = `${query ? `${visibleProjects.length} / ` : ""}${projects.length} 个项目${activeMeta}`;
+  }
+  if (projectLineage) {
+    const source = formatBranchSource(active);
+    projectLineage.textContent = source ? `支线来源 · ${source}` : "独立项目 · 可从检查点或角色回复创建支线";
+    projectLineage.title = source ? `当前项目从${source}派生` : "当前项目没有记录的支线来源";
+    projectLineage.classList.toggle("is-branch", Boolean(source));
   }
   projectSelect.innerHTML = "";
   if (!visibleProjects.length) {
@@ -1015,7 +1040,8 @@ function renderProjectSelect() {
   visibleProjects.forEach((project) => {
     const option = document.createElement("option");
     option.value = project.id;
-    option.textContent = project.name || "未命名作品";
+    option.textContent = `${project.name || "未命名作品"}${project.branchSource ? " · 支线" : ""}`;
+    option.title = formatBranchSource(project) ? `支线来源：${formatBranchSource(project)}` : "独立项目";
     projectSelect.appendChild(option);
   });
   if (active && visibleProjects.some((project) => project.id === active.id)) projectSelect.value = active.id;
@@ -1647,6 +1673,7 @@ function formatProjectHandoff() {
     `- **创作模式**：${project.mode || "续写"}`,
     `- **模型服务**：${project.service?.provider || "未选择"} / ${project.service?.model || "未填写"}`,
     `- **上下文模式**：${project.contextMode === "summary" ? "剧情摘要 + 最近两轮" : "完整对话"}`,
+    `- **项目谱系**：${formatBranchSource(project) || "独立项目"}`,
     "",
     "## 作品设定",
     "",
@@ -2170,6 +2197,11 @@ function branchFromCheckpoint(checkpointId) {
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: cleanName,
+    branchSource: {
+      type: "checkpoint",
+      label: current.name,
+      detail: `检查点「${checkpoint.name}」`,
+    },
     context: { ...state.context, title: cleanName },
     conversation: state.conversation,
     conversationArchive: state.conversationArchive,
@@ -2329,6 +2361,11 @@ function branchFromArchiveMessage(item) {
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: cleanName,
+    branchSource: {
+      type: "archive",
+      label: current.name,
+      detail: `归档第 ${sourceIndex + 1} 条 · ${speaker}`,
+    },
     context: { ...current.context, title: cleanName, summary: "" },
     conversation: branchConversation,
     conversationArchive: branchArchive,
@@ -2547,6 +2584,7 @@ function exportSession() {
     `- **时代 / 氛围**：${context.era || "未填写"}`,
     `- **当前章节 / 场景**：${context.chapter || "未填写"}`,
     `- **本幕目标**：${context.sceneGoal || "未填写"}`,
+    `- **项目谱系**：${formatBranchSource(project) || "独立项目"}`,
     `- **模型上下文**：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : "完整对话"}`,
     `- **世界观备注**：${context.world || "未填写"}`,
     context.reference ? `- **参考片段**：\n\n${context.reference}` : "",
@@ -4684,6 +4722,11 @@ function duplicateCurrentProject() {
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: cleanName,
+    branchSource: {
+      type: "project",
+      label: current.name,
+      detail: "完整复制",
+    },
     context: { ...current.context, title: cleanName },
     conversation: current.conversation.map((item) => ({ ...item })),
     conversationArchive: current.conversationArchive.map((item) => ({ ...item })),
@@ -4748,6 +4791,11 @@ function branchFromMessage(historyIndex) {
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: cleanName,
+    branchSource: {
+      type: "message",
+      label: current.name,
+      detail: `工作区第 ${historyIndex + 1} 条角色回复`,
+    },
     context: { ...current.context, title: cleanName, summary: "" },
     conversation: branchConversation,
     conversationArchive: branchArchive,
