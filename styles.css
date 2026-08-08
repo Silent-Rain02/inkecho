@@ -431,6 +431,7 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .archive-card-meta span { color: var(--muted); font: 8px var(--mono); }
 .archive-card p { margin: 7px 0 0; color: var(--ink-soft); font-size: 11px; line-height: 1.7; white-space: pre-wrap; }
 .archive-actions { position: absolute; right: 10px; bottom: 7px; display: flex; align-items: center; gap: 10px; }
+.archive-branch { color: var(--ink-soft); }
 .archive-quote { color: var(--accent); }
 .archive-clear-button { color: #a26b46; }
 .archive-clear-button:disabled { color: #c9cec6; cursor: default; }
