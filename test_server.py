@@ -168,6 +168,36 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(completions.kwargs["max_tokens"], 500)
         self.assertIn("整理剧情摘要", completions.kwargs["messages"][0]["content"])
 
+    def test_summarize_chat_can_target_the_current_scene(self) -> None:
+        class FakeCompletions:
+            def __init__(self) -> None:
+                self.kwargs = {}
+
+            def create(self, **kwargs):
+                self.kwargs = kwargs
+                return SimpleNamespace(
+                    choices=[SimpleNamespace(message=SimpleNamespace(content="本幕揭示了车票上的名字，留下了下一幕的线索。"))]
+                )
+
+        completions = FakeCompletions()
+        fake_client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+        environment = {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "test-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
+        }
+        with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
+            summary, settings = summarize_chat({
+                "provider": "custom_azure",
+                "model": "office-model",
+                "summary_target": "scene",
+                "context": {"chapter": "站台上的最后一分钟", "sceneGoal": "揭示车票秘密"},
+                "messages": [{"role": "user", "content": "继续这一幕。"}],
+            })
+        self.assertEqual(summary, "本幕揭示了车票上的名字，留下了下一幕的线索。")
+        self.assertEqual(settings.model, "office-model")
+        self.assertEqual(completions.kwargs["max_tokens"], 240)
+        self.assertIn("整理当前场景的结果", completions.kwargs["messages"][0]["content"])
+
     def test_azure_model_listing_uses_configured_deployment_without_network(self) -> None:
         with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_MODEL": "office-model"}, clear=False):
             self.assertEqual(list_provider_models("custom_azure"), ["office-model"])
