@@ -210,6 +210,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function formatProviderDiagnostics", self.javascript)
         self.assertIn("function openProviderDiagnostics", self.javascript)
         self.assertIn("missing_keys", self.javascript)
+        self.assertIn("const missingKeysText", self.javascript)
+        self.assertIn("请补：${missingKeys.join", self.javascript)
         self.assertIn("当前缺少变量", self.javascript)
         self.assertIn("连接诊断已复制", self.javascript)
         self.assertIn("不包含 API key、端点或请求头值", self.javascript)
