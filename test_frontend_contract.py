@@ -38,6 +38,7 @@ class FrontendContractTests(unittest.TestCase):
             "projectSelect",
             "messageInput",
             "providerSelect",
+            "conversationContext",
             "contextDialog",
             "advanceBeat",
             "beatOutcomeInput",
