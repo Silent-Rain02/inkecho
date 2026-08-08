@@ -8,6 +8,11 @@ const conversationMenu = document.querySelector("#conversationMenu");
 const copyConversationButton = document.querySelector("#copyConversation");
 const exportFromMenuButton = document.querySelector("#exportFromMenu");
 const resetFromMenuButton = document.querySelector("#resetFromMenu");
+const searchConversationButton = document.querySelector("#searchConversationButton");
+const conversationSearch = document.querySelector("#conversationSearch");
+const conversationSearchInput = document.querySelector("#conversationSearchInput");
+const conversationSearchCount = document.querySelector("#conversationSearchCount");
+const clearConversationSearchButton = document.querySelector("#clearConversationSearch");
 const composerHint = document.querySelector("#composerHint");
 const toast = document.querySelector("#toast");
 const characterList = document.querySelector("#characterList");
@@ -391,6 +396,7 @@ function updateCount() {
 function addMessage({ role, name, text, avatarClass, historyIndex }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
+  if (Number.isInteger(historyIndex)) row.dataset.historyIndex = String(historyIndex);
 
   const avatar = document.createElement("span");
   avatar.className = `message-avatar ${avatarClass}`;
@@ -445,7 +451,40 @@ function addMessage({ role, name, text, avatarClass, historyIndex }) {
   messages.appendChild(row);
   messages.scrollTop = messages.scrollHeight;
   updateCount();
+  filterConversationMessages();
   return { row, bubble };
+}
+
+function filterConversationMessages() {
+  if (!conversationSearchInput || !conversationSearchCount) return;
+  const query = conversationSearchInput.value.trim().toLocaleLowerCase();
+  const rows = Array.from(messages.querySelectorAll(".message-row"));
+  if (!query) {
+    rows.forEach((row) => { row.hidden = false; });
+    conversationSearchCount.textContent = `${conversationHistory.length} 条消息`;
+    return;
+  }
+  let matched = 0;
+  rows.forEach((row) => {
+    const speaker = row.querySelector(".message-meta strong")?.textContent || "";
+    const content = row.querySelector(".bubble")?.textContent || "";
+    const isMatch = `${speaker} ${content}`.toLocaleLowerCase().includes(query);
+    row.hidden = !isMatch;
+    if (isMatch) matched += 1;
+  });
+  conversationSearchCount.textContent = `${matched} / ${rows.length} 条`;
+}
+
+function setConversationSearchOpen(open) {
+  conversationSearch.hidden = !open;
+  searchConversationButton.setAttribute("aria-expanded", String(open));
+  if (open) {
+    conversationSearchInput.focus();
+    filterConversationMessages();
+  } else {
+    conversationSearchInput.value = "";
+    filterConversationMessages();
+  }
 }
 
 async function copyText(text, successMessage, emptyMessage = "没有可复制的内容") {
@@ -519,6 +558,7 @@ function renderConversation() {
         : "user-avatar",
     });
   });
+  filterConversationMessages();
 }
 
 function getContext() {
@@ -1117,6 +1157,16 @@ function closeConversationMenu() {
   conversationMenuButton.setAttribute("aria-expanded", "false");
 }
 
+searchConversationButton.addEventListener("click", () => {
+  setConversationSearchOpen(conversationSearch.hidden);
+});
+conversationSearchInput.addEventListener("input", filterConversationMessages);
+clearConversationSearchButton.addEventListener("click", () => {
+  conversationSearchInput.value = "";
+  filterConversationMessages();
+  conversationSearchInput.focus();
+});
+
 conversationMenuButton.addEventListener("click", (event) => {
   event.stopPropagation();
   const open = conversationMenu.hidden;
@@ -1137,6 +1187,12 @@ resetFromMenuButton.addEventListener("click", () => {
 });
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".conversation-tools")) closeConversationMenu();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !conversationSearch.hidden) {
+    setConversationSearchOpen(false);
+  }
 });
 
 function switchProject(projectId) {
