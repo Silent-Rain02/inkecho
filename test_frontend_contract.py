@@ -127,6 +127,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("const query = promptLibrarySearch", self.javascript)
         self.assertIn("没有匹配的灵感", self.javascript)
         self.assertIn("function savePromptToLibrary", self.javascript)
+        self.assertIn("previousText = \"\"", self.javascript)
+        self.assertIn("savePromptToLibrary(title, text, previousText)", self.javascript)
         self.assertIn("function addLibraryPrompt", self.javascript)
         self.assertIn("promptLibrary", self.javascript)
         self.assertIn('version: 4', self.javascript)
