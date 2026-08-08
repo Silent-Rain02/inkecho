@@ -103,6 +103,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function deleteCustomTemplate", self.javascript)
         self.assertIn("customTemplates", self.javascript)
         self.assertIn('version: 4', self.javascript)
+        self.assertIn("const sourceBackupVersion", self.javascript)
+        self.assertIn("备份格式：v${sourceBackupVersion}", self.javascript)
         self.assertIn("sourceTemplates", self.javascript)
         self.assertIn("function renderArchiveHistory", self.javascript)
         self.assertIn("function openArchiveHistory", self.javascript)
