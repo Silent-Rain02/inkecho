@@ -995,6 +995,14 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, ver
       highlightButton.setAttribute("aria-label", highlighted ? "取消摘录这条回复" : "摘录这条回复");
       highlightButton.addEventListener("click", () => toggleHighlight(historyIndex));
       actions.appendChild(highlightButton);
+      const outcomeButton = document.createElement("button");
+      outcomeButton.type = "button";
+      outcomeButton.className = "message-action";
+      outcomeButton.textContent = "记为结果";
+      outcomeButton.setAttribute("aria-label", "把这条回复记录到当前场景结果");
+      outcomeButton.title = "追加到当前场景的结果 / 线索";
+      outcomeButton.addEventListener("click", () => captureSceneOutcome(historyIndex));
+      actions.appendChild(outcomeButton);
       const retryButton = document.createElement("button");
       retryButton.type = "button";
       retryButton.className = "message-action";
@@ -1213,6 +1221,40 @@ async function copyHighlights() {
     .map((highlight) => `【${highlight.name}】${highlight.content}`)
     .join("\n\n");
   await copyText(text, "全部摘录已复制", "先保存几条灵感摘录");
+}
+
+function captureSceneOutcome(historyIndex) {
+  if (preventWorkspaceMutation("记录场景结果")) return;
+  const project = getActiveProject();
+  const beat = getActiveSceneBeat(project);
+  if (!beat) {
+    showToast("先在场景计划中设定当前场景");
+    return;
+  }
+  const message = conversationHistory[historyIndex];
+  if (!message?.content?.trim()) {
+    showToast("这条回复还没有可记录的内容");
+    return;
+  }
+  const speaker = message.name || selectedCharacter.name;
+  const rawRecord = `${speaker}：${message.content.trim()}`;
+  const record = rawRecord.slice(0, 600);
+  if (beat.outcome && beat.outcome.includes(record)) {
+    showToast("这条回复已经记录在当前场景中");
+    return;
+  }
+  const combined = beat.outcome ? `${beat.outcome}\n${record}` : record;
+  const clipped = rawRecord.length > record.length || combined.length > 600;
+  if (combined.length <= 600) {
+    beat.outcome = combined;
+  } else {
+    const previousCapacity = Math.max(0, 599 - record.length);
+    beat.outcome = previousCapacity ? `${beat.outcome.slice(0, previousCapacity)}\n${record}` : record;
+  }
+  persistActiveProject();
+  renderActiveBeat();
+  renderSceneBeats();
+  showToast(clipped ? "已记录场景结果（已按 600 字上限整理）" : "已记录到当前场景结果");
 }
 
 function toggleHighlight(historyIndex) {
