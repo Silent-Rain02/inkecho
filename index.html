@@ -486,6 +486,30 @@
         </div>
       </form>
     </dialog>
+    <dialog class="character-dialog context-dialog summary-preview-dialog" id="summaryPreviewDialog" aria-labelledby="summaryPreviewTitle">
+      <form method="dialog">
+        <span class="section-kicker">SUMMARY REVIEW</span>
+        <h2 id="summaryPreviewTitle">确认剧情摘要</h2>
+        <p class="template-description">先比较当前摘要和模型新提炼的版本；只有点击“替换摘要”后，新内容才会写入项目。</p>
+        <div class="context-preview-stats" id="summaryPreviewStats"></div>
+        <div class="summary-preview-grid">
+          <section class="summary-preview-column">
+            <span class="summary-preview-label">当前摘要</span>
+            <pre class="context-preview-text" id="currentSummaryPreview"></pre>
+          </section>
+          <section class="summary-preview-column">
+            <span class="summary-preview-label">新摘要</span>
+            <pre class="context-preview-text" id="nextSummaryPreview"></pre>
+          </section>
+        </div>
+        <div class="dialog-actions context-dialog-actions">
+          <button class="dialog-copy" id="applySummaryPreview" type="button">替换摘要</button>
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" type="submit">取消</button>
+        </div>
+      </form>
+    </dialog>
     <dialog class="character-dialog context-dialog checkpoint-compare-dialog" id="checkpointCompareDialog" aria-labelledby="checkpointCompareTitle">
       <form method="dialog">
         <span class="section-kicker">CHECKPOINT DIFF</span>
