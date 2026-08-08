@@ -2928,6 +2928,31 @@ function exportCurrentProjectBackup() {
   showToast("当前项目已导出为 JSON");
 }
 
+function formatBackupProjectPreview(sourceProjects, sourceActiveProjectId, importCount) {
+  const activeSourceId = sourceActiveProjectId || String(sourceProjects[0]?.id || "");
+  const previewProjects = sourceProjects.slice(0, Math.min(importCount, 4));
+  if (!previewProjects.length) return "";
+  const lines = previewProjects.map((source) => {
+    const name = safeText(source?.name || source?.context?.title, "未命名作品", 50);
+    const messageCount = [
+      ...(Array.isArray(source?.conversationArchive) ? source.conversationArchive : []),
+      ...(Array.isArray(source?.conversation) ? source.conversation : []),
+    ].length;
+    const beats = Array.isArray(source?.beats) ? source.beats : [];
+    const doneBeats = beats.filter((beat) => beat?.status === "done").length;
+    const details = [
+      `${messageCount} 条消息`,
+      beats.length ? `场景 ${doneBeats}/${beats.length} 完成` : "暂无场景计划",
+      source?.draft?.trim() ? "有草稿" : "无草稿",
+    ];
+    const activeMark = String(source?.id || "") === activeSourceId ? "★ " : "";
+    return `  ${activeMark}${name}（${details.join(" · ")}）`;
+  });
+  const hiddenCount = Math.max(0, importCount - previewProjects.length);
+  if (hiddenCount) lines.push(`  ……另有 ${hiddenCount} 个项目未展开`);
+  return `\n将导入的项目预览：\n${lines.join("\n")}`;
+}
+
 async function importProjectsBackup() {
   const file = projectBackupFile.files?.[0];
   if (!file) return;
@@ -2987,6 +3012,7 @@ async function importProjectsBackup() {
       ? sourceProjects.find((project) => String(project?.id || "") === sourceActiveProjectId)
       : sourceProjects[0];
     const activeLabel = sourceActiveProject?.name ? `\n备份中的当前项目：${sourceActiveProject.name}` : "";
+    const projectPreviewLabel = formatBackupProjectPreview(sourceProjects, sourceActiveProjectId, importCount);
     const skippedProjects = Array.isArray(rawSourceProjects)
       ? rawSourceProjects.length - sourceProjects.length
       : 0;
@@ -2999,7 +3025,7 @@ async function importProjectsBackup() {
     const templateLabel = importedTemplates.length ? `\n另含 ${importedTemplates.length} 个自定义模板。` : "";
     const libraryLabel = importedLibraryCharacters.length ? `\n另含 ${importedLibraryCharacters.length} 个角色库条目。` : "";
     const promptLabel = importedLibraryPrompts.length ? `\n另含 ${importedLibraryPrompts.length} 个灵感库条目。` : "";
-    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${versionLabel}${activeLabel}${skippedLabel}${capacitySkippedLabel}${templateLabel}${libraryLabel}${promptLabel}\n确定继续吗？`)) return;
+    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${versionLabel}${activeLabel}${projectPreviewLabel}${skippedLabel}${capacitySkippedLabel}${templateLabel}${libraryLabel}${promptLabel}\n确定继续吗？`)) return;
     const importedEntries = sourceProjects.slice(0, slots).map((project, index) => {
       const source = project && typeof project === "object" ? project : {};
       return {
