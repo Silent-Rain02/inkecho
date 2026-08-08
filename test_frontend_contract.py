@@ -48,6 +48,7 @@ class FrontendContractTests(unittest.TestCase):
             "checkpointDialog",
             "characterDetailsInput",
             "summaryFreshness",
+            "storageStatus",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -72,6 +73,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("回复长度：${responseLengthLabels", self.javascript)
         self.assertIn("function renderSummaryFreshness", self.javascript)
         self.assertIn("摘要后新增", self.javascript)
+        self.assertIn("function updateStorageStatus", self.javascript)
+        self.assertIn("请立即导出 JSON 备份", self.javascript)
 
 
 if __name__ == "__main__":
