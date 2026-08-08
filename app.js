@@ -1236,22 +1236,34 @@ function toggleContextMode() {
   showToast(project.contextMode === "summary" ? "已启用精简上下文，完整对话仍会保留" : "已恢复发送完整上下文");
 }
 
-function updateContextUsage() {
-  if (!contextUsage) return;
+function getContextUsageBreakdown() {
   const context = getContext();
   const contextChars = Object.values(context).reduce((total, value) => total + value.length, 0);
   const characterChars = [selectedCharacter.name, selectedCharacter.tone, selectedCharacter.details]
     .filter(Boolean)
     .join("").length;
-  const historyChars = getModelMessages()
-    .reduce((total, message) => total + (message.content || "").length, 0);
-  const total = contextChars + characterChars + historyChars;
-  contextUsage.textContent = `${isSummaryContextMode() ? "发送上下文" : "上下文"}约 ${total.toLocaleString("zh-CN")} 字`;
+  const historyChars = getModelMessages().reduce((total, message) => total + (message.content || "").length, 0);
+  return {
+    contextChars,
+    characterChars,
+    historyChars,
+    total: contextChars + characterChars + historyChars,
+  };
+}
+
+function formatContextUsageBreakdown(breakdown) {
+  return `设定 ${breakdown.contextChars.toLocaleString("zh-CN")} 字 · 角色卡 ${breakdown.characterChars.toLocaleString("zh-CN")} 字 · 对话 ${breakdown.historyChars.toLocaleString("zh-CN")} 字 · 合计 ${breakdown.total.toLocaleString("zh-CN")} 字`;
+}
+
+function updateContextUsage() {
+  if (!contextUsage) return;
+  const breakdown = getContextUsageBreakdown();
+  contextUsage.textContent = `${isSummaryContextMode() ? "发送上下文" : "上下文"}约 ${breakdown.total.toLocaleString("zh-CN")} 字`;
   const warningThreshold = serverHistoryBudget + 12000;
-  contextUsage.classList.toggle("is-heavy", total > warningThreshold);
+  contextUsage.classList.toggle("is-heavy", breakdown.total > warningThreshold);
   contextUsage.title = isSummaryContextMode()
-    ? "已启用精简上下文：剧情摘要 + 最近两轮对话；完整历史仍保存在本地"
-    : `服务端历史预算约 ${serverHistoryBudget.toLocaleString("zh-CN")} 字`;
+    ? `已启用精简上下文：剧情摘要 + 最近两轮对话；${formatContextUsageBreakdown(breakdown)}；完整历史仍保存在本地`
+    : `服务端历史预算约 ${serverHistoryBudget.toLocaleString("zh-CN")} 字；${formatContextUsageBreakdown(breakdown)}`;
 }
 
 function getContextPreviewText() {
@@ -1292,7 +1304,8 @@ function getContextPreviewText() {
 function openContextPreview() {
   updateContextUsage();
   const modelMessages = getModelMessages();
-  contextPreviewStats.textContent = `${modelMessages.length} 条对话 · ${contextUsage.textContent} · ${isSummaryContextMode() ? "完整历史仍保留" : "按服务端历史预算发送"}`;
+  const breakdown = getContextUsageBreakdown();
+  contextPreviewStats.textContent = `${modelMessages.length} 条对话 · ${formatContextUsageBreakdown(breakdown)} · ${isSummaryContextMode() ? "完整历史仍保留" : "按服务端历史预算发送"}`;
   contextPreviewText.textContent = getContextPreviewText();
   contextDialog.showModal();
 }
