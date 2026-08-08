@@ -2888,8 +2888,12 @@ async function checkProviderHealth(provider = providerSelect.value) {
     }
     const configured = Boolean(payload.providers && payload.providers[provider]);
     const missing = payload.provider_details?.[provider]?.missing;
-    providerDescription.textContent = !configured && Array.isArray(missing) && missing.length
-      ? `${providerDescriptions[provider]} 缺少：${missing.join("、")}`
+    const missingKeys = payload.provider_details?.[provider]?.missing_keys;
+    const missingFieldsText = Array.isArray(missing) && missing.length ? `缺少：${missing.join("、")}` : "";
+    const missingKeysText = Array.isArray(missingKeys) && missingKeys.length ? `请补：${missingKeys.join("、")}` : "";
+    const missingHint = [missingFieldsText, missingKeysText].filter(Boolean).join("；");
+    providerDescription.textContent = !configured && missingHint
+      ? `${providerDescriptions[provider]} ${missingHint}`
       : providerDescriptions[provider];
     setProviderBadge(configured ? "配置完整" : "待配置", configured ? "#6f8b6a" : "#a26b46");
   } catch (error) {
