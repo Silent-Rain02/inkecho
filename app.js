@@ -77,6 +77,7 @@ const projectSelect = document.querySelector("#projectSelect");
 const projectSearchInput = document.querySelector("#projectSearch");
 const projectSearchCount = document.querySelector("#projectSearchCount");
 const projectLineage = document.querySelector("#projectLineage");
+const projectHealth = document.querySelector("#projectHealth");
 const newProjectButton = document.querySelector("#newProject");
 const duplicateProjectButton = document.querySelector("#duplicateProject");
 const exportProjectsButton = document.querySelector("#exportProjects");
@@ -805,6 +806,42 @@ function getConversationMessageCount(project = getActiveProject()) {
   return getConversationForDisplay(project).length;
 }
 
+function getProjectHealth(project = getActiveProject()) {
+  const beats = Array.isArray(project?.beats) ? project.beats : [];
+  const doneBeats = beats.filter((beat) => beat.status === "done").length;
+  const staleOutcomes = beats.filter((beat) => {
+    const freshness = getSceneOutcomeFreshness(beat, project);
+    return freshness.includes("待重新") || freshness.includes("新增") || freshness.includes("不在当前") || freshness.includes("未记录");
+  }).length;
+  const messageCount = getConversationMessageCount(project);
+  const hasSummary = Boolean(project?.context?.summary?.trim());
+  const summaryMessageCount = Number.isFinite(Number(project?.summaryMessageCount))
+    ? Math.max(0, Number(project.summaryMessageCount))
+    : 0;
+  return {
+    messageCount,
+    beatCount: beats.length,
+    doneBeats,
+    staleOutcomes,
+    hasSummary,
+    summaryNewMessages: hasSummary ? Math.max(0, messageCount - summaryMessageCount) : 0,
+    hasDraft: Boolean(project?.draft?.trim()),
+  };
+}
+
+function formatProjectHealth(project = getActiveProject()) {
+  const health = getProjectHealth(project);
+  const parts = [
+    health.beatCount ? `场景 ${health.doneBeats}/${health.beatCount} 完成` : "暂无场景计划",
+    health.hasSummary
+      ? health.summaryNewMessages > 0 ? `摘要待更新 · ${health.summaryNewMessages} 条新增` : "摘要已覆盖"
+      : "尚未建立摘要",
+  ];
+  if (health.staleOutcomes) parts.push(`${health.staleOutcomes} 个结果待更新`);
+  if (health.hasDraft) parts.push("有草稿");
+  return parts.join(" · ");
+}
+
 function archiveConversationOverflow(project = getActiveProject()) {
   if (!project || conversationHistory.length <= maxConversationMessages) return false;
   const overflowCount = conversationHistory.length - maxConversationMessages;
@@ -1048,6 +1085,12 @@ function renderProjectSelect() {
     projectLineage.title = source ? `当前项目从${source}派生` : "当前项目没有记录的支线来源";
     projectLineage.classList.toggle("is-branch", Boolean(source));
   }
+  if (projectHealth) {
+    const health = formatProjectHealth(active);
+    projectHealth.textContent = health;
+    projectHealth.title = `当前项目状态：${health}`;
+    projectHealth.classList.toggle("is-warning", health.includes("待更新") || health.includes("有草稿"));
+  }
   projectSelect.innerHTML = "";
   if (!visibleProjects.length) {
     const empty = document.createElement("option");
@@ -1060,7 +1103,10 @@ function renderProjectSelect() {
     const option = document.createElement("option");
     option.value = project.id;
     option.textContent = `${project.name || "未命名作品"}${project.branchSource ? " · 支线" : ""}`;
-    option.title = formatBranchSource(project) ? `支线来源：${formatBranchSource(project)}` : "独立项目";
+    option.title = [
+      formatBranchSource(project) ? `支线来源：${formatBranchSource(project)}` : "独立项目",
+      `项目状态：${formatProjectHealth(project)}`,
+    ].join("\n");
     projectSelect.appendChild(option);
   });
   if (active && visibleProjects.some((project) => project.id === active.id)) projectSelect.value = active.id;
@@ -1693,6 +1739,7 @@ function formatProjectHandoff() {
     `- **模型服务**：${project.service?.provider || "未选择"} / ${project.service?.model || "未填写"}`,
     `- **上下文模式**：${project.contextMode === "summary" ? "剧情摘要 + 最近两轮" : "完整对话"}`,
     `- **项目谱系**：${formatBranchSource(project) || "独立项目"}`,
+    `- **项目状态**：${formatProjectHealth(project)}`,
     "",
     "## 作品设定",
     "",
@@ -2604,6 +2651,7 @@ function exportSession() {
     `- **当前章节 / 场景**：${context.chapter || "未填写"}`,
     `- **本幕目标**：${context.sceneGoal || "未填写"}`,
     `- **项目谱系**：${formatBranchSource(project) || "独立项目"}`,
+    `- **项目状态**：${formatProjectHealth(project)}`,
     `- **模型上下文**：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : "完整对话"}`,
     `- **世界观备注**：${context.world || "未填写"}`,
     context.reference ? `- **参考片段**：\n\n${context.reference}` : "",
