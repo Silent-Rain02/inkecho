@@ -54,6 +54,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("selectedImported", self.javascript)
         self.assertIn("summarizeCurrentSceneOutcome", self.javascript)
         self.assertIn("getModelMessages({ fullHistory: true })", self.javascript)
+        self.assertIn("const maxConversationMessages = 120", self.javascript)
+        self.assertIn("const source = fullHistory", self.javascript)
         self.assertIn("现有项目不会被覆盖", self.javascript)
         self.assertIn("provider_details", self.javascript)
 
