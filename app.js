@@ -49,6 +49,8 @@ const referenceCount = document.querySelector("#referenceCount");
 const importReferenceButton = document.querySelector("#importReference");
 const referenceFile = document.querySelector("#referenceFile");
 const promptList = document.querySelector("#promptList");
+const highlightList = document.querySelector("#highlightList");
+const highlightCount = document.querySelector("#highlightCount");
 const addPromptButton = document.querySelector("#addPrompt");
 const promptDialog = document.querySelector("#promptDialog");
 const promptForm = document.querySelector("#promptForm");
@@ -100,6 +102,7 @@ const responseLengthLabels = {
 };
 const maxProjects = 50;
 const maxPrompts = 12;
+const maxHighlights = 30;
 const providerRequestTimeout = 12000;
 
 const replyTemplates = {
@@ -150,7 +153,7 @@ function safeText(value, fallback = "", maxLength = 240) {
   return text.trim().slice(0, maxLength) || fallback;
 }
 
-function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts }) {
+function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights }) {
   const safeContext = context && typeof context === "object" ? context : {};
   const safeService = service && typeof service === "object" ? service : {};
   const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
@@ -177,6 +180,18 @@ function createProject({ id, name, context, conversation, service, characters, s
         text: safeText(source.text, "", 500),
       };
     }).filter((item) => item.text)
+    : [];
+  const safeHighlights = Array.isArray(highlights)
+    ? highlights.slice(-maxHighlights).map((item) => {
+      const source = item && typeof item === "object" ? item : {};
+      return {
+        id: safeText(source.id, `highlight-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+        role: source.role === "user" ? "user" : "assistant",
+        name: safeText(source.name, source.role === "user" ? "我" : "角色", 40),
+        content: safeText(source.content, "", 4000),
+        createdAt: Number.isFinite(Number(source.createdAt)) ? Number(source.createdAt) : Date.now(),
+      };
+    }).filter((item) => item.content)
     : [];
   const safeConversation = Array.isArray(conversation) && conversation.length
     ? conversation.slice(-40).map((item) => {
@@ -225,6 +240,7 @@ function createProject({ id, name, context, conversation, service, characters, s
     },
     draft: safeText(draft, "", 10000),
     prompts: safePrompts,
+    highlights: safeHighlights,
     characters: safeCharacters,
     selectedCharacterName: selected.name,
     mode: modeHints[mode] ? mode : "续写",
@@ -333,6 +349,7 @@ function hydrateActiveProject() {
   workSummary.value = project.context.summary || "";
   workInstructions.value = project.context.instructions || "";
   renderCustomPrompts();
+  renderHighlights();
   updateReferenceCount();
   messageInput.value = project.draft || "";
   draftStatus.textContent = messageInput.value ? "草稿已恢复" : "草稿自动保存";
@@ -523,6 +540,15 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, ver
     copyButton.addEventListener("click", () => copyMessage(bubble.textContent));
     actions.appendChild(copyButton);
     if (Number.isInteger(historyIndex)) {
+      const highlightButton = document.createElement("button");
+      highlightButton.type = "button";
+      highlightButton.className = "message-action";
+      const highlighted = isHighlighted(conversationHistory[historyIndex]);
+      highlightButton.textContent = highlighted ? "已摘录" : "摘录";
+      highlightButton.classList.toggle("is-active", highlighted);
+      highlightButton.setAttribute("aria-label", highlighted ? "取消摘录这条回复" : "摘录这条回复");
+      highlightButton.addEventListener("click", () => toggleHighlight(historyIndex));
+      actions.appendChild(highlightButton);
       const retryButton = document.createElement("button");
       retryButton.type = "button";
       retryButton.className = "message-action";
@@ -666,6 +692,100 @@ async function copyConversation() {
   await copyText(transcript, "对话已复制", "当前还没有对话内容");
 }
 
+function highlightKey(item) {
+  if (!item || !item.content) return "";
+  return [item.role || "assistant", item.name || "角色", item.content].join("\u0000");
+}
+
+function isHighlighted(item) {
+  const key = highlightKey(item);
+  return Boolean(key && getActiveProject()?.highlights.some((highlight) => highlightKey(highlight) === key));
+}
+
+function renderHighlights() {
+  if (!highlightList) return;
+  const highlights = getActiveProject()?.highlights || [];
+  highlightCount.textContent = String(highlights.length).padStart(2, "0");
+  highlightList.innerHTML = "";
+  if (!highlights.length) {
+    const empty = document.createElement("p");
+    empty.className = "highlight-empty";
+    empty.textContent = "在角色回复下点击「摘录」，把喜欢的句子留下来。";
+    highlightList.appendChild(empty);
+    return;
+  }
+
+  highlights.slice().reverse().forEach((highlight) => {
+    const card = document.createElement("div");
+    card.className = "highlight-card";
+    const main = document.createElement("button");
+    main.type = "button";
+    main.className = "highlight-main";
+    main.setAttribute("aria-label", `复制${highlight.name}的摘录`);
+    const speaker = document.createElement("span");
+    speaker.className = "highlight-speaker";
+    speaker.textContent = highlight.name;
+    const excerpt = document.createElement("span");
+    excerpt.className = "highlight-excerpt";
+    excerpt.textContent = highlight.content;
+    main.append(speaker, excerpt);
+    main.addEventListener("click", () => copyText(highlight.content, "摘录已复制"));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "highlight-remove";
+    remove.textContent = "×";
+    remove.setAttribute("aria-label", `删除${highlight.name}的摘录`);
+    remove.addEventListener("click", () => removeHighlight(highlight.id));
+    card.append(main, remove);
+    highlightList.appendChild(card);
+  });
+}
+
+function toggleHighlight(historyIndex) {
+  const message = conversationHistory[historyIndex];
+  if (!message?.content?.trim()) {
+    showToast("这条回复还没有内容");
+    return;
+  }
+  const project = getActiveProject();
+  const key = highlightKey(message);
+  const existingIndex = project.highlights.findIndex((highlight) => highlightKey(highlight) === key);
+  if (existingIndex >= 0) {
+    project.highlights.splice(existingIndex, 1);
+    persistActiveProject();
+    renderHighlights();
+    renderConversation();
+    showToast("已取消摘录");
+    return;
+  }
+  if (project.highlights.length >= maxHighlights) {
+    showToast(`每个项目最多保存 ${maxHighlights} 条摘录`);
+    return;
+  }
+  project.highlights.push({
+    id: `highlight-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    role: message.role,
+    name: message.name || (message.role === "user" ? "我" : selectedCharacter.name),
+    content: message.content.slice(0, 4000),
+    createdAt: Date.now(),
+  });
+  persistActiveProject();
+  renderHighlights();
+  renderConversation();
+  showToast("已保存到灵感摘录");
+}
+
+function removeHighlight(highlightId) {
+  const project = getActiveProject();
+  const index = project.highlights.findIndex((highlight) => highlight.id === highlightId);
+  if (index < 0) return;
+  project.highlights.splice(index, 1);
+  persistActiveProject();
+  renderHighlights();
+  renderConversation();
+  showToast("摘录已删除");
+}
+
 function editMessage(historyIndex) {
   if (isSending) {
     showToast("请先停止当前生成");
@@ -719,6 +839,7 @@ function getContext() {
 
 function exportSession() {
   const context = getContext();
+  const highlights = getActiveProject()?.highlights || [];
   const characters = Array.from(document.querySelectorAll(".character-card")).map((card) => {
     const name = card.dataset.character || "未命名角色";
     const tone = card.dataset.tone || "";
@@ -748,6 +869,12 @@ function exportSession() {
     "## 对话记录",
     "",
     transcript.join("\n\n---\n\n"),
+    "",
+    "## 灵感摘录",
+    "",
+    highlights.length
+      ? highlights.map((highlight) => `- **${highlight.name}**：${highlight.content}`).join("\n")
+      : "暂无摘录",
     "",
     "---",
     "由 InkEcho 导出",
@@ -1604,6 +1731,7 @@ function duplicateCurrentProject() {
     mode: current.mode,
     draft: current.draft,
     prompts: current.prompts.map((item) => ({ ...item })),
+    highlights: current.highlights.map((item) => ({ ...item })),
   });
   projects.push(project);
   activeProjectId = project.id;
@@ -1639,6 +1767,7 @@ function branchFromMessage(historyIndex) {
     ...item,
     ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
   }));
+  const branchKeys = new Set(branchConversation.map((item) => highlightKey(item)).filter(Boolean));
   const cleanName = name.trim();
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -1651,6 +1780,9 @@ function branchFromMessage(historyIndex) {
     mode: current.mode,
     draft: messageInput.value,
     prompts: current.prompts.map((item) => ({ ...item })),
+    highlights: current.highlights
+      .filter((highlight) => branchKeys.has(highlightKey(highlight)))
+      .map((item) => ({ ...item })),
   });
   projects.push(project);
   activeProjectId = project.id;
