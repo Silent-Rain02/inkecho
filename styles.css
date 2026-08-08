@@ -307,6 +307,7 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .beat-action { padding: 0; border: 0; color: var(--muted); background: transparent; font: 9px var(--mono); }
 .beat-action:hover:not(:disabled) { color: var(--accent); }
 .beat-action:disabled { color: var(--accent); cursor: default; }
+.beat-move:disabled { color: #c9cec6; }
 .beat-remove:hover { color: #a26b46; }
 .message-action.is-active { color: var(--accent); }
 .highlight-section { margin-top: 28px; padding-top: 19px; border-top: 1px solid var(--line); }
