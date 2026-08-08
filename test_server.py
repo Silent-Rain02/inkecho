@@ -21,7 +21,7 @@ from server import (
     response_length_settings,
     SECURITY_HEADERS,
     STATIC_FILES,
-    MAX_HISTORY_CHARS,
+    history_budget_chars,
     static_asset_path,
 )
 
@@ -192,7 +192,7 @@ class ServerConfigTests(unittest.TestCase):
         ]
         messages = build_messages({"messages": history})
         selected = messages[1:]
-        self.assertLessEqual(sum(len(item["content"]) for item in selected), MAX_HISTORY_CHARS)
+        self.assertLessEqual(sum(len(item["content"]) for item in selected), 48000)
         self.assertIn("消息19-", selected[-1]["content"])
         self.assertNotIn("消息0-", "\n".join(item["content"] for item in selected))
 
@@ -218,6 +218,14 @@ class ServerConfigTests(unittest.TestCase):
             self.assertEqual(request_timeout_seconds(), 5.0)
         with patch.dict(os.environ, {"INK_ECHO_REQUEST_TIMEOUT": "not-a-number"}, clear=True):
             self.assertEqual(request_timeout_seconds(), 120.0)
+
+    def test_history_budget_is_bounded_and_configurable(self) -> None:
+        with patch.dict(os.environ, {"INK_ECHO_HISTORY_BUDGET": "64000"}, clear=True):
+            self.assertEqual(history_budget_chars(), 64000)
+        with patch.dict(os.environ, {"INK_ECHO_HISTORY_BUDGET": "1000"}, clear=True):
+            self.assertEqual(history_budget_chars(), 8000)
+        with patch.dict(os.environ, {"INK_ECHO_HISTORY_BUDGET": "not-a-number"}, clear=True):
+            self.assertEqual(history_budget_chars(), 48000)
 
     def test_security_headers_keep_browser_surface_restricted(self) -> None:
         self.assertEqual(SECURITY_HEADERS["X-Content-Type-Options"], "nosniff")
