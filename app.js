@@ -1371,6 +1371,10 @@ function switchProject(projectId) {
 }
 
 function createNewProject() {
+  if (projects.length >= maxProjects) {
+    showToast(`项目数量已达到上限（${maxProjects} 个）`);
+    return;
+  }
   const name = window.prompt("给新的创作项目取一个名字：", "未命名新章");
   if (!name || !name.trim()) return;
   const cleanName = name.trim();
@@ -1401,6 +1405,10 @@ function createNewProject() {
 }
 
 function duplicateCurrentProject() {
+  if (projects.length >= maxProjects) {
+    showToast(`项目数量已达到上限（${maxProjects} 个）`);
+    return;
+  }
   if (isSending) {
     showToast("模型回复完成后再复制项目");
     return;
