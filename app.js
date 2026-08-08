@@ -72,6 +72,17 @@ const openTemplatesButton = document.querySelector("#openTemplates");
 const templateDialog = document.querySelector("#templateDialog");
 const templateList = document.querySelector("#templateList");
 const cancelTemplateButton = document.querySelector("#cancelTemplate");
+const manageBeatsButton = document.querySelector("#manageBeats");
+const activeBeatHint = document.querySelector("#activeBeatHint");
+const beatCount = document.querySelector("#beatCount");
+const beatDialog = document.querySelector("#beatDialog");
+const beatForm = document.querySelector("#beatForm");
+const beatDialogTitle = document.querySelector("#beatDialogTitle");
+const beatTitleInput = document.querySelector("#beatTitleInput");
+const beatGoalInput = document.querySelector("#beatGoalInput");
+const beatStatusInput = document.querySelector("#beatStatusInput");
+const beatList = document.querySelector("#beatList");
+const cancelBeatButton = document.querySelector("#cancelBeat");
 const checkpointDialog = document.querySelector("#checkpointDialog");
 const checkpointList = document.querySelector("#checkpointList");
 const closeCheckpointButton = document.querySelector("#closeCheckpoint");
@@ -121,6 +132,12 @@ const maxProjects = 50;
 const maxPrompts = 12;
 const maxHighlights = 30;
 const maxCheckpoints = 12;
+const maxSceneBeats = 24;
+const sceneBeatStatusLabels = {
+  planned: "待写",
+  active: "进行中",
+  done: "已完成",
+};
 const templatePresets = [
   {
     id: "classical-afterglow",
@@ -253,6 +270,7 @@ let serverHistoryBudget = 48000;
 let serverRequestTimeout = 120000;
 let editingCharacterName = null;
 let editingPromptIndex = null;
+let editingBeatId = null;
 let storageWarningShown = false;
 const defaultConversationHistory = [
   { role: "assistant", name: "林黛玉", content: "今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？" },
@@ -274,7 +292,7 @@ function safeText(value, fallback = "", maxLength = 240) {
   return text.trim().slice(0, maxLength) || fallback;
 }
 
-function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints }) {
+function createProject({ id, name, context, conversation, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId }) {
   const safeContext = context && typeof context === "object" ? context : {};
   const safeService = service && typeof service === "object" ? service : {};
   const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
@@ -324,6 +342,21 @@ function createProject({ id, name, context, conversation, service, characters, s
       };
     }).filter((item) => item.content)
     : [];
+  const safeBeats = Array.isArray(beats)
+    ? beats.slice(0, maxSceneBeats).map((item) => {
+      const source = item && typeof item === "object" ? item : {};
+      const status = Object.prototype.hasOwnProperty.call(sceneBeatStatusLabels, source.status)
+        ? source.status
+        : "planned";
+      return {
+        id: safeText(source.id, `beat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+        title: safeText(source.title, "未命名场景", 80),
+        goal: safeText(source.goal, "", 280),
+        status,
+      };
+    }).filter((item, index, list) => item.title && list.findIndex((candidate) => candidate.id === item.id) === index)
+    : [];
+  const safeActiveBeatId = safeBeats.some((beat) => beat.id === activeBeatId) ? activeBeatId : "";
   const safeCheckpoints = Array.isArray(checkpoints)
     ? checkpoints.slice(-maxCheckpoints).map((item) => normalizeCheckpoint(item))
     : [];
@@ -378,6 +411,8 @@ function createProject({ id, name, context, conversation, service, characters, s
     prompts: safePrompts,
     highlights: safeHighlights,
     checkpoints: safeCheckpoints,
+    beats: safeBeats,
+    activeBeatId: safeActiveBeatId,
     characters: safeCharacters,
     selectedCharacterName: selected.name,
     mode: modeHints[mode] ? mode : "续写",
@@ -399,6 +434,8 @@ function normalizeCheckpoint(item) {
     draft: source.draft,
     prompts: source.prompts,
     highlights: source.highlights,
+    beats: source.beats,
+    activeBeatId: source.activeBeatId,
   });
   return {
     id: safeText(source.id, `checkpoint-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
@@ -413,6 +450,8 @@ function normalizeCheckpoint(item) {
     draft: normalized.draft,
     prompts: normalized.prompts,
     highlights: normalized.highlights,
+    beats: normalized.beats,
+    activeBeatId: normalized.activeBeatId,
   };
 }
 
@@ -513,6 +552,24 @@ function persistActiveProject() {
   renderProjectSelect();
 }
 
+function getActiveSceneBeat(project = getActiveProject()) {
+  return project?.beats?.find((beat) => beat.id === project.activeBeatId) || null;
+}
+
+function renderActiveBeat() {
+  const project = getActiveProject();
+  const beats = project?.beats || [];
+  const active = getActiveSceneBeat(project);
+  beatCount.textContent = `${String(beats.length).padStart(2, "0")} / ${maxSceneBeats}`;
+  if (!active) {
+    activeBeatHint.textContent = "未选择场景卡";
+    activeBeatHint.title = "打开场景计划，添加并设为当前";
+    return;
+  }
+  activeBeatHint.textContent = active.goal ? `当前：${active.goal}` : `当前：${active.title}`;
+  activeBeatHint.title = `${active.title} · ${sceneBeatStatusLabels[active.status]}`;
+}
+
 function hydrateActiveProject() {
   const project = getActiveProject();
   if (!project) return;
@@ -523,6 +580,7 @@ function hydrateActiveProject() {
   workReference.value = project.context.reference || "";
   workSummary.value = project.context.summary || "";
   workInstructions.value = project.context.instructions || "";
+  renderActiveBeat();
   renderCustomPrompts();
   renderHighlights();
   renderCheckpoints();
@@ -1047,6 +1105,8 @@ function cloneProjectState(source) {
     draft: source.draft || "",
     prompts: (source.prompts || []).map((item) => ({ ...item })),
     highlights: (source.highlights || []).map((item) => ({ ...item })),
+    beats: (source.beats || []).map((item) => ({ ...item })),
+    activeBeatId: source.activeBeatId || "",
   };
 }
 
@@ -1205,9 +1265,12 @@ function renderConversation() {
 }
 
 function getContext() {
+  const chapter = safeText(workChapter.value, "", 120);
+  const activeBeat = getActiveSceneBeat();
   return {
     title: safeText(document.querySelector("#workTitle").value, "", 120),
-    chapter: safeText(workChapter.value, "", 120),
+    chapter,
+    sceneGoal: activeBeat && chapter === activeBeat.title ? safeText(activeBeat.goal, "", 280) : "",
     era: safeText(document.querySelector("#workEra").value, "", 120),
     world: safeText(document.querySelector("#workWorld").value, "", 800),
     reference: safeText(workReference.value, "", 4000),
@@ -1220,6 +1283,7 @@ function exportSession() {
   const context = getContext();
   const highlights = getActiveProject()?.highlights || [];
   const checkpoints = getActiveProject()?.checkpoints || [];
+  const sceneBeats = getActiveProject()?.beats || [];
   const characters = Array.from(document.querySelectorAll(".character-card")).map((card) => {
     const name = card.dataset.character || "未命名角色";
     const tone = card.dataset.tone || "";
@@ -1238,6 +1302,7 @@ function exportSession() {
     "",
     `- **时代 / 氛围**：${context.era || "未填写"}`,
     `- **当前章节 / 场景**：${context.chapter || "未填写"}`,
+    `- **本幕目标**：${context.sceneGoal || "未填写"}`,
     `- **世界观备注**：${context.world || "未填写"}`,
     context.reference ? `- **参考片段**：\n\n${context.reference}` : "",
     context.summary ? `- **剧情摘要**：\n\n${context.summary}` : "",
@@ -1246,6 +1311,12 @@ function exportSession() {
     "## 角色卡",
     "",
     characters.length ? characters.join("\n") : "- 暂无角色卡",
+    "",
+    "## 场景计划",
+    "",
+    sceneBeats.length
+      ? sceneBeats.map((beat) => `- **${beat.title}**（${sceneBeatStatusLabels[beat.status]}）${beat.id === getActiveProject()?.activeBeatId ? " · 当前" : ""}${beat.goal ? `：${beat.goal}` : ""}`).join("\n")
+      : "暂无场景卡",
     "",
     "## 对话记录",
     "",
@@ -2048,8 +2119,17 @@ refreshModelsButton.addEventListener("click", refreshModels);
 testProviderButton.addEventListener("click", testProviderConnection);
 generateSummaryButton.addEventListener("click", summarizeConversation);
 
-["#workTitle", "#workChapter", "#workEra", "#workWorld"].forEach((selector) => {
+["#workTitle", "#workEra", "#workWorld"].forEach((selector) => {
   document.querySelector(selector).addEventListener("input", saveWorkspace);
+});
+
+workChapter.addEventListener("input", () => {
+  const active = getActiveSceneBeat();
+  if (active && workChapter.value.trim() !== active.title) {
+    getActiveProject().activeBeatId = "";
+  }
+  saveWorkspace();
+  renderActiveBeat();
 });
 
 workReference.addEventListener("input", () => {
@@ -2150,6 +2230,12 @@ openTemplatesButton.addEventListener("click", openTemplateDialog);
 cancelTemplateButton.addEventListener("click", closeTemplateDialog);
 templateDialog.addEventListener("click", (event) => {
   if (event.target === templateDialog) closeTemplateDialog();
+});
+manageBeatsButton.addEventListener("click", openScenePlanner);
+beatForm.addEventListener("submit", saveSceneBeat);
+cancelBeatButton.addEventListener("click", closeScenePlanner);
+beatDialog.addEventListener("click", (event) => {
+  if (event.target === beatDialog) closeScenePlanner();
 });
 closeCheckpointButton.addEventListener("click", closeCheckpointDialog);
 checkpointDialog.addEventListener("click", (event) => {
@@ -2306,6 +2392,7 @@ function applyTemplate(templateId) {
   if (!name || !name.trim()) return;
   const cleanName = safeText(name, template.title, 80);
   const current = getActiveProject();
+  const firstBeatId = `beat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name: cleanName,
@@ -2326,6 +2413,8 @@ function applyTemplate(templateId) {
     selectedCharacterName: template.selectedCharacterName,
     mode: template.mode,
     prompts: template.prompts.map((prompt) => ({ ...prompt })),
+    beats: [{ id: firstBeatId, title: template.context.chapter, goal: template.context.summary, status: "active" }],
+    activeBeatId: firstBeatId,
   });
   projects.push(project);
   activeProjectId = project.id;
@@ -2337,6 +2426,159 @@ function applyTemplate(templateId) {
   updateProviderUI();
   closeTemplateDialog();
   showToast(`已用「${template.title}」创建「${cleanName}」`);
+}
+
+function resetBeatEditor() {
+  editingBeatId = null;
+  beatDialogTitle.textContent = "添加场景卡";
+  beatTitleInput.value = "";
+  beatGoalInput.value = "";
+  beatStatusInput.value = "planned";
+}
+
+function renderSceneBeats() {
+  const project = getActiveProject();
+  const beats = project?.beats || [];
+  beatList.innerHTML = "";
+  if (!beats.length) {
+    const empty = document.createElement("p");
+    empty.className = "beat-empty";
+    empty.textContent = "还没有场景卡。先把下一幕想发生的事写下来。";
+    beatList.appendChild(empty);
+    return;
+  }
+  beats.forEach((beat, index) => {
+    const card = document.createElement("div");
+    card.className = "beat-card";
+    card.classList.toggle("is-current", beat.id === project.activeBeatId);
+    const head = document.createElement("div");
+    head.className = "beat-card-head";
+    const title = document.createElement("strong");
+    title.textContent = `${String(index + 1).padStart(2, "0")} · ${beat.title}`;
+    const status = document.createElement("span");
+    status.className = `beat-status beat-status-${beat.status}`;
+    status.textContent = sceneBeatStatusLabels[beat.status];
+    head.append(title, status);
+    const goal = document.createElement("p");
+    goal.textContent = beat.goal || "这一幕暂未写下明确目标。";
+    const actions = document.createElement("div");
+    actions.className = "beat-card-actions";
+    const use = document.createElement("button");
+    use.type = "button";
+    use.className = "beat-action beat-use";
+    use.textContent = beat.id === project.activeBeatId ? "当前场景" : "设为当前";
+    use.disabled = beat.id === project.activeBeatId;
+    use.addEventListener("click", () => setCurrentBeat(beat.id));
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "beat-action";
+    edit.textContent = "编辑";
+    edit.addEventListener("click", () => openBeatEditor(beat.id));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "beat-action beat-remove";
+    remove.textContent = "删除";
+    remove.addEventListener("click", () => deleteBeat(beat.id));
+    actions.append(use, edit, remove);
+    card.append(head, goal, actions);
+    beatList.appendChild(card);
+  });
+}
+
+function openScenePlanner() {
+  if (preventWorkspaceMutation("编辑场景计划")) return;
+  resetBeatEditor();
+  renderSceneBeats();
+  beatDialog.showModal();
+  beatTitleInput.focus();
+}
+
+function openBeatEditor(beatId) {
+  const beat = getActiveProject()?.beats.find((item) => item.id === beatId);
+  if (!beat) return;
+  editingBeatId = beatId;
+  beatDialogTitle.textContent = "编辑场景卡";
+  beatTitleInput.value = beat.title;
+  beatGoalInput.value = beat.goal;
+  beatStatusInput.value = beat.status;
+  beatTitleInput.focus();
+}
+
+function closeScenePlanner() {
+  resetBeatEditor();
+  beatDialog.close();
+}
+
+function saveSceneBeat(event) {
+  event.preventDefault();
+  if (preventWorkspaceMutation("保存场景")) return;
+  const title = safeText(beatTitleInput.value, "", 80);
+  const goal = safeText(beatGoalInput.value, "", 280);
+  if (!title) return;
+  const project = getActiveProject();
+  const status = Object.prototype.hasOwnProperty.call(sceneBeatStatusLabels, beatStatusInput.value)
+    ? beatStatusInput.value
+    : "planned";
+  const wasEditing = Boolean(editingBeatId);
+  let beat;
+  if (editingBeatId) {
+    beat = project.beats.find((item) => item.id === editingBeatId);
+    if (!beat) return;
+    beat.title = title;
+    beat.goal = goal;
+    beat.status = status;
+    if (project.activeBeatId === beat.id) workChapter.value = title;
+  } else {
+    if (project.beats.length >= maxSceneBeats) {
+      showToast(`每个项目最多保存 ${maxSceneBeats} 个场景卡`);
+      return;
+    }
+    beat = {
+      id: `beat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      title,
+      goal,
+      status,
+    };
+    project.beats.push(beat);
+  }
+  if (status === "active") {
+    project.activeBeatId = beat.id;
+    workChapter.value = beat.title;
+  }
+  persistActiveProject();
+  renderActiveBeat();
+  renderSceneBeats();
+  resetBeatEditor();
+  showToast(wasEditing ? `已更新场景「${title}」` : `已添加场景「${title}」`);
+}
+
+function setCurrentBeat(beatId) {
+  if (preventWorkspaceMutation("切换当前场景")) return;
+  const project = getActiveProject();
+  const beat = project.beats.find((item) => item.id === beatId);
+  if (!beat) return;
+  project.activeBeatId = beat.id;
+  if (beat.status === "planned") beat.status = "active";
+  workChapter.value = beat.title;
+  persistActiveProject();
+  renderActiveBeat();
+  renderSceneBeats();
+  showToast(`当前场景：${beat.title}`);
+}
+
+function deleteBeat(beatId) {
+  if (preventWorkspaceMutation("删除场景")) return;
+  const project = getActiveProject();
+  const index = project.beats.findIndex((item) => item.id === beatId);
+  if (index < 0) return;
+  const beat = project.beats[index];
+  if (!window.confirm(`删除场景「${beat.title}」吗？`)) return;
+  project.beats.splice(index, 1);
+  if (project.activeBeatId === beatId) project.activeBeatId = "";
+  persistActiveProject();
+  renderActiveBeat();
+  renderSceneBeats();
+  showToast("场景卡已删除");
 }
 
 function createNewProject() {
@@ -2398,6 +2640,8 @@ function duplicateCurrentProject() {
     prompts: current.prompts.map((item) => ({ ...item })),
     highlights: current.highlights.map((item) => ({ ...item })),
     checkpoints: current.checkpoints.map(cloneCheckpoint),
+    beats: current.beats.map((item) => ({ ...item })),
+    activeBeatId: current.activeBeatId,
   });
   projects.push(project);
   activeProjectId = project.id;
@@ -2450,6 +2694,8 @@ function branchFromMessage(historyIndex) {
       .filter((highlight) => branchKeys.has(highlightKey(highlight)))
       .map((item) => ({ ...item })),
     checkpoints: branchCheckpoints,
+    beats: current.beats.map((item) => ({ ...item })),
+    activeBeatId: current.activeBeatId,
   });
   projects.push(project);
   activeProjectId = project.id;
