@@ -1335,6 +1335,7 @@ async function testProviderConnection() {
     modelName.focus();
     return;
   }
+  saveServiceSettings();
   testProviderButton.disabled = true;
   testProviderButton.textContent = "测试中";
   setProviderBadge("测试中", "#a26b46");
