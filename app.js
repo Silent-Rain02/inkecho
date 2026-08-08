@@ -52,6 +52,7 @@ const promptList = document.querySelector("#promptList");
 const addPromptButton = document.querySelector("#addPrompt");
 const promptDialog = document.querySelector("#promptDialog");
 const promptForm = document.querySelector("#promptForm");
+const promptDialogTitle = document.querySelector("#promptDialogTitle");
 const promptTitleInput = document.querySelector("#promptTitleInput");
 const promptTextInput = document.querySelector("#promptTextInput");
 const cancelPromptButton = document.querySelector("#cancelPrompt");
@@ -125,6 +126,7 @@ let draftTimer;
 let isSending = false;
 let streamController = null;
 let editingCharacterName = null;
+let editingPromptIndex = null;
 const defaultConversationHistory = [
   { role: "assistant", name: "林黛玉", content: "今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？" },
   { role: "user", name: "我", content: "如果这一回不写离别，你想把故事带到哪里去？" },
@@ -1185,20 +1187,29 @@ function createCustomPromptCard(prompt, index) {
   const title = document.createElement("strong");
   title.textContent = prompt.title;
   const description = document.createElement("small");
-  description.textContent = "自定义灵感";
+  description.textContent = prompt.text.length > 28 ? `${prompt.text.slice(0, 28)}…` : prompt.text;
   copy.append(title, description);
   const arrow = document.createElement("span");
   arrow.className = "prompt-arrow";
   arrow.textContent = "↗";
   main.append(number, copy, arrow);
   main.addEventListener("click", () => fillPrompt(prompt.text));
+  const actions = document.createElement("span");
+  actions.className = "prompt-card-actions";
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "prompt-edit";
+  edit.textContent = "✎";
+  edit.setAttribute("aria-label", `编辑灵感 ${prompt.title}`);
+  edit.addEventListener("click", () => openPromptEditor(index));
   const remove = document.createElement("button");
   remove.type = "button";
   remove.className = "prompt-remove";
   remove.textContent = "×";
   remove.setAttribute("aria-label", `删除灵感 ${prompt.title}`);
   remove.addEventListener("click", () => deleteCustomPrompt(index));
-  card.append(main, remove);
+  actions.append(edit, remove);
+  card.append(main, actions);
   return card;
 }
 
@@ -1210,14 +1221,18 @@ function renderCustomPrompts() {
   });
 }
 
-function openPromptEditor() {
-  promptTitleInput.value = "";
-  promptTextInput.value = "";
+function openPromptEditor(index = null) {
+  editingPromptIndex = Number.isInteger(index) ? index : null;
+  const prompt = editingPromptIndex === null ? null : getActiveProject().prompts[editingPromptIndex];
+  promptDialogTitle.textContent = prompt ? "编辑灵感" : "添加灵感";
+  promptTitleInput.value = prompt?.title || "";
+  promptTextInput.value = prompt?.text || "";
   promptDialog.showModal();
   promptTitleInput.focus();
 }
 
 function closePromptEditor() {
+  editingPromptIndex = null;
   promptDialog.close();
 }
 
@@ -1227,6 +1242,17 @@ function savePrompt(event) {
   const text = safeText(promptTextInput.value, "", 500);
   if (!title || !text) return;
   const project = getActiveProject();
+  if (editingPromptIndex !== null) {
+    const prompt = project.prompts[editingPromptIndex];
+    if (!prompt) return;
+    prompt.title = title;
+    prompt.text = text;
+    persistActiveProject();
+    renderCustomPrompts();
+    closePromptEditor();
+    showToast(`已更新灵感「${title}」`);
+    return;
+  }
   if (project.prompts.length >= maxPrompts) {
     closePromptEditor();
     showToast(`自定义灵感最多保存 ${maxPrompts} 条`);
