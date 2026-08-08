@@ -530,6 +530,13 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, ver
       retryButton.setAttribute("aria-label", "重新生成这条回复");
       retryButton.addEventListener("click", () => retryMessage(historyIndex));
       actions.appendChild(retryButton);
+      const branchButton = document.createElement("button");
+      branchButton.type = "button";
+      branchButton.className = "message-action";
+      branchButton.textContent = "分支";
+      branchButton.setAttribute("aria-label", "从这条回复创建支线");
+      branchButton.addEventListener("click", () => branchFromMessage(historyIndex));
+      actions.appendChild(branchButton);
     }
     const safeVersions = Array.isArray(versions) ? versions.filter((version) => typeof version === "string" && version.trim()) : [];
     if (safeVersions.length > 1 && Number.isInteger(historyIndex)) {
@@ -1607,6 +1614,53 @@ function duplicateCurrentProject() {
   renderConversation();
   updateProviderUI();
   showToast(`已复制为「${cleanName}」`);
+}
+
+function branchFromMessage(historyIndex) {
+  if (projects.length >= maxProjects) {
+    showToast(`项目数量已达到上限（${maxProjects} 个）`);
+    return;
+  }
+  if (isSending) {
+    showToast("模型回复完成后再创建支线");
+    return;
+  }
+  const sourceMessage = conversationHistory[historyIndex];
+  if (!sourceMessage || sourceMessage.role !== "assistant") {
+    showToast("只能从角色回复创建支线");
+    return;
+  }
+
+  persistActiveProject();
+  const current = getActiveProject();
+  const name = window.prompt("给这条剧情支线取一个名字：", `${current.name} · 从此处分支`);
+  if (!name || !name.trim()) return;
+  const branchConversation = conversationHistory.slice(0, historyIndex + 1).map((item) => ({
+    ...item,
+    ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
+  }));
+  const cleanName = name.trim();
+  const project = createProject({
+    id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name: cleanName,
+    context: { ...current.context },
+    conversation: branchConversation,
+    service: { ...current.service },
+    characters: current.characters.map((item) => ({ ...item })),
+    selectedCharacterName: current.selectedCharacterName,
+    mode: current.mode,
+    draft: messageInput.value,
+    prompts: current.prompts.map((item) => ({ ...item })),
+  });
+  projects.push(project);
+  activeProjectId = project.id;
+  persistProjects();
+  hydrateActiveProject();
+  renderProjectSelect();
+  renderCharacters();
+  renderConversation();
+  updateProviderUI();
+  showToast(`已从这条回复创建「${cleanName}」`);
 }
 
 function deleteCurrentProject() {
