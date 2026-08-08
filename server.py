@@ -18,6 +18,13 @@ SUPPORTED_PROVIDERS = {"custom_azure", "ollama", "openai", "azure", "compatible"
 MAX_BODY_BYTES = 1_000_000
 STATIC_FILES = {"index.html", "styles.css", "app.js"}
 DEFAULT_REQUEST_TIMEOUT = 120.0
+SECURITY_HEADERS = {
+    "Content-Security-Policy": "default-src 'self'; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+}
 CREATIVITY_GUIDANCE = {
     "restrained": "克制叙事：尊重已有设定，少做跳脱扩展，优先使用准确、含蓄的细节。",
     "balanced": "平衡：在遵循人物和世界观的前提下，适度加入新的画面与转折。",
@@ -358,6 +365,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache, no-transform")
         self.send_header("Connection", "close")
         self.send_header("X-Accel-Buffering", "no")
+        self.send_security_headers()
         self.end_headers()
         self.send_event({"type": "start", "provider": settings.provider, "model": settings.model})
         try:
@@ -383,6 +391,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", f"{content_type}; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
+        self.send_security_headers()
         self.end_headers()
         self.wfile.write(data)
 
@@ -391,8 +400,13 @@ class InkEchoHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_security_headers()
         self.end_headers()
         self.wfile.write(body)
+
+    def send_security_headers(self) -> None:
+        for name, value in SECURITY_HEADERS.items():
+            self.send_header(name, value)
 
     def log_message(self, format: str, *args: Any) -> None:
         print(f"[InkEcho] {self.address_string()} - {format % args}")
