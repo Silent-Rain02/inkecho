@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import unittest
 from types import SimpleNamespace
@@ -13,6 +14,7 @@ from server import (
     list_provider_models,
     provider_health_snapshot,
     provider_settings,
+    probe_provider,
     public_error,
     request_timeout_seconds,
     response_length_settings,
@@ -107,6 +109,28 @@ class ServerConfigTests(unittest.TestCase):
             })
         self.assertEqual(text, "一段展开的回复。")
         self.assertEqual(fake_completions.kwargs["max_tokens"], 1200)
+
+    def test_probe_provider_makes_a_minimal_request_with_selected_model(self) -> None:
+        class FakeCompletions:
+            def __init__(self) -> None:
+                self.kwargs = {}
+
+            def create(self, **kwargs):
+                self.kwargs = kwargs
+                return SimpleNamespace(choices=[])
+
+        completions = FakeCompletions()
+        fake_client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+        environment = {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "test-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
+        }
+        with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
+            settings = probe_provider({"provider": "custom_azure", "model": "office-model"})
+        self.assertEqual(settings.model, "office-model")
+        self.assertEqual(completions.kwargs["model"], "office-model")
+        self.assertEqual(completions.kwargs["max_tokens"], 2)
+        self.assertEqual(completions.kwargs["messages"], [{"role": "user", "content": "请只回复：好"}])
 
     def test_azure_model_listing_uses_configured_deployment_without_network(self) -> None:
         with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_MODEL": "office-model"}, clear=False):
@@ -219,6 +243,16 @@ class HttpRouteTests(unittest.TestCase):
         status, payload = handler.responses[0]
         self.assertEqual(status, 400)
         self.assertFalse(payload["ok"])
+
+    def test_probe_route_returns_selected_provider_and_model(self) -> None:
+        body = json.dumps({"provider": "ollama", "model": "qwen3:8b"}).encode("utf-8")
+        handler = CaptureHandler("/api/probe", body)
+        settings = SimpleNamespace(provider="ollama", model="qwen3:8b")
+        with patch("server.probe_provider", return_value=settings):
+            handler.do_POST()
+        status, payload = handler.responses[0]
+        self.assertEqual(status, 200)
+        self.assertEqual(payload, {"ok": True, "provider": "ollama", "model": "qwen3:8b"})
 
 
 if __name__ == "__main__":
