@@ -192,12 +192,27 @@ def provider_missing_fields(provider: str, requested_model: str | None = None) -
     return missing
 
 
+def provider_missing_keys(provider: str, requested_model: str | None = None) -> list[str]:
+    """Return safe environment-variable names needed to complete a provider."""
+    selected = provider.lower()
+    if selected not in SUPPORTED_PROVIDERS:
+        raise ValueError(f"不支持的模型服务：{selected}")
+    settings = provider_settings(selected, requested_model)
+    missing = [PROVIDER_MODEL_KEYS[selected]] if is_placeholder(settings.model) else []
+    missing.extend(key for key in PROVIDER_REQUIRED_ENV[selected] if is_placeholder(env(key)))
+    return missing
+
+
 def provider_health_snapshot(provider: str | None = None, requested_model: str | None = None) -> dict[str, Any]:
     """Report configuration using the model currently selected in the UI."""
     selected = (provider or env("INK_ECHO_PROVIDER", "custom_azure")).lower()
     providers = {name: provider_settings(name).configured for name in sorted(SUPPORTED_PROVIDERS)}
     provider_details = {
-        name: {"configured": providers[name], "missing": provider_missing_fields(name)}
+        name: {
+            "configured": providers[name],
+            "missing": provider_missing_fields(name),
+            "missing_keys": provider_missing_keys(name),
+        }
         for name in sorted(SUPPORTED_PROVIDERS)
     }
     if selected in SUPPORTED_PROVIDERS:
@@ -205,6 +220,7 @@ def provider_health_snapshot(provider: str | None = None, requested_model: str |
         provider_details[selected] = {
             "configured": providers[selected],
             "missing": provider_missing_fields(selected, requested_model),
+            "missing_keys": provider_missing_keys(selected, requested_model),
         }
     return {
         "ok": True,
