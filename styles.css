@@ -215,6 +215,8 @@ textarea { resize: vertical; }
 .conversation-search input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 11px; }
 .conversation-search input::placeholder { color: #a6aba3; }
 .search-count { flex: none; color: var(--muted); font: 9px var(--mono); }
+.search-archive-button { flex: none; padding: 0; border: 0; color: var(--accent); background: transparent; font: 9px var(--mono); }
+.search-archive-button:hover { color: var(--accent-dark); text-decoration: underline; text-underline-offset: 3px; }
 .search-clear { flex: none; padding: 0 2px; border: 0; color: var(--muted); background: transparent; font: 17px var(--mono); line-height: 1; }
 .search-clear:hover { color: var(--accent); }
 .mode-tabs { display: flex; gap: 22px; padding: 0 29px; border-bottom: 1px solid var(--line); }
