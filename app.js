@@ -153,10 +153,27 @@ function createProject({ id, name, context, conversation, service, characters, s
   const safeConversation = Array.isArray(conversation) && conversation.length
     ? conversation.slice(-40).map((item) => {
       const source = item && typeof item === "object" ? item : {};
-      return {
+      const content = safeText(source.content, "", 4000);
+      const savedVersions = Array.isArray(source.versions)
+        ? source.versions.map((version) => safeText(version, "", 4000)).filter(Boolean)
+        : [];
+      const versions = Array.from(new Set([...savedVersions, content])).filter(Boolean);
+      const contentIndex = versions.indexOf(content);
+      const requestedIndex = Number.isInteger(source.versionIndex) ? source.versionIndex : contentIndex;
+      const versionIndex = versions.length
+        ? Math.max(0, Math.min(requestedIndex < 0 ? 0 : requestedIndex, versions.length - 1))
+        : 0;
+      const normalized = {
         role: source.role === "user" ? "user" : "assistant",
         name: safeText(source.name, source.role === "user" ? "我" : selected.name || "角色", 40),
-        content: safeText(source.content, "", 4000),
+        content: versions[versionIndex] || content,
+      };
+      if (normalized.role === "assistant" && versions.length > 1) {
+        normalized.versions = versions;
+        normalized.versionIndex = versionIndex;
+      }
+      return {
+        ...normalized,
       };
     }).filter((item) => item.content)
     : defaultConversationHistory.map((item) => ({ ...item }));
@@ -436,7 +453,7 @@ function updateCount() {
   messageCount.textContent = `${String(count).padStart(2, "0")} 条消息`;
 }
 
-function addMessage({ role, name, text, avatarClass, historyIndex }) {
+function addMessage({ role, name, text, avatarClass, historyIndex, versions, versionIndex = 0 }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
   if (Number.isInteger(historyIndex)) row.dataset.historyIndex = String(historyIndex);
@@ -477,6 +494,31 @@ function addMessage({ role, name, text, avatarClass, historyIndex }) {
       retryButton.addEventListener("click", () => retryMessage(historyIndex));
       actions.appendChild(retryButton);
     }
+    const safeVersions = Array.isArray(versions) ? versions.filter((version) => typeof version === "string" && version.trim()) : [];
+    if (safeVersions.length > 1 && Number.isInteger(historyIndex)) {
+      const currentVersion = Math.max(0, Math.min(Number(versionIndex) || 0, safeVersions.length - 1));
+      const versionControls = document.createElement("span");
+      versionControls.className = "version-controls";
+      const previousButton = document.createElement("button");
+      previousButton.type = "button";
+      previousButton.className = "version-button";
+      previousButton.textContent = "‹";
+      previousButton.disabled = currentVersion === 0;
+      previousButton.setAttribute("aria-label", "查看上一版回复");
+      previousButton.addEventListener("click", () => switchMessageVersion(historyIndex, currentVersion - 1));
+      const versionLabel = document.createElement("span");
+      versionLabel.className = "version-label";
+      versionLabel.textContent = `${currentVersion + 1}/${safeVersions.length}`;
+      const nextButton = document.createElement("button");
+      nextButton.type = "button";
+      nextButton.className = "version-button";
+      nextButton.textContent = "›";
+      nextButton.disabled = currentVersion === safeVersions.length - 1;
+      nextButton.setAttribute("aria-label", "查看下一版回复");
+      nextButton.addEventListener("click", () => switchMessageVersion(historyIndex, currentVersion + 1));
+      versionControls.append(previousButton, versionLabel, nextButton);
+      actions.appendChild(versionControls);
+    }
     content.appendChild(actions);
   } else if (Number.isInteger(historyIndex)) {
     const actions = document.createElement("div");
@@ -516,6 +558,20 @@ function filterConversationMessages() {
     if (isMatch) matched += 1;
   });
   conversationSearchCount.textContent = `${matched} / ${rows.length} 条`;
+}
+
+function switchMessageVersion(historyIndex, nextVersion) {
+  if (isSending) {
+    showToast("请先停止当前生成");
+    return;
+  }
+  const message = conversationHistory[historyIndex];
+  if (!message || !Array.isArray(message.versions) || !message.versions[nextVersion]) return;
+  message.versionIndex = nextVersion;
+  message.content = message.versions[nextVersion];
+  saveConversation();
+  renderConversation();
+  showToast(`已切换到第 ${nextVersion + 1} 版回复`);
 }
 
 function setConversationSearchOpen(open) {
@@ -599,6 +655,8 @@ function renderConversation() {
       avatarClass: assistant
         ? item.name === "贾宝玉" ? "avatar-bao" : "avatar-dai"
         : "user-avatar",
+      versions: item.versions,
+      versionIndex: item.versionIndex,
     });
   });
   filterConversationMessages();
@@ -921,6 +979,9 @@ async function retryMessage(historyIndex) {
 
   const previousReply = conversationHistory.at(-1);
   const speaker = previousReply.name || selectedCharacter.name;
+  const previousVersions = Array.isArray(previousReply.versions)
+    ? previousReply.versions.filter((version) => typeof version === "string" && version.trim())
+    : [previousReply.content].filter(Boolean);
   const character = getActiveProject().characters.find((item) => item.name === speaker)
     || { name: speaker, tone: selectedCharacter.tone };
   conversationHistory = conversationHistory.slice(0, -1);
@@ -935,8 +996,15 @@ async function retryMessage(historyIndex) {
     avatarClass: speaker === "贾宝玉" ? "avatar-bao" : "avatar-dai",
   });
   const reply = await generateAssistantReply(assistantMessage, character);
-  conversationHistory.push({ role: "assistant", name: speaker, content: reply });
+  const versions = Array.from(new Set([...previousVersions, reply].filter(Boolean)));
+  conversationHistory.push({
+    role: "assistant",
+    name: speaker,
+    content: reply,
+    ...(versions.length > 1 ? { versions, versionIndex: versions.indexOf(reply) } : {}),
+  });
   saveConversation();
+  renderConversation();
 }
 
 function selectCharacter(card) {
