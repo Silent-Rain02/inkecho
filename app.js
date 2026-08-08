@@ -2463,6 +2463,22 @@ function renderSceneBeats() {
     goal.textContent = beat.goal || "这一幕暂未写下明确目标。";
     const actions = document.createElement("div");
     actions.className = "beat-card-actions";
+    const moveUp = document.createElement("button");
+    moveUp.type = "button";
+    moveUp.className = "beat-action beat-move";
+    moveUp.textContent = "↑";
+    moveUp.title = "上移场景";
+    moveUp.setAttribute("aria-label", `上移场景 ${beat.title}`);
+    moveUp.disabled = index === 0;
+    moveUp.addEventListener("click", () => moveBeat(beat.id, -1));
+    const moveDown = document.createElement("button");
+    moveDown.type = "button";
+    moveDown.className = "beat-action beat-move";
+    moveDown.textContent = "↓";
+    moveDown.title = "下移场景";
+    moveDown.setAttribute("aria-label", `下移场景 ${beat.title}`);
+    moveDown.disabled = index === beats.length - 1;
+    moveDown.addEventListener("click", () => moveBeat(beat.id, 1));
     const use = document.createElement("button");
     use.type = "button";
     use.className = "beat-action beat-use";
@@ -2479,7 +2495,7 @@ function renderSceneBeats() {
     remove.className = "beat-action beat-remove";
     remove.textContent = "删除";
     remove.addEventListener("click", () => deleteBeat(beat.id));
-    actions.append(use, edit, remove);
+    actions.append(moveUp, moveDown, use, edit, remove);
     card.append(head, goal, actions);
     beatList.appendChild(card);
   });
@@ -2564,6 +2580,19 @@ function setCurrentBeat(beatId) {
   renderActiveBeat();
   renderSceneBeats();
   showToast(`当前场景：${beat.title}`);
+}
+
+function moveBeat(beatId, direction) {
+  if (preventWorkspaceMutation("调整场景顺序")) return;
+  const project = getActiveProject();
+  const index = project.beats.findIndex((item) => item.id === beatId);
+  const nextIndex = index + direction;
+  if (index < 0 || nextIndex < 0 || nextIndex >= project.beats.length) return;
+  [project.beats[index], project.beats[nextIndex]] = [project.beats[nextIndex], project.beats[index]];
+  persistActiveProject();
+  renderActiveBeat();
+  renderSceneBeats();
+  showToast("场景顺序已调整");
 }
 
 function deleteBeat(beatId) {
