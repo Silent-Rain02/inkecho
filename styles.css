@@ -185,7 +185,7 @@ textarea { resize: vertical; }
 .model-settings select:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
 .model-input { height: 32px; margin: 0; }
 .model-input input { font-size: 10px; }
-.provider-description { min-height: 31px; margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.provider-description { min-height: 31px; margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word; }
 .creativity-control { margin-top: 16px; padding-top: 13px; border-top: 1px solid rgba(215, 217, 207, 0.72); }
 .creativity-control .subheading-row { margin-bottom: 8px; }
 .creativity-control .field-label { margin: 0; }
