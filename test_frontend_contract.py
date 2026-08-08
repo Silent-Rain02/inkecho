@@ -101,6 +101,7 @@ class FrontendContractTests(unittest.TestCase):
             "downloadProjectHandoff",
             "projectSearchCount",
             "projectLineage",
+            "projectHealth",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -233,6 +234,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("projectLineage.textContent", self.javascript)
         self.assertIn("支线来源 · ${source}", self.javascript)
         self.assertIn("项目谱系**", self.javascript)
+        self.assertIn("function getProjectHealth", self.javascript)
+        self.assertIn("function formatProjectHealth", self.javascript)
+        self.assertIn("projectHealth.textContent", self.javascript)
+        self.assertIn("项目状态**", self.javascript)
         self.assertIn("function getSceneOutcomeFreshness", self.javascript)
         self.assertIn("结果来源不在当前历史 · 建议重新提炼", self.javascript)
         self.assertIn("之后新增 ${newMessages} 条", self.javascript)
