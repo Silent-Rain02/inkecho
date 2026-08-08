@@ -57,6 +57,8 @@ class FrontendContractTests(unittest.TestCase):
             "openArchiveHistory",
             "clearArchive",
             "characterLibraryDialog",
+            "characterLibrarySearch",
+            "characterLibraryCount",
             "openCharacterLibrary",
             "characterLibraryList",
             "openPromptLibrary",
@@ -121,6 +123,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("从这一刻创建一条安全的剧情支线", self.html)
         self.assertIn("const characterLibraryStorageKey", self.javascript)
         self.assertIn("function renderCharacterLibrary", self.javascript)
+        self.assertIn("const query = characterLibrarySearch", self.javascript)
+        self.assertIn("没有匹配的角色", self.javascript)
+        self.assertIn('characterLibraryDialog.querySelector("form").addEventListener("submit"', self.javascript)
         self.assertIn("function saveSelectedCharacterToLibrary", self.javascript)
         self.assertIn("function addLibraryCharacter", self.javascript)
         self.assertIn("characterLibrary", self.javascript)
