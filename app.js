@@ -483,6 +483,7 @@ function restoreWorkspace() {
     const saved = JSON.parse(localStorage.getItem(workspaceStorageKey) || "null");
     if (!saved) return;
     if (typeof saved.title === "string") document.querySelector("#workTitle").value = saved.title;
+    if (typeof saved.chapter === "string") workChapter.value = saved.chapter;
     if (typeof saved.era === "string") document.querySelector("#workEra").value = saved.era;
     if (typeof saved.world === "string") document.querySelector("#workWorld").value = saved.world;
     if (typeof saved.reference === "string") workReference.value = saved.reference;
