@@ -1592,6 +1592,14 @@ function formatProjectHandoff() {
   const project = getActiveProject();
   const context = getContext();
   const activeBeat = getActiveSceneBeat(project);
+  const reference = context.reference || "";
+  const draft = String(project.draft || "");
+  const referenceText = reference
+    ? `${reference.slice(0, 2000)}${reference.length > 2000 ? "\n（参考片段已截取前 2000 字）" : ""}`
+    : "暂无参考片段";
+  const draftText = draft
+    ? `${draft.slice(0, 2000)}${draft.length > 2000 ? "\n（草稿已截取前 2000 字）" : ""}`
+    : "暂无当前草稿";
   const recentMessages = getConversationForDisplay(project).slice(-8);
   const characters = (project.characters || []).map((character) => {
     const details = character.details ? `；人物设定：${character.details}` : "";
@@ -1636,6 +1644,14 @@ function formatProjectHandoff() {
     `- **世界观备注**：${context.world || "未填写"}`,
     context.summary ? `- **剧情摘要**：${context.summary}` : "- **剧情摘要**：暂无",
     context.instructions ? `- **本次创作要求**：${context.instructions}` : "- **本次创作要求**：暂无",
+    "",
+    "## 参考片段",
+    "",
+    referenceText,
+    "",
+    "## 当前草稿",
+    "",
+    draftText,
     "",
     "## 角色卡",
     "",
