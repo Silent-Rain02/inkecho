@@ -311,6 +311,31 @@ class ServerConfigTests(unittest.TestCase):
         self.assertNotIn("secret-value", error)
         self.assertEqual(error, "模型服务请求失败，请检查服务配置或连接")
 
+    def test_known_provider_errors_get_actionable_safe_messages(self) -> None:
+        class AuthenticationError(Exception):
+            pass
+
+        class APITimeoutError(Exception):
+            pass
+
+        self.assertEqual(public_error(AuthenticationError("secret-key")), "模型服务认证失败，请检查 API 密钥")
+        self.assertEqual(public_error(APITimeoutError("private endpoint")), "模型服务请求超时，请检查服务状态或调大请求超时")
+        self.assertNotIn("secret-key", public_error(AuthenticationError("secret-key")))
+
+    def test_known_provider_errors_use_meaningful_http_statuses(self) -> None:
+        class AuthenticationError(Exception):
+            pass
+
+        class RateLimitError(Exception):
+            pass
+
+        class APITimeoutError(Exception):
+            pass
+
+        self.assertEqual(error_status(AuthenticationError()).value, 401)
+        self.assertEqual(error_status(RateLimitError()).value, 429)
+        self.assertEqual(error_status(APITimeoutError()).value, 504)
+
     def test_client_input_errors_use_bad_request_status(self) -> None:
         self.assertEqual(error_status(ValueError("bad json")).value, 400)
         self.assertEqual(error_status(RuntimeError("upstream")).value, 502)
@@ -422,6 +447,18 @@ class HttpRouteTests(unittest.TestCase):
         status, payload = handler.responses[0]
         self.assertEqual(status, 200)
         self.assertEqual(payload, {"ok": True, "provider": "ollama", "model": "qwen3:8b"})
+
+    def test_probe_route_returns_safe_authentication_diagnostic(self) -> None:
+        class AuthenticationError(Exception):
+            pass
+
+        body = json.dumps({"provider": "openai", "model": "gpt-5-mini"}).encode("utf-8")
+        handler = CaptureHandler("/api/probe", body)
+        with patch("server.probe_provider", side_effect=AuthenticationError("secret-key")):
+            handler.do_POST()
+        status, payload = handler.responses[0]
+        self.assertEqual(status, 401)
+        self.assertEqual(payload, {"ok": False, "error": "模型服务认证失败，请检查 API 密钥"})
 
     def test_summarize_route_returns_summary_payload(self) -> None:
         body = json.dumps({"provider": "ollama", "model": "qwen3:8b", "messages": []}).encode("utf-8")
