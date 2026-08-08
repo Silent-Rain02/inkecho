@@ -144,6 +144,7 @@ let selectedMode = "续写";
 let toastTimer;
 let draftTimer;
 let isSending = false;
+let isSummarizing = false;
 let streamController = null;
 let providerHealthRequestId = 0;
 let editingCharacterName = null;
@@ -581,6 +582,18 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
 }
 
+function preventWorkspaceMutation(action) {
+  if (isSending) {
+    showToast(`模型回复完成后再${action}`);
+    return true;
+  }
+  if (isSummarizing) {
+    showToast(`摘要提炼完成后再${action}`);
+    return true;
+  }
+  return false;
+}
+
 function updateCount() {
   const count = messages.querySelectorAll(".message-row").length;
   messageCount.textContent = `${String(count).padStart(2, "0")} 条消息`;
@@ -723,10 +736,7 @@ function filterConversationMessages() {
 }
 
 function switchMessageVersion(historyIndex, nextVersion) {
-  if (isSending) {
-    showToast("请先停止当前生成");
-    return;
-  }
+  if (preventWorkspaceMutation("切换回复版本")) return;
   const message = conversationHistory[historyIndex];
   if (!message || !Array.isArray(message.versions) || !message.versions[nextVersion]) return;
   message.versionIndex = nextVersion;
@@ -988,10 +998,7 @@ function renderCheckpoints() {
 }
 
 function saveCheckpoint() {
-  if (isSending) {
-    showToast("模型回复完成后再保存检查点");
-    return;
-  }
+  if (preventWorkspaceMutation("保存检查点")) return;
   persistActiveProject();
   const project = getActiveProject();
   if (project.checkpoints.length >= maxCheckpoints) {
@@ -1021,10 +1028,7 @@ function closeCheckpointDialog() {
 }
 
 function restoreCheckpoint(checkpointId) {
-  if (isSending) {
-    showToast("模型回复完成后再恢复检查点");
-    return;
-  }
+  if (preventWorkspaceMutation("恢复检查点")) return;
   const project = getActiveProject();
   const checkpoint = project.checkpoints.find((item) => item.id === checkpointId);
   if (!checkpoint) return;
@@ -1055,10 +1059,7 @@ function deleteCheckpoint(checkpointId) {
 }
 
 function editMessage(historyIndex) {
-  if (isSending) {
-    showToast("请先停止当前生成");
-    return;
-  }
+  if (preventWorkspaceMutation("编辑提问")) return;
   const isLatestQuestion = historyIndex === conversationHistory.length - 2
     && conversationHistory[historyIndex]?.role === "user"
     && conversationHistory.at(-1)?.role === "assistant";
@@ -1224,6 +1225,10 @@ function exportCurrentProjectBackup() {
 async function importProjectsBackup() {
   const file = projectBackupFile.files?.[0];
   if (!file) return;
+  if (preventWorkspaceMutation("导入项目")) {
+    projectBackupFile.value = "";
+    return;
+  }
   if (file.size > 5_000_000) {
     showToast("备份文件超过 5MB，无法导入");
     projectBackupFile.value = "";
@@ -1417,10 +1422,11 @@ async function testProviderConnection() {
 }
 
 async function summarizeConversation() {
-  if (isSending) {
-    showToast("模型回复完成后再提炼摘要");
+  if (isSummarizing) {
+    showToast("摘要正在提炼中，请稍候");
     return;
   }
+  if (preventWorkspaceMutation("提炼摘要")) return;
   if (conversationHistory.length < 2) {
     showToast("先完成一轮对话，再提炼剧情摘要");
     return;
@@ -1428,6 +1434,8 @@ async function summarizeConversation() {
   saveServiceSettings();
   const provider = providerSelect.value;
   const model = modelName.value.trim();
+  const projectId = activeProjectId;
+  isSummarizing = true;
   generateSummaryButton.disabled = true;
   generateSummaryButton.textContent = "提炼中";
   try {
@@ -1447,6 +1455,10 @@ async function summarizeConversation() {
       error.userMessage = payload.error || "剧情摘要生成失败";
       throw error;
     }
+    if (activeProjectId !== projectId) {
+      showToast("当前项目已切换，摘要未写入");
+      return;
+    }
     const current = workSummary.value.trim();
     if (current && !window.confirm("用新摘要替换当前剧情摘要吗？")) return;
     workSummary.value = payload.summary.slice(0, 2000);
@@ -1456,6 +1468,7 @@ async function summarizeConversation() {
   } catch (error) {
     showToast(error?.name === "AbortError" ? "摘要生成超时，请检查服务状态" : (error?.userMessage || "剧情摘要生成失败"));
   } finally {
+    isSummarizing = false;
     generateSummaryButton.disabled = false;
     generateSummaryButton.textContent = "提炼摘要";
   }
@@ -1595,10 +1608,7 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
 }
 
 async function retryMessage(historyIndex) {
-  if (isSending) {
-    showToast("请先停止当前生成");
-    return;
-  }
+  if (preventWorkspaceMutation("重试回复")) return;
   if (historyIndex !== conversationHistory.length - 1 || conversationHistory.at(-1)?.role !== "assistant") {
     showToast("请先重试最后一条回复");
     return;
@@ -1978,10 +1988,7 @@ messageInput.addEventListener("keydown", (event) => {
 window.addEventListener("pagehide", flushDraft);
 
 document.querySelector("#resetSession").addEventListener("click", () => {
-  if (isSending) {
-    showToast("模型回复完成后再重新开始");
-    return;
-  }
+  if (preventWorkspaceMutation("重新开始")) return;
   const hasUnsavedConversation = conversationHistory.length > 1 || messageInput.value.trim();
   if (hasUnsavedConversation && !window.confirm("重新开始会清空当前对话和草稿，但会保留作品设定、摘录和检查点。确定继续吗？")) return;
   messages.innerHTML = "";
@@ -2102,9 +2109,8 @@ document.addEventListener("keydown", (event) => {
 
 function switchProject(projectId) {
   if (projectId === activeProjectId) return;
-  if (isSending) {
+  if (preventWorkspaceMutation("切换项目")) {
     projectSelect.value = activeProjectId;
-    showToast("模型回复完成后再切换项目");
     return;
   }
   persistActiveProject();
@@ -2123,6 +2129,7 @@ function createNewProject() {
     showToast(`项目数量已达到上限（${maxProjects} 个）`);
     return;
   }
+  if (preventWorkspaceMutation("创建项目")) return;
   const name = window.prompt("给新的创作项目取一个名字：", "未命名新章");
   if (!name || !name.trim()) return;
   const cleanName = name.trim();
@@ -2157,10 +2164,7 @@ function duplicateCurrentProject() {
     showToast(`项目数量已达到上限（${maxProjects} 个）`);
     return;
   }
-  if (isSending) {
-    showToast("模型回复完成后再复制项目");
-    return;
-  }
+  if (preventWorkspaceMutation("复制项目")) return;
   persistActiveProject();
   const current = getActiveProject();
   const name = window.prompt("给这条创作支线取一个名字：", `${current.name} · 分支`);
@@ -2196,10 +2200,7 @@ function branchFromMessage(historyIndex) {
     showToast(`项目数量已达到上限（${maxProjects} 个）`);
     return;
   }
-  if (isSending) {
-    showToast("模型回复完成后再创建支线");
-    return;
-  }
+  if (preventWorkspaceMutation("创建支线")) return;
   const sourceMessage = conversationHistory[historyIndex];
   if (!sourceMessage || sourceMessage.role !== "assistant") {
     showToast("只能从角色回复创建支线");
@@ -2247,6 +2248,7 @@ function branchFromMessage(historyIndex) {
 }
 
 function deleteCurrentProject() {
+  if (preventWorkspaceMutation("删除项目")) return;
   if (projects.length <= 1) {
     showToast("至少保留一个创作项目");
     return;
