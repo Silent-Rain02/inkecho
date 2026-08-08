@@ -1,11 +1,15 @@
+import io
 import os
 import unittest
 from types import SimpleNamespace
+from urllib.parse import urlencode
 from unittest.mock import patch
 
 from server import (
     build_messages,
     complete_chat,
+    error_status,
+    InkEchoHandler,
     list_provider_models,
     provider_health_snapshot,
     provider_settings,
@@ -119,6 +123,50 @@ class ServerConfigTests(unittest.TestCase):
         error = public_error(RuntimeError("upstream key=secret-value response body"))
         self.assertNotIn("secret-value", error)
         self.assertEqual(error, "模型服务请求失败，请检查服务配置或连接")
+
+    def test_client_input_errors_use_bad_request_status(self) -> None:
+        self.assertEqual(error_status(ValueError("bad json")).value, 400)
+        self.assertEqual(error_status(RuntimeError("upstream")).value, 502)
+
+
+class CaptureHandler(InkEchoHandler):
+    """Exercise handler routing without binding a socket in restricted CI."""
+
+    def __init__(self, path: str, body: bytes = b"") -> None:
+        self.path = path
+        self.headers = {"Content-Length": str(len(body))}
+        self.rfile = io.BytesIO(body)
+        self.responses = []
+        self.static_path = None
+
+    def send_json(self, data, status=200):
+        self.responses.append((status, data))
+
+    def serve_static(self, request_path: str) -> None:
+        self.static_path = request_path
+
+
+class HttpRouteTests(unittest.TestCase):
+    def test_static_index_route_is_served(self) -> None:
+        handler = CaptureHandler("/index.html")
+        handler.do_GET()
+        self.assertEqual(handler.static_path, "/index.html")
+
+    def test_health_route_uses_selected_ollama_model(self) -> None:
+        query = urlencode({"provider": "ollama", "model": "qwen3:8b"})
+        handler = CaptureHandler(f"/api/health?{query}")
+        with patch.dict(os.environ, {}, clear=True):
+            handler.do_GET()
+        _, payload = handler.responses[0]
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["providers"]["ollama"])
+
+    def test_malformed_chat_body_returns_bad_request(self) -> None:
+        handler = CaptureHandler("/api/chat", b"not-json")
+        handler.do_POST()
+        status, payload = handler.responses[0]
+        self.assertEqual(status, 400)
+        self.assertFalse(payload["ok"])
 
 
 if __name__ == "__main__":
