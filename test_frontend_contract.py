@@ -76,6 +76,7 @@ class FrontendContractTests(unittest.TestCase):
             "searchArchivedMessages",
             "copyScenePlan",
             "copyProjectHandoff",
+            "projectSearchCount",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -141,6 +142,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function copyProjectHandoff", self.javascript)
         self.assertIn("项目交接摘要已复制", self.javascript)
         self.assertIn("不包含 API key、端点或其他敏感配置", self.javascript)
+        self.assertIn("project.context?.chapter", self.javascript)
+        self.assertIn("activeBeat?.goal", self.javascript)
+        self.assertIn("const workspace = project?.id === activeProjectId", self.javascript)
+        self.assertIn("projectSearchCount.textContent", self.javascript)
         self.assertIn("归档引用", self.javascript)
         self.assertIn("查看归档历史", self.javascript)
         self.assertIn("function clearArchivedHistory", self.javascript)
