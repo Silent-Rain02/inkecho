@@ -59,6 +59,11 @@ const providerDescription = document.querySelector("#providerDescription");
 const refreshModelsButton = document.querySelector("#refreshModels");
 const testProviderButton = document.querySelector("#testProvider");
 const modelOptions = document.querySelector("#modelOptions");
+const openProviderDiagnosticsButton = document.querySelector("#openProviderDiagnostics");
+const providerDiagnosticsDialog = document.querySelector("#providerDiagnosticsDialog");
+const providerDiagnosticsStats = document.querySelector("#providerDiagnosticsStats");
+const providerDiagnosticsText = document.querySelector("#providerDiagnosticsText");
+const copyProviderDiagnosticsButton = document.querySelector("#copyProviderDiagnostics");
 const creativitySelect = document.querySelector("#creativitySelect");
 const creativityValue = document.querySelector("#creativityValue");
 const responseLengthSelect = document.querySelector("#responseLengthSelect");
@@ -2757,6 +2762,56 @@ async function fetchWithTimeout(url, options = {}, timeout = providerRequestTime
   }
 }
 
+function providerDisplayName(provider) {
+  return providerSelect.querySelector(`option[value="${provider}"]`)?.textContent || provider;
+}
+
+function formatProviderDiagnostics(payload, provider, model) {
+  const details = payload.provider_details?.[provider] || {};
+  const missing = Array.isArray(details.missing) && details.missing.length ? details.missing.join("、") : "无";
+  const providers = Object.keys(providerDefaults).map((name) => {
+    const providerDetails = payload.provider_details?.[name] || {};
+    const configured = Boolean(payload.providers?.[name]);
+    const missingFields = Array.isArray(providerDetails.missing) && providerDetails.missing.length
+      ? `（缺少：${providerDetails.missing.join("、")}）`
+      : "";
+    return `- ${providerDisplayName(name)}：${configured ? "配置完整" : "待配置"}${missingFields}`;
+  });
+  return [
+    `当前服务：${providerDisplayName(provider)}`,
+    `当前模型：${model || "未填写"}`,
+    `当前状态：${details.configured ? "配置完整" : "待配置"}`,
+    `当前缺少：${missing}`,
+    "",
+    "服务配置概览：",
+    ...providers,
+    "",
+    `上游请求超时：${Number(payload.request_timeout || 0).toLocaleString("zh-CN")} 秒`,
+    `历史消息预算：${Number(payload.history_budget || 0).toLocaleString("zh-CN")} 字`,
+    "",
+    "安全说明：诊断内容不包含 API key、端点或请求头值。",
+  ].join("\n");
+}
+
+async function openProviderDiagnostics() {
+  const provider = providerSelect.value;
+  const model = modelName.value.trim();
+  providerDiagnosticsStats.textContent = `${providerDisplayName(provider)} · ${model || "未填写模型"}`;
+  providerDiagnosticsText.textContent = "正在读取服务诊断……";
+  providerDiagnosticsDialog.showModal();
+  try {
+    const params = new URLSearchParams({ provider, model });
+    const response = await fetchWithTimeout(`/api/health?${params.toString()}`);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error("诊断不可用");
+    providerDiagnosticsText.textContent = formatProviderDiagnostics(payload, provider, model);
+  } catch (error) {
+    providerDiagnosticsText.textContent = error?.name === "AbortError"
+      ? "读取诊断超时，请检查 InkEcho 服务是否启动。"
+      : "暂时无法读取诊断，请检查本地服务状态。\n\n安全说明：未读取或显示任何密钥、端点或请求头值。";
+  }
+}
+
 function withAbortTimeout(promise, controller, timeout, message) {
   let timer;
   const timeoutPromise = new Promise((_, reject) => {
@@ -3772,6 +3827,11 @@ responseLengthSelect.addEventListener("change", () => {
 
 refreshModelsButton.addEventListener("click", refreshModels);
 testProviderButton.addEventListener("click", testProviderConnection);
+openProviderDiagnosticsButton.addEventListener("click", openProviderDiagnostics);
+copyProviderDiagnosticsButton.addEventListener("click", () => copyText(providerDiagnosticsText.textContent, "连接诊断已复制"));
+providerDiagnosticsDialog.addEventListener("click", (event) => {
+  if (event.target === providerDiagnosticsDialog) providerDiagnosticsDialog.close();
+});
 generateSummaryButton.addEventListener("click", summarizeConversation);
 toggleContextModeButton.addEventListener("click", toggleContextMode);
 contextUsage.addEventListener("click", openContextPreview);
