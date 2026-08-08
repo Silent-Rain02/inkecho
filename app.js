@@ -1646,6 +1646,7 @@ async function importProjectsBackup() {
       : backup?.format === "inkecho-projects" && Array.isArray(backup.projects)
         ? backup.projects
         : null;
+    const sourceActiveProjectId = backup?.format === "inkecho-projects" ? String(backup.activeProjectId || "") : "";
     if (!sourceProjects?.length || !sourceProjects[0] || typeof sourceProjects[0] !== "object") {
       throw new Error("invalid backup");
     }
@@ -1654,18 +1655,23 @@ async function importProjectsBackup() {
       showToast(`项目数量已达到上限（${maxProjects} 个）`);
       return;
     }
-    const imported = sourceProjects.slice(0, slots).map((project, index) => {
+    const importedEntries = sourceProjects.slice(0, slots).map((project, index) => {
       const source = project && typeof project === "object" ? project : {};
-      return createProject({
-        ...source,
-        id: `project-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
-        name: `${safeText(source.name, "未命名作品", 80)} · 导入`,
-      });
+      return {
+        sourceId: String(source.id || ""),
+        project: createProject({
+          ...source,
+          id: `project-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+          name: `${safeText(source.name, "未命名作品", 80)} · 导入`,
+        }),
+      };
     });
+    const imported = importedEntries.map((entry) => entry.project);
     if (!imported.length) throw new Error("empty backup");
     persistActiveProject();
     projects.push(...imported);
-    activeProjectId = imported[0].id;
+    const selectedImported = importedEntries.find((entry) => entry.sourceId === sourceActiveProjectId);
+    activeProjectId = selectedImported?.project.id || imported[0].id;
     persistProjects();
     hydrateActiveProject();
     renderProjectSelect();
