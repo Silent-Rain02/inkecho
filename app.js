@@ -1023,7 +1023,9 @@ function flushDraft() {
   const project = getActiveProject();
   if (!project) return;
   project.draft = messageInput.value.slice(0, 10000);
-  persistProjects();
+  // Persist the live form fields too; pagehide can fire before the deferred
+  // project save scheduled by saveWorkspace().
+  persistActiveProject();
 }
 
 function updateReferenceCount() {
