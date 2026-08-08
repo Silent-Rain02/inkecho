@@ -156,6 +156,7 @@
               <span>
                 <button class="text-button" id="testProvider" type="button">测试连接</button>
                 <button class="text-button" id="refreshModels" type="button">刷新模型</button>
+                <button class="text-button" id="openProviderDiagnostics" type="button">连接诊断</button>
                 <span class="service-badge" id="providerBadge">未连接</span>
               </span>
             </div>
@@ -480,6 +481,21 @@
         <pre class="context-preview-text" id="contextPreviewText"></pre>
         <div class="dialog-actions context-dialog-actions">
           <button class="dialog-copy" id="copyContextPreview" type="button">复制预览</button>
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" type="submit">关闭</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog context-dialog provider-diagnostics-dialog" id="providerDiagnosticsDialog" aria-labelledby="providerDiagnosticsTitle">
+      <form method="dialog">
+        <span class="section-kicker">PROVIDER DIAGNOSTICS</span>
+        <h2 id="providerDiagnosticsTitle">模型服务连接诊断</h2>
+        <p class="template-description">这里只展示服务状态、缺少字段和请求预算，不会显示 API key、端点或其他敏感值。</p>
+        <div class="context-preview-stats" id="providerDiagnosticsStats"></div>
+        <pre class="context-preview-text" id="providerDiagnosticsText"></pre>
+        <div class="dialog-actions context-dialog-actions">
+          <button class="dialog-copy" id="copyProviderDiagnostics" type="button">复制诊断</button>
           <span></span>
           <span></span>
           <button class="dialog-cancel" type="submit">关闭</button>
