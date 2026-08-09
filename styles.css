@@ -253,6 +253,8 @@ textarea { resize: vertical; }
 .source-reference-line { margin-top: 6px; color: #81917d; font: 9px var(--mono); line-height: 1.5; overflow-wrap: anywhere; }
 .source-reference-line[hidden] { display: none; }
 .source-reference-item { color: #9a806a; }
+.source-reference-button { margin-left: 8px; padding: 0; border: 0; border-bottom: 1px solid currentColor; color: var(--accent); background: transparent; font: inherit; }
+.source-reference-button:hover { color: var(--accent-dark); }
 .message-row.user .message-meta { justify-content: flex-end; }
 .bubble { padding: 12px 15px; border: 1px solid var(--line); background: #fbfbf7; color: #414843; font-size: 13px; line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; }
 .bubble code { padding: 1px 4px; color: #765443; background: #f2e9de; font: 0.9em var(--mono); }
@@ -371,7 +373,14 @@ kbd { padding: 2px 4px; border: 1px solid #dfe2da; background: #f5f5ef; font: 9p
 .context-dialog-actions { margin-top: 16px; }
 .dialog-copy { color: var(--accent); background: #f3f6ee; }
 .provider-diagnostics-dialog { width: min(680px, calc(100% - 36px)); }
+.source-evidence-dialog { width: min(780px, calc(100% - 36px)); }
 .summary-preview-dialog { width: min(900px, calc(100% - 36px)); }
+.source-evidence-list { display: grid; gap: 10px; max-height: min(470px, 55vh); margin: 16px 0 20px; overflow: auto; }
+.source-evidence-card { padding: 12px; border: 1px solid var(--line); background: #fbfbf7; }
+.source-evidence-card strong { display: block; color: var(--ink); font-size: 12px; font-weight: 600; }
+.source-evidence-text { max-height: 190px; margin: 8px 0 0; overflow: auto; color: var(--ink-soft); font: 11px/1.75 var(--serif); white-space: pre-wrap; }
+.source-evidence-empty { margin: 0; padding: 17px 13px; border: 1px dashed #dfe2d9; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.source-evidence-empty.is-error { color: #a26b46; }
 .summary-preview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .summary-preview-column { min-width: 0; }
 .summary-preview-label { display: block; margin-bottom: 7px; color: var(--muted); font: 9px var(--mono); }
