@@ -1682,7 +1682,7 @@ function isSummaryContextMode() {
   return getActiveProject()?.contextMode === "summary";
 }
 
-function getModelMessages({ fullHistory = false } = {}) {
+function getModelMessageSource({ fullHistory = false } = {}) {
   const project = getActiveProject();
   const continuityBridge = !fullHistory && !isSummaryContextMode() && Array.isArray(project?.conversationArchive)
     ? project.conversationArchive.slice(-continuityBridgeMessageCount)
@@ -1692,6 +1692,11 @@ function getModelMessages({ fullHistory = false } = {}) {
     : isSummaryContextMode()
       ? conversationHistory.slice(-4)
       : [...continuityBridge, ...conversationHistory.slice(-(20 - continuityBridge.length))];
+  return source;
+}
+
+function getModelMessages({ fullHistory = false } = {}) {
+  const source = getModelMessageSource({ fullHistory });
   const selected = [];
   let historyChars = 0;
   for (const item of [...source].reverse()) {
@@ -1705,15 +1710,20 @@ function getModelMessages({ fullHistory = false } = {}) {
 }
 
 function getPreviewModelMessages() {
-  return getModelMessages().reduce((selected, item) => {
+  const selected = [];
+  let historyChars = 0;
+  for (const item of [...getModelMessageSource()].reverse()) {
+    if (!item || !["user", "assistant"].includes(item.role) || typeof item.content !== "string" || !item.content.trim()) continue;
     const itemMode = normalizeMessageMode(item.mode);
-    if (selectedMode === "问答" && itemMode && itemMode !== "问答") return selected;
+    if (selectedMode === "问答" && itemMode && itemMode !== "问答") continue;
     const content = selectedMode !== "问答" && itemMode === "问答"
-      ? `【原作问答参考，不是剧情对话】\n${item.content}`
-      : item.content;
+      ? `【原作问答参考，不是剧情对话】\n${item.content.slice(0, 4000)}`
+      : item.content.slice(0, 4000);
+    if (historyChars + content.length > serverHistoryBudget) break;
     selected.push({ ...item, content });
-    return selected;
-  }, []);
+    historyChars += content.length;
+  }
+  return selected.reverse();
 }
 
 function updateContextModeUI() {
