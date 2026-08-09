@@ -642,6 +642,26 @@ class CaptureHandler(InkEchoHandler):
         self.static_path = request_path
 
 
+class StreamCaptureHandler(CaptureHandler):
+    """Capture SSE events without opening a network socket."""
+
+    def __init__(self, path: str, body: bytes = b"") -> None:
+        super().__init__(path, body)
+        self.events = []
+
+    def send_response(self, status):
+        self.status = status
+
+    def send_header(self, name, value):
+        return None
+
+    def end_headers(self):
+        return None
+
+    def send_event(self, data):
+        self.events.append(data)
+
+
 class HttpRouteTests(unittest.TestCase):
     def test_static_index_route_is_served(self) -> None:
         handler = CaptureHandler("/index.html")
@@ -719,7 +739,12 @@ class HttpRouteTests(unittest.TestCase):
         self.assertIn("尚未完成环境变量配置", payload["error"])
 
     def test_chat_route_returns_safe_source_references(self) -> None:
-        body = json.dumps({"provider": "ollama", "model": "qwen3:8b", "messages": []}).encode("utf-8")
+        body = json.dumps({
+            "provider": "ollama",
+            "model": "qwen3:8b",
+            "messages": [{"role": "user", "content": "春秋蝉有什么风险？"}],
+            "source_query": "春秋蝉有什么风险？ 青茅山",
+        }).encode("utf-8")
         handler = CaptureHandler("/api/chat", body)
         settings = SimpleNamespace(provider="ollama", model="qwen3:8b")
         with patch("server.complete_chat", return_value=("回答", settings)), patch(
@@ -729,7 +754,27 @@ class HttpRouteTests(unittest.TestCase):
         status, payload = handler.responses[0]
         self.assertEqual(status, 200)
         self.assertEqual(payload["text"], "回答")
+        self.assertEqual(payload["source_query"], "春秋蝉有什么风险？ 青茅山")
         self.assertEqual(payload["source_references"], ["第一节：青茅山"])
+
+    def test_stream_start_returns_server_source_query(self) -> None:
+        body = json.dumps({
+            "provider": "ollama",
+            "model": "qwen3:8b",
+            "messages": [{"role": "user", "content": "春秋蝉有什么风险？"}],
+            "source_query": "春秋蝉有什么风险？ 青茅山",
+        }).encode("utf-8")
+        handler = StreamCaptureHandler("/api/chat/stream", body)
+        settings = SimpleNamespace(provider="ollama", model="qwen3:8b")
+        with patch("server.stream_chat", return_value=(settings, iter(["回答"]))), patch(
+            "server.source_references", return_value=["第一节：青茅山"]
+        ):
+            handler.do_POST()
+        self.assertEqual(handler.status, 200)
+        self.assertEqual(handler.events[0]["type"], "start")
+        self.assertEqual(handler.events[0]["source_query"], "春秋蝉有什么风险？ 青茅山")
+        self.assertEqual(handler.events[0]["source_references"], ["第一节：青茅山"])
+        self.assertEqual(handler.events[-1], {"type": "done"})
 
     def test_source_search_route_returns_status_and_matches(self) -> None:
         body = json.dumps({"query": "方源"}).encode("utf-8")
