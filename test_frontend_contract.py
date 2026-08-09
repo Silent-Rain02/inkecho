@@ -201,6 +201,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("演示回复 · 模型服务未返回，本地模板生成", self.javascript)
         self.assertIn("appendDemoSourceBadge", self.javascript)
         self.assertIn("message-source-badge", self.javascript)
+        self.assertIn("appendCitationVerifiedBadge", self.javascript)
+        self.assertIn("message-citation-verified-badge", self.javascript)
         self.assertIn('const source = assistantMessage.bubble.dataset.source === "demo"', self.javascript)
         self.assertIn("模型服务未返回，本地模板生成", self.javascript)
         self.assertIn('role.textContent = getMessageSourceLabel(item) ? "演示回复"', self.javascript)
