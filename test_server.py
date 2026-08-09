@@ -27,6 +27,7 @@ from server import (
     STATIC_FILES,
     history_budget_chars,
     source_references,
+    source_query_from_payload,
     source_query_terms,
     source_search,
     source_status,
@@ -35,6 +36,21 @@ from server import (
 
 
 class ServerConfigTests(unittest.TestCase):
+    def test_source_query_reuses_previous_question_for_low_information_follow_up(self) -> None:
+        query = source_query_from_payload(
+            {
+                "messages": [
+                    {"role": "user", "content": "方源为什么要离开青茅山？"},
+                    {"role": "assistant", "content": "上一轮回答"},
+                    {"role": "user", "content": "继续写下去"},
+                ],
+                "context": {"chapter": "青茅山", "sceneGoal": "承接离开前的决定"},
+            }
+        )
+        self.assertIn("继续写下去", query)
+        self.assertIn("方源为什么要离开青茅山？", query)
+        self.assertIn("承接离开前的决定", query)
+
     def test_generation_budget_leaves_room_for_reasoning_models(self) -> None:
         reasoning = SimpleNamespace(model="gpt-5-mini-2025-08-07", provider="custom_azure")
         local = SimpleNamespace(model="qwen3:8b", provider="ollama")
