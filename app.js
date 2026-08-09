@@ -480,6 +480,19 @@ function normalizeSourceReferences(value) {
   )).slice(0, 4);
 }
 
+function normalizeSourceQuality(value) {
+  return ["strong", "partial", "limited", "none"].includes(value) ? value : "";
+}
+
+function sourceQualityLabel(value) {
+  return {
+    strong: "命中充分",
+    partial: "命中有限",
+    limited: "单一命中",
+    none: "未命中",
+  }[normalizeSourceQuality(value)] || "";
+}
+
 function formatBranchSource(project) {
   const source = normalizeBranchSource(project?.branchSource);
   if (!source) return "";
@@ -504,6 +517,7 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   const currentSource = source.source === "demo" || savedSources[versionIndex] === "demo" ? "demo" : "";
   const sourceRefs = normalizeSourceReferences(source.sourceRefs);
   const sourceQuery = safeText(source.sourceQuery, "", 600);
+  const sourceQuality = normalizeSourceQuality(source.sourceQuality);
   const normalized = {
     role: source.role === "user" ? "user" : "assistant",
     name: safeText(source.name, source.role === "user" ? "我" : fallbackAssistantName, 40),
@@ -512,6 +526,7 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   if (normalized.role === "assistant" && currentSource) normalized.source = currentSource;
   if (normalized.role === "assistant" && sourceRefs.length) normalized.sourceRefs = sourceRefs;
   if (normalized.role === "assistant" && sourceQuery) normalized.sourceQuery = sourceQuery;
+  if (normalized.role === "assistant" && sourceQuality) normalized.sourceQuality = sourceQuality;
   if (normalized.role === "assistant" && versions.length > 1) {
     normalized.versions = versions;
     normalized.versionIndex = versionIndex;
@@ -1778,9 +1793,11 @@ function getMessageSourceLabel(item) {
 function formatSourceAttribution(item) {
   const references = normalizeSourceReferences(item?.sourceRefs);
   const query = safeText(item?.sourceQuery, "", 600).replace(/\s+/g, " ");
-  if (!references.length && !query) return "";
+  const quality = sourceQualityLabel(item?.sourceQuality);
+  if (!references.length && !query && !quality) return "";
   return [
     references.length ? `> 原作参考：${references.join(" · ")}` : "",
+    quality ? `> 依据命中：${quality}` : "",
     query ? `> 依据查询：${query}` : "",
   ].filter(Boolean).join("\n");
 }
@@ -1803,17 +1820,18 @@ function appendTruncatedBadge(meta) {
   meta.appendChild(badge);
 }
 
-function renderSourceReferences(line, references, historyIndex = null, sourceQuery = "") {
+function renderSourceReferences(line, references, historyIndex = null, sourceQuery = "", sourceQuality = "") {
   const safeReferences = normalizeSourceReferences(references);
+  const quality = sourceQualityLabel(sourceQuality);
   line.replaceChildren();
   line.hidden = !safeReferences.length && !sourceQuery;
   if (!safeReferences.length && !sourceQuery) return;
   const label = document.createElement("span");
   if (!safeReferences.length) {
     label.className = "source-reference-missing";
-    label.textContent = "原作参考未标注";
+    label.textContent = quality === "未命中" ? "原作参考未命中" : "原作参考未标注";
   } else {
-    label.textContent = "原作参考";
+    label.textContent = quality ? `原作参考 · ${quality}` : "原作参考";
   }
   line.appendChild(label);
   safeReferences.forEach((reference, index) => {
@@ -1837,7 +1855,7 @@ function setAssistantBubbleText(bubble, text) {
   bubble.innerHTML = renderAssistantMarkdown(rawText);
 }
 
-function addMessage({ role, name, text, avatarClass, historyIndex, versions, sources, source, sourceRefs, sourceQuery, truncated = false, truncations, versionIndex = 0 }) {
+function addMessage({ role, name, text, avatarClass, historyIndex, versions, sources, source, sourceRefs, sourceQuery, sourceQuality, truncated = false, truncations, versionIndex = 0 }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
   if (Number.isInteger(historyIndex)) row.dataset.historyIndex = String(historyIndex);
@@ -1865,7 +1883,7 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
   else bubble.textContent = text;
   const sourceReferenceLine = document.createElement("div");
   sourceReferenceLine.className = "source-reference-line";
-  renderSourceReferences(sourceReferenceLine, sourceRefs, historyIndex, sourceQuery);
+  renderSourceReferences(sourceReferenceLine, sourceRefs, historyIndex, sourceQuery, sourceQuality);
   content.append(meta, bubble, sourceReferenceLine);
   if (role === "assistant") {
     const actions = document.createElement("div");
@@ -1959,7 +1977,8 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
     meta,
     truncated: currentTruncated,
     sourceReferenceLine,
-    renderSourceReferences: (references, query = sourceQuery) => renderSourceReferences(sourceReferenceLine, references, historyIndex, query),
+    renderSourceReferences: (references, query = sourceQuery, quality = sourceQuality) => renderSourceReferences(sourceReferenceLine, references, historyIndex, query, quality),
+    sourceQuality,
   };
 }
 
@@ -2913,6 +2932,7 @@ function renderConversation() {
       source: item.source,
       sourceRefs: item.sourceRefs,
       sourceQuery: item.sourceQuery,
+      sourceQuality: item.sourceQuality,
       truncated: item.truncated,
       truncations: item.truncations,
       versionIndex: item.versionIndex,
@@ -3986,9 +4006,11 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
     }, character, (metadata) => {
       const references = normalizeSourceReferences(metadata?.source_references);
       const effectiveSourceQuery = safeText(metadata?.source_query, sourceQuery, 600);
+      const effectiveSourceQuality = normalizeSourceQuality(metadata?.source_quality);
       assistantMessage.sourceQuery = effectiveSourceQuery;
+      assistantMessage.sourceQuality = effectiveSourceQuality;
       assistantMessage.sourceRefs = references;
-      assistantMessage.renderSourceReferences(references, effectiveSourceQuery);
+      assistantMessage.renderSourceReferences(references, effectiveSourceQuery, effectiveSourceQuality);
     }, sourceQuery, (metadata) => {
       if (!metadata?.truncated) return;
       assistantMessage.truncated = true;
@@ -4002,8 +4024,9 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
     if (!reply && !stopped) {
       reply = fallbackReply();
       assistantMessage.bubble.dataset.source = "demo";
+      assistantMessage.sourceQuality = "none";
       appendDemoSourceBadge(assistantMessage.meta);
-      assistantMessage.renderSourceReferences([], sourceQuery);
+      assistantMessage.renderSourceReferences([], sourceQuery, "none");
       setAssistantBubbleText(assistantMessage.bubble, reply);
       showToast(`${error?.userMessage || "模型服务暂不可用"}，当前使用演示回复`);
     } else if (!stopped && reply) {
@@ -4071,6 +4094,7 @@ async function retryMessage(historyIndex) {
     ...(currentSource ? { source: currentSource } : {}),
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
     ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
+    ...(assistantMessage.sourceQuality ? { sourceQuality: assistantMessage.sourceQuality } : {}),
     ...(versionTruncations.some(Boolean) ? { truncations: versionTruncations, truncated: Boolean(assistantMessage.truncated) } : {}),
     ...(versions.length > 1 ? { versions, sources: versionSources, versionIndex: versions.indexOf(reply) } : {}),
   });
@@ -4745,6 +4769,7 @@ composer.addEventListener("submit", async (event) => {
     ...(source ? { source } : {}),
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
     ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
+    ...(assistantMessage.sourceQuality ? { sourceQuality: assistantMessage.sourceQuality } : {}),
     ...(assistantMessage.truncated ? { truncated: true } : {}),
   });
   saveConversation();
