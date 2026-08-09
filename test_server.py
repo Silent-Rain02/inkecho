@@ -27,6 +27,7 @@ from server import (
     STATIC_FILES,
     history_budget_chars,
     source_references,
+    source_evidence_quality,
     source_query_from_payload,
     source_query_terms,
     source_search,
@@ -203,6 +204,17 @@ class ServerConfigTests(unittest.TestCase):
         ):
             references = source_references("方源")
         self.assertEqual(references, ["第一节：青茅山", "第二节：重生"])
+
+    def test_source_evidence_quality_describes_retrieval_strength(self) -> None:
+        self.assertEqual(source_evidence_quality("古月山寨和白家寨是什么关系", [
+            {"title": "第一节", "text": "古月山寨与白家寨同段出现。"},
+        ]), "strong")
+        self.assertEqual(source_evidence_quality("月光蛊有什么作用", [
+            {"title": "第一节", "text": "只提到蛊虫。"},
+            {"title": "第二节", "text": "又提到蛊虫。"},
+            {"title": "第三节", "text": "仍然是蛊虫。"},
+        ]), "partial")
+        self.assertEqual(source_evidence_quality("完全不存在的设定", []), "none")
 
     def test_source_search_deduplicates_chunks_from_same_section(self) -> None:
         with patch(
@@ -810,7 +822,11 @@ class HttpRouteTests(unittest.TestCase):
         handler = CaptureHandler("/api/chat", body)
         settings = SimpleNamespace(provider="ollama", model="qwen3:8b")
         with patch("server.complete_chat", return_value=("回答", settings, False)), patch(
-            "server.source_references", return_value=["第一节：青茅山"]
+            "server.source_evidence_metadata", return_value={
+                "source_references": ["第一节：青茅山"],
+                "source_quality": "strong",
+                "source_match_count": 1,
+            }
         ):
             handler.do_POST()
         status, payload = handler.responses[0]
@@ -819,6 +835,7 @@ class HttpRouteTests(unittest.TestCase):
         self.assertFalse(payload["truncated"])
         self.assertEqual(payload["source_query"], "春秋蝉有什么风险？ 青茅山")
         self.assertEqual(payload["source_references"], ["第一节：青茅山"])
+        self.assertEqual(payload["source_quality"], "strong")
 
     def test_stream_start_returns_server_source_query(self) -> None:
         body = json.dumps({
@@ -830,13 +847,18 @@ class HttpRouteTests(unittest.TestCase):
         handler = StreamCaptureHandler("/api/chat/stream", body)
         settings = SimpleNamespace(provider="ollama", model="qwen3:8b")
         with patch("server.stream_chat", return_value=(settings, iter(["回答"]))), patch(
-            "server.source_references", return_value=["第一节：青茅山"]
+            "server.source_evidence_metadata", return_value={
+                "source_references": ["第一节：青茅山"],
+                "source_quality": "strong",
+                "source_match_count": 1,
+            }
         ):
             handler.do_POST()
         self.assertEqual(handler.status, 200)
         self.assertEqual(handler.events[0]["type"], "start")
         self.assertEqual(handler.events[0]["source_query"], "春秋蝉有什么风险？ 青茅山")
         self.assertEqual(handler.events[0]["source_references"], ["第一节：青茅山"])
+        self.assertEqual(handler.events[0]["source_quality"], "strong")
         self.assertEqual(handler.events[-1], {"type": "done", "truncated": False})
 
     def test_source_search_route_returns_status_and_matches(self) -> None:
