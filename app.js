@@ -1803,6 +1803,7 @@ function getContextPreviewText() {
   const project = getActiveProject();
   const context = getModelPreviewContext();
   const modelMessages = getPreviewModelMessages();
+  const sourceQuery = getSourceQuery();
   const conversation = modelMessages.length
     ? modelMessages.map((message) => {
       const speaker = message.role === "assistant" ? (message.name || selectedCharacter.name) : "我";
@@ -1817,6 +1818,8 @@ function getContextPreviewText() {
     `创作倾向：${getEffectiveCreativityLabel()}`,
     `回复长度：${responseLengthLabels[responseLengthSelect.value] || "标准"}`,
     `上下文策略：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : `最近对话 + 最近 ${continuityBridgeMessageCount} 条归档桥接`}`,
+    `原作检索查询：${sourceQuery || "暂无查询"}`,
+    selectedMode === "问答" ? "原作依据：服务端会按上方查询动态检索有限片段，片段不会持久化" : "续写依据：服务端会按上方查询检索设定片段，命中明确章节时补充接续桥",
     selectedMode === "问答" ? "问答隔离：只发送作品 / 章节定位和原作检索依据；创作笔记未发送" : "",
     selectedMode === "问答" ? "问答历史：已排除带续写 / 改写 / 独白标记的历史消息" : "",
     `项目状态：${formatProjectHealth(project)}`,
@@ -1845,7 +1848,7 @@ function getContextPreviewText() {
 
 function openContextPreview() {
   updateContextUsage();
-  const modelMessages = getModelMessages();
+  const modelMessages = getPreviewModelMessages();
   const breakdown = getContextUsageBreakdown();
   contextPreviewStats.textContent = `${modelMessages.length} 条对话 · ${formatContextUsageBreakdown(breakdown)} · ${isSummaryContextMode() ? "完整历史仍保留" : "按服务端历史预算发送"} · ${formatContextFreshnessNotices()}`;
   contextPreviewText.textContent = getContextPreviewText();
