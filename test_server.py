@@ -240,6 +240,17 @@ class ServerConfigTests(unittest.TestCase):
             results = source_search("方源重生回到青茅山后要确认什么", limit=2)
         self.assertEqual(results[0]["title"], "第二节：逆光阴五百年觉悟")
 
+    def test_source_search_rewards_named_entity_cooccurrence_for_relationship_questions(self) -> None:
+        with patch(
+            "server.source_chunks",
+            return_value=[
+                {"title": "单一势力章节", "text": "古月山寨反复出现，古月山寨与周边局势有关。"},
+                {"title": "势力交汇章节", "text": "古月山寨与白家寨隔山相望，双方在资源与边界上存在联系。"},
+            ],
+        ):
+            results = source_search("古月山寨和白家寨是什么关系", limit=2)
+        self.assertEqual(results[0]["title"], "势力交汇章节")
+
     def test_source_search_prefers_opening_arc_for_reincarnation_question(self) -> None:
         chunks = [
             {"title": "第二节：逆光阴五百年觉悟", "text": "方源重生回到青茅山，先观察自身处境。"},
