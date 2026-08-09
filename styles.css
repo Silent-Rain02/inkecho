@@ -194,6 +194,7 @@ textarea { resize: vertical; }
 .model-settings .text-button { margin-right: 7px; font-size: 9px; }
 .service-badge { color: #a26b46; font: 9px var(--mono); }
 .model-settings select { width: 100%; height: 34px; margin-bottom: 8px; padding: 0 8px; border: 1px solid var(--line); outline: 0; color: var(--ink-soft); background: rgba(250, 250, 245, 0.75); font-size: 11px; }
+.model-settings select:disabled { cursor: not-allowed; opacity: 0.62; }
 .model-settings select:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
 .model-input { height: 32px; margin: 0; }
 .model-input input { font-size: 10px; }
