@@ -139,6 +139,8 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("第一人称内心独白", monologue_prompt)
         self.assertIn("原作知识库", qa_prompt)
         self.assertIn("原作依据", qa_prompt)
+        self.assertIn("资料助手", qa_prompt)
+        self.assertIn("不进行当前角色扮演", qa_prompt)
 
     def test_source_references_only_expose_unique_section_titles(self) -> None:
         with patch(
