@@ -152,6 +152,18 @@ class ServerConfigTests(unittest.TestCase):
             references = source_references("方源")
         self.assertEqual(references, ["第一节：青茅山", "第二节：重生"])
 
+    def test_source_search_deduplicates_chunks_from_same_section(self) -> None:
+        with patch(
+            "server.source_chunks",
+            return_value=[
+                {"title": "第一节：青茅山", "text": "方源观察青茅山。"},
+                {"title": "第一节：青茅山", "text": "方源继续判断局势。"},
+                {"title": "第二节：重生", "text": "方源重新开始。"},
+            ],
+        ):
+            results = source_search("方源", limit=4)
+        self.assertEqual([item["title"] for item in results], ["第一节：青茅山", "第二节：重生"])
+
     def test_source_chunks_keep_section_titles_and_bound_length(self) -> None:
         chunks = build_source_chunks("第一卷\n" + "甲" * 2100 + "\n第二节：重生\n" + "乙" * 3)
         self.assertGreaterEqual(len(chunks), 2)
