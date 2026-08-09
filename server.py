@@ -23,6 +23,7 @@ DEFAULT_HISTORY_CHARS = 48_000
 STATIC_FILES = {"index.html", "styles.css", "app.js"}
 DEFAULT_REQUEST_TIMEOUT = 120.0
 DEFAULT_SOURCE_NAME = "蛊真人"
+MIN_REASONING_MODEL_TOKENS = 1800
 SOURCE_CHUNK_CHARS = 1800
 MAX_SOURCE_CHUNKS = 20_000
 SOURCE_HEADING_RE = re.compile(r"^\s*(第[一二三四五六七八九十百千万0-9]+(?:卷|章|节)[：:]?.*|序(?:[：:].*)?)\s*$")
@@ -496,6 +497,13 @@ def response_length_settings(payload: dict[str, Any]) -> tuple[int, str]:
     return RESPONSE_LENGTH_GUIDANCE.get(key, RESPONSE_LENGTH_GUIDANCE["standard"])
 
 
+def generation_budget(settings: ProviderSettings, requested: int) -> int:
+    """Leave room for hidden reasoning used by GPT-5/o-series compatible models."""
+    model = settings.model.strip().lower()
+    reasoning_model = model.startswith(("gpt-5", "o1", "o3", "o4"))
+    return max(requested, MIN_REASONING_MODEL_TOKENS) if reasoning_model else requested
+
+
 def configured_provider_settings(payload: dict[str, Any]) -> ProviderSettings:
     """Validate client-selected provider settings before contacting an upstream service."""
     settings = provider_settings(payload.get("provider"), payload.get("model"))
@@ -689,6 +697,7 @@ def complete_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
     settings = configured_provider_settings(payload)
     client = build_client(settings)
     max_tokens, _ = response_length_settings(payload)
+    max_tokens = generation_budget(settings, max_tokens)
     response = client.chat.completions.create(
         model=settings.model,
         messages=build_messages(payload),
@@ -705,6 +714,7 @@ def stream_chat(payload: dict[str, Any]) -> tuple[ProviderSettings, Iterator[str
     settings = configured_provider_settings(payload)
     client = build_client(settings)
     max_tokens, _ = response_length_settings(payload)
+    max_tokens = generation_budget(settings, max_tokens)
     response = client.chat.completions.create(
         model=settings.model,
         messages=build_messages(payload),
@@ -729,7 +739,10 @@ def probe_provider(payload: dict[str, Any]) -> ProviderSettings:
     build_client(settings).chat.completions.create(
         model=settings.model,
         messages=[{"role": "user", "content": "请只回复：好"}],
-        max_tokens=2,
+        # Some enterprise gateways spend a small amount of hidden reasoning
+        # budget even for this one-word probe; 16 keeps it minimal while
+        # avoiding a false failure caused by a two-token ceiling.
+        max_tokens=16,
         stream=False,
     )
     return settings
@@ -756,6 +769,7 @@ def summarize_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
         )
         max_tokens = 500
         limit = 2000
+    max_tokens = generation_budget(settings, max_tokens)
     response = build_client(settings).chat.completions.create(
         model=settings.model,
         messages=messages,
