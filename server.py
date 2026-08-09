@@ -33,6 +33,11 @@ SOURCE_STOP_TERMS = {
     "后", "前", "最优先", "优先", "要", "确认", "事情", "选择", "之间", "什么", "回到",
     "的", "和", "是", "有", "在", "对", "与", "了", "吗", "呢",
 }
+SOURCE_KNOWN_TERMS = (
+    "至尊仙胎蛊", "三大山寨", "古月山寨", "古月一族", "开窍大典", "北冥冰魄", "白凝冰", "春秋蝉",
+    "月光蛊", "青茅山", "方源", "方正", "白家寨", "熊家寨", "花酒", "酒虫", "元石", "蛊师",
+    "蛊虫", "蛊仙", "真元", "仙窍", "炼蛊", "重生", "影宗", "天庭", "长生",
+)
 _source_cache_lock = Lock()
 _source_cache: dict[str, Any] = {"path": "", "mtime_ns": -1, "chunks": []}
 SECURITY_HEADERS = {
@@ -273,26 +278,32 @@ def source_query_from_payload(payload: dict[str, Any]) -> str:
 
 
 def source_query_terms(query: str) -> list[tuple[str, float]]:
-    """Build phrase-aware terms while reducing noisy short Chinese overlaps."""
+    """Build domain-aware terms without crossing Chinese word boundaries."""
     weighted_terms: list[tuple[str, float]] = []
+    query_without_known_terms = query
+    for known in sorted(SOURCE_KNOWN_TERMS, key=len, reverse=True):
+        if known not in query_without_known_terms:
+            continue
+        weighted_terms.append((known, 5.0 if len(known) >= 3 else 4.5))
+        # Keep low-weight subterms for fuzzy matches, but do not create noisy
+        # three/four-character windows that merge adjacent Chinese words.
+        for index in range(len(known) - 1):
+            weighted_terms.append((known[index:index + 2], 0.35))
+        query_without_known_terms = query_without_known_terms.replace(known, " ")
     stop_pattern = "|".join(sorted(SOURCE_STOP_TERMS, key=len, reverse=True))
-    query_without_stops = re.sub(stop_pattern, " ", query) if stop_pattern else query
+    query_without_stops = re.sub(stop_pattern, " ", query_without_known_terms) if stop_pattern else query_without_known_terms
     for token in re.findall(r"[a-z0-9_]{2,}|[\u4e00-\u9fff]{2,}", query_without_stops):
         if token in SOURCE_STOP_TERMS:
             continue
         if re.fullmatch(r"[a-z0-9_]+", token):
             weighted_terms.append((token, 3.0))
             continue
-        if len(token) <= 3:
-            weighted_terms.append((token, 4.0 if len(token) == 3 else 1.5))
-        for size, weight in ((4, 0.5), (3, 1.4), (2, 1.0)):
-            if len(token) < size:
-                continue
-            for index in range(len(token) - size + 1):
-                phrase = token[index:index + size]
-                if phrase in SOURCE_STOP_TERMS:
-                    continue
-                weighted_terms.append((phrase, weight))
+        if len(token) == 2:
+            weighted_terms.append((token, 1.5))
+        for index in range(len(token) - 1):
+            phrase = token[index:index + 2]
+            if phrase not in SOURCE_STOP_TERMS:
+                weighted_terms.append((phrase, 1.0))
     deduplicated: list[tuple[str, float]] = []
     seen: set[str] = set()
     for term, weight in weighted_terms:
@@ -312,13 +323,16 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
     weighted_terms = source_query_terms(query)
     if not weighted_terms:
         return []
+    origin_focus = "重生" in query and "青茅山" in query and any(
+        marker in query for marker in ("回到", "最先", "最优先", "初期", "开局")
+    )
     document_count = max(1, len(chunks))
     document_frequency = {
         term: sum(term in f"{chunk['title']}\n{chunk['text']}".lower() for chunk in chunks)
         for term, _ in weighted_terms
     }
     scored: list[tuple[float, dict[str, str]]] = []
-    for chunk in chunks:
+    for index, chunk in enumerate(chunks):
         title = chunk["title"].lower()
         haystack = f"{title}\n{chunk['text'].lower()}"
         score = 0.0
@@ -331,6 +345,10 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
                 score += min(occurrences, 3) * weight * idf * (1.0 + min(len(term), 8) / 4)
                 if len(term) >= 3 and term in title:
                     score += 12.0 * weight * idf
+        if origin_focus and index < 450:
+            # Questions about Fang Yuan's first return to Qing Mao Mountain
+            # should prefer the opening arc over later retrospective mentions.
+            score += max(0.0, 56.0 - index / 8.0)
         if score:
             scored.append((score, chunk))
     scored.sort(key=lambda item: item[0], reverse=True)
