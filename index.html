@@ -517,6 +517,21 @@
         </div>
       </form>
     </dialog>
+    <dialog class="character-dialog context-dialog source-evidence-dialog" id="sourceEvidenceDialog" aria-labelledby="sourceEvidenceTitle">
+      <form method="dialog">
+        <span class="section-kicker">LOCAL SOURCE EVIDENCE</span>
+        <h2 id="sourceEvidenceTitle">原作检索依据</h2>
+        <p class="template-description">以下内容来自本机知识库的临时检索结果，不会写入项目记录或上传到 GitHub。</p>
+        <div class="context-preview-stats" id="sourceEvidenceStats"></div>
+        <div class="source-evidence-list" id="sourceEvidenceList"></div>
+        <div class="dialog-actions context-dialog-actions">
+          <button class="dialog-copy" id="copySourceEvidence" type="button">复制依据</button>
+          <span></span>
+          <span></span>
+          <button class="dialog-cancel" type="submit">关闭</button>
+        </div>
+      </form>
+    </dialog>
     <dialog class="character-dialog context-dialog summary-preview-dialog" id="sceneOutcomePreviewDialog" aria-labelledby="sceneOutcomePreviewTitle">
       <form method="dialog">
         <span class="section-kicker">SCENE OUTCOME REVIEW</span>
