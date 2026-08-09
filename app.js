@@ -493,6 +493,10 @@ function sourceQualityLabel(value) {
   }[normalizeSourceQuality(value)] || "";
 }
 
+function normalizeCitationStatus(value) {
+  return ["verified", "unverified", "none"].includes(value) ? value : "";
+}
+
 function formatBranchSource(project) {
   const source = normalizeBranchSource(project?.branchSource);
   if (!source) return "";
@@ -518,6 +522,10 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   const sourceRefs = normalizeSourceReferences(source.sourceRefs);
   const sourceQuery = safeText(source.sourceQuery, "", 600);
   const sourceQuality = normalizeSourceQuality(source.sourceQuality);
+  const citationStatus = normalizeCitationStatus(source.sourceCitationStatus);
+  const citationUnverified = Array.isArray(source.sourceCitationsUnverified)
+    ? source.sourceCitationsUnverified.map((value) => safeText(value, "", 120)).filter(Boolean).slice(0, 8)
+    : [];
   const normalized = {
     role: source.role === "user" ? "user" : "assistant",
     name: safeText(source.name, source.role === "user" ? "我" : fallbackAssistantName, 40),
@@ -527,6 +535,8 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   if (normalized.role === "assistant" && sourceRefs.length) normalized.sourceRefs = sourceRefs;
   if (normalized.role === "assistant" && sourceQuery) normalized.sourceQuery = sourceQuery;
   if (normalized.role === "assistant" && sourceQuality) normalized.sourceQuality = sourceQuality;
+  if (normalized.role === "assistant" && citationStatus) normalized.sourceCitationStatus = citationStatus;
+  if (normalized.role === "assistant" && citationUnverified.length) normalized.sourceCitationsUnverified = citationUnverified;
   if (normalized.role === "assistant" && versions.length > 1) {
     normalized.versions = versions;
     normalized.versionIndex = versionIndex;
@@ -1820,6 +1830,18 @@ function appendTruncatedBadge(meta) {
   meta.appendChild(badge);
 }
 
+function appendCitationWarningBadge(meta, citations = []) {
+  if (!meta || meta.querySelector(".message-citation-warning-badge")) return;
+  const badge = document.createElement("span");
+  badge.className = "message-citation-warning-badge";
+  badge.textContent = "引用待核对";
+  const safeCitations = Array.isArray(citations) ? citations.filter(Boolean).slice(0, 4) : [];
+  badge.title = safeCitations.length
+    ? `模型引用的章节不在本次检索结果中：${safeCitations.join("、")}`
+    : "模型引用的章节不在本次检索结果中，请打开“查看依据”核对。";
+  meta.appendChild(badge);
+}
+
 function renderSourceReferences(line, references, historyIndex = null, sourceQuery = "", sourceQuality = "") {
   const safeReferences = normalizeSourceReferences(references);
   const quality = sourceQualityLabel(sourceQuality);
@@ -1855,7 +1877,7 @@ function setAssistantBubbleText(bubble, text) {
   bubble.innerHTML = renderAssistantMarkdown(rawText);
 }
 
-function addMessage({ role, name, text, avatarClass, historyIndex, versions, sources, source, sourceRefs, sourceQuery, sourceQuality, truncated = false, truncations, versionIndex = 0 }) {
+function addMessage({ role, name, text, avatarClass, historyIndex, versions, sources, source, sourceRefs, sourceQuery, sourceQuality, sourceCitationStatus, sourceCitationsUnverified, truncated = false, truncations, versionIndex = 0 }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
   if (Number.isInteger(historyIndex)) row.dataset.historyIndex = String(historyIndex);
@@ -1877,6 +1899,9 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
   if (role === "assistant" && currentSource) appendDemoSourceBadge(meta);
   const currentTruncated = Boolean(truncated || truncations?.[versionIndex]);
   if (role === "assistant" && currentTruncated) appendTruncatedBadge(meta);
+  if (role === "assistant" && sourceCitationStatus === "unverified") {
+    appendCitationWarningBadge(meta, sourceCitationsUnverified);
+  }
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   if (role === "assistant") setAssistantBubbleText(bubble, text);
@@ -2933,6 +2958,8 @@ function renderConversation() {
       sourceRefs: item.sourceRefs,
       sourceQuery: item.sourceQuery,
       sourceQuality: item.sourceQuality,
+      sourceCitationStatus: item.sourceCitationStatus,
+      sourceCitationsUnverified: item.sourceCitationsUnverified,
       truncated: item.truncated,
       truncations: item.truncations,
       versionIndex: item.versionIndex,
@@ -4014,9 +4041,19 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
       assistantMessage.sourceRefs = references;
       assistantMessage.renderSourceReferences(references, effectiveSourceQuery, effectiveSourceQuality);
     }, sourceQuery, (metadata) => {
-      if (!metadata?.truncated) return;
-      assistantMessage.truncated = true;
-      appendTruncatedBadge(assistantMessage.meta);
+      if (metadata?.truncated) {
+        assistantMessage.truncated = true;
+        appendTruncatedBadge(assistantMessage.meta);
+      }
+      if (metadata?.source_citation_status) {
+        assistantMessage.sourceCitationStatus = normalizeCitationStatus(metadata.source_citation_status);
+        assistantMessage.sourceCitationsUnverified = Array.isArray(metadata.source_citations_unverified)
+          ? metadata.source_citations_unverified.map((value) => safeText(value, "", 120)).filter(Boolean)
+          : [];
+        if (assistantMessage.sourceCitationStatus === "unverified") {
+          appendCitationWarningBadge(assistantMessage.meta, assistantMessage.sourceCitationsUnverified);
+        }
+      }
     });
   } catch (error) {
     const timedOut = error?.name === "StreamTimeoutError";
@@ -4097,6 +4134,8 @@ async function retryMessage(historyIndex) {
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
     ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
     ...(assistantMessage.sourceQuality ? { sourceQuality: assistantMessage.sourceQuality } : {}),
+    ...(assistantMessage.sourceCitationStatus ? { sourceCitationStatus: assistantMessage.sourceCitationStatus } : {}),
+    ...(assistantMessage.sourceCitationsUnverified?.length ? { sourceCitationsUnverified: assistantMessage.sourceCitationsUnverified } : {}),
     ...(versionTruncations.some(Boolean) ? { truncations: versionTruncations, truncated: Boolean(assistantMessage.truncated) } : {}),
     ...(versions.length > 1 ? { versions, sources: versionSources, versionIndex: versions.indexOf(reply) } : {}),
   });
@@ -4772,6 +4811,8 @@ composer.addEventListener("submit", async (event) => {
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
     ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
     ...(assistantMessage.sourceQuality ? { sourceQuality: assistantMessage.sourceQuality } : {}),
+    ...(assistantMessage.sourceCitationStatus ? { sourceCitationStatus: assistantMessage.sourceCitationStatus } : {}),
+    ...(assistantMessage.sourceCitationsUnverified?.length ? { sourceCitationsUnverified: assistantMessage.sourceCitationsUnverified } : {}),
     ...(assistantMessage.truncated ? { truncated: true } : {}),
   });
   saveConversation();
