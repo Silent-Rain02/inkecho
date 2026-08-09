@@ -3262,6 +3262,9 @@ async function importProjectsBackup() {
 function setSending(value) {
   isSending = value;
   messageInput.disabled = value;
+  document.querySelectorAll(".mode-tab, .character-card").forEach((control) => {
+    control.disabled = value;
+  });
   sendButton.disabled = false;
   sendButton.textContent = value ? "■" : "↑";
   sendButton.setAttribute("aria-label", value ? "停止生成" : "发送消息");
