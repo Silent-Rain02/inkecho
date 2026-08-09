@@ -1794,6 +1794,15 @@ function appendDemoSourceBadge(meta) {
   meta.appendChild(sourceBadge);
 }
 
+function appendTruncatedBadge(meta) {
+  if (!meta || meta.querySelector(".message-truncated-badge")) return;
+  const badge = document.createElement("span");
+  badge.className = "message-truncated-badge";
+  badge.textContent = "已截断";
+  badge.title = "模型输出达到当前篇幅上限，内容可能尚未完整收束；可以切换为展开后重试。";
+  meta.appendChild(badge);
+}
+
 function renderSourceReferences(line, references, historyIndex = null, sourceQuery = "") {
   const safeReferences = normalizeSourceReferences(references);
   line.replaceChildren();
@@ -1828,7 +1837,7 @@ function setAssistantBubbleText(bubble, text) {
   bubble.innerHTML = renderAssistantMarkdown(rawText);
 }
 
-function addMessage({ role, name, text, avatarClass, historyIndex, versions, sources, source, sourceRefs, sourceQuery, versionIndex = 0 }) {
+function addMessage({ role, name, text, avatarClass, historyIndex, versions, sources, source, sourceRefs, sourceQuery, truncated = false, truncations, versionIndex = 0 }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
   if (Number.isInteger(historyIndex)) row.dataset.historyIndex = String(historyIndex);
@@ -1848,6 +1857,8 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
   meta.append(nameElement, time);
   const currentSource = source === "demo" || sources?.[versionIndex] === "demo" ? "demo" : "";
   if (role === "assistant" && currentSource) appendDemoSourceBadge(meta);
+  const currentTruncated = Boolean(truncated || truncations?.[versionIndex]);
+  if (role === "assistant" && currentTruncated) appendTruncatedBadge(meta);
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   if (role === "assistant") setAssistantBubbleText(bubble, text);
@@ -1946,6 +1957,7 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
     row,
     bubble,
     meta,
+    truncated: currentTruncated,
     sourceReferenceLine,
     renderSourceReferences: (references, query = sourceQuery) => renderSourceReferences(sourceReferenceLine, references, historyIndex, query),
   };
@@ -1979,6 +1991,7 @@ function switchMessageVersion(historyIndex, nextVersion) {
   message.content = message.versions[nextVersion];
   if (message.sources?.[nextVersion] === "demo") message.source = "demo";
   else delete message.source;
+  if (Array.isArray(message.truncations)) message.truncated = Boolean(message.truncations[nextVersion]);
   saveConversation();
   renderConversation();
   showToast(`已切换到第 ${nextVersion + 1} 版回复`);
@@ -2900,6 +2913,8 @@ function renderConversation() {
       source: item.source,
       sourceRefs: item.sourceRefs,
       sourceQuery: item.sourceQuery,
+      truncated: item.truncated,
+      truncations: item.truncations,
       versionIndex: item.versionIndex,
     });
   });
@@ -3834,7 +3849,7 @@ async function requestModelReply() {
   return payload.text;
 }
 
-async function requestStreamReply(onDelta, character = selectedCharacter, onStart = null, sourceQuery = getSourceQuery()) {
+async function requestStreamReply(onDelta, character = selectedCharacter, onStart = null, sourceQuery = getSourceQuery(), onDone = null) {
   const controller = new AbortController();
   streamController = controller;
   const response = await withAbortTimeout(fetch("/api/chat/stream", {
@@ -3899,6 +3914,7 @@ async function requestStreamReply(onDelta, character = selectedCharacter, onStar
         throw error;
       } else if (payload.type === "done") {
         finished = true;
+        if (typeof onDone === "function") onDone(payload);
       }
     }
     if (done) finished = true;
@@ -3973,7 +3989,11 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
       assistantMessage.sourceQuery = effectiveSourceQuery;
       assistantMessage.sourceRefs = references;
       assistantMessage.renderSourceReferences(references, effectiveSourceQuery);
-    }, sourceQuery);
+    }, sourceQuery, (metadata) => {
+      if (!metadata?.truncated) return;
+      assistantMessage.truncated = true;
+      appendTruncatedBadge(assistantMessage.meta);
+    });
   } catch (error) {
     const timedOut = error?.name === "StreamTimeoutError";
     const stopped = error?.name === "AbortError" && !timedOut;
@@ -3993,6 +4013,7 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
       setAssistantBubbleText(assistantMessage.bubble, reply);
       }
   } finally {
+    if (assistantMessage.truncated && reply) showToast("回复达到篇幅上限，可能尚未完整收束；可切换“展开”后重试");
     streamController = null;
     setSending(false);
   }
@@ -4030,10 +4051,18 @@ async function retryMessage(historyIndex) {
   const previousSources = Array.isArray(previousReply.sources)
     ? previousReply.sources
     : previousVersions.map(() => previousReply.source === "demo" ? "demo" : "");
+  const previousTruncations = Array.isArray(previousReply.truncations)
+    ? previousReply.truncations.map(Boolean)
+    : previousVersions.map(() => Boolean(previousReply.truncated));
   const versionSources = versions.map((version) => {
     if (version === reply) return currentSource;
     const previousIndex = previousVersions.indexOf(version);
     return previousIndex >= 0 && previousSources[previousIndex] === "demo" ? "demo" : "";
+  });
+  const versionTruncations = versions.map((version) => {
+    if (version === reply) return Boolean(assistantMessage.truncated);
+    const previousIndex = previousVersions.indexOf(version);
+    return previousIndex >= 0 && previousTruncations[previousIndex] === true;
   });
   conversationHistory.push({
     role: "assistant",
@@ -4042,6 +4071,7 @@ async function retryMessage(historyIndex) {
     ...(currentSource ? { source: currentSource } : {}),
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
     ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
+    ...(versionTruncations.some(Boolean) ? { truncations: versionTruncations, truncated: Boolean(assistantMessage.truncated) } : {}),
     ...(versions.length > 1 ? { versions, sources: versionSources, versionIndex: versions.indexOf(reply) } : {}),
   });
   saveConversation();
@@ -4715,6 +4745,7 @@ composer.addEventListener("submit", async (event) => {
     ...(source ? { source } : {}),
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
     ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
+    ...(assistantMessage.truncated ? { truncated: true } : {}),
   });
   saveConversation();
 });
