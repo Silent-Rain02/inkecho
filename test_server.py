@@ -33,6 +33,7 @@ from server import (
     source_query_from_payload,
     source_query_terms,
     source_search,
+    source_outline,
     source_status,
     static_asset_path,
 )
@@ -395,6 +396,19 @@ class ServerConfigTests(unittest.TestCase):
         titles = [chunk["title"] for chunk in chunks]
         self.assertIn("第一卷 · 第一节：开局", titles)
         self.assertIn("第二卷 · 第一节：转折", titles)
+
+    def test_source_outline_returns_unique_safe_titles_and_supports_query(self) -> None:
+        with patch(
+            "server.source_chunks",
+            return_value=[
+                {"title": "第一卷 · 第一节：开局", "text": ""},
+                {"title": "第一卷 · 第一节：开局", "text": "分片"},
+                {"title": "第一卷 · 第二节：开窍", "text": ""},
+                {"title": "第二卷 · 第一节：转折", "text": ""},
+            ],
+        ):
+            titles = source_outline("第一卷")
+        self.assertEqual(titles, ["第一卷 · 第一节：开局", "第一卷 · 第二节：开窍"])
 
     def test_source_search_reads_only_configured_local_file(self) -> None:
         with tempfile.NamedTemporaryFile("w", suffix=".txt", encoding="utf-8", delete=False) as handle:
@@ -869,6 +883,17 @@ class HttpRouteTests(unittest.TestCase):
         self.assertTrue(payload["providers"]["ollama"])
         self.assertEqual(payload["history_budget"], 48000)
         self.assertEqual(payload["request_timeout"], 120.0)
+
+    def test_source_outline_route_returns_titles_without_source_text(self) -> None:
+        handler = CaptureHandler("/api/source/outline?query=%E7%AC%AC%E4%B8%80%E5%8D%B7")
+        with patch("server.source_status", return_value={"name": "蛊真人", "available": True, "chunks": 2}), patch(
+            "server.source_outline", return_value=["第一卷 · 第一节：开局"]
+        ):
+            handler.do_GET()
+        status, payload = handler.responses[0]
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["titles"], ["第一卷 · 第一节：开局"])
+        self.assertNotIn("text", json.dumps(payload, ensure_ascii=False))
 
     def test_model_route_marks_azure_deployment_as_configuration_only(self) -> None:
         query = urlencode({"provider": "custom_azure"})
