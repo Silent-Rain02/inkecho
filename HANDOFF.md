@@ -75,7 +75,7 @@ INK_ECHO_SOURCE_FILE=/绝对路径/新蛊无删减错别字修正5.0.txt
 - `POST /api/chat`：非流式回复
 - `POST /api/chat/stream`：SSE 流式回复
 
-聊天响应会额外返回服务端最终采用的 `source_query` 与安全的 `source_references` 章节标题列表；`POST /api/source/search` 仅返回有限检索片段，不是原文下载接口，前端依据面板也不会把结果持久化。
+聊天响应会额外返回服务端最终采用的 `source_query`、安全的 `source_references` 章节标题列表和 `truncated` 状态；流式 `done` 事件同样会标记是否因长度上限截断。前端会显示“已截断”徽标并将状态保存到项目记录，`POST /api/source/search` 仅返回有限检索片段，不是原文下载接口，前端依据面板也不会把结果持久化。
 
 支持 `custom_azure`、`ollama`、`openai`、`azure` 和 `compatible`。每个项目会按服务分别记住模型名，办公网端点与本地 Ollama 的配置示例都在 `.env.example`。普通回复、流式回复和摘要都能处理字符串或结构化文本片段。服务端会过滤 `replace_with_your_key`、`your-deployment-name` 等配置占位符，避免状态误报。
 
