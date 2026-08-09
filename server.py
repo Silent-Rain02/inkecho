@@ -347,6 +347,11 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
     origin_focus = "重生" in query and "青茅山" in query and any(
         marker in query for marker in ("回到", "最先", "最优先", "初期", "开局")
     )
+    named_terms = [
+        term.lower()
+        for term in SOURCE_KNOWN_TERMS
+        if len(term) >= 3 and term.lower() in query
+    ]
     document_count = max(1, len(chunks))
     document_frequency = {
         term: sum(term in f"{chunk['title']}\n{chunk['text']}".lower() for chunk in chunks)
@@ -366,6 +371,12 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
                 score += min(occurrences, 3) * weight * idf * (1.0 + min(len(term), 8) / 4)
                 if len(term) >= 3 and term in title:
                     score += 12.0 * weight * idf
+        if len(named_terms) >= 2:
+            # Relationship questions are better served by a passage that
+            # mentions both named entities than by separate one-entity hits.
+            named_hits = sum(term in haystack for term in named_terms)
+            if named_hits >= 2:
+                score += 34.0 + 14.0 * (named_hits - 2)
         if origin_focus and index < 450:
             # Questions about Fang Yuan's first return to Qing Mao Mountain
             # should prefer the opening arc over later retrospective mentions.
