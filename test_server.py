@@ -279,6 +279,23 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(unverified["source_citation_status"], "unverified")
         self.assertEqual(unverified["source_citations_unverified"], ["第九百九十九节"])
 
+    def test_source_citation_metadata_ignores_explanatory_text_before_chapter(self) -> None:
+        result = source_citation_metadata(
+            "原作依据：-文中明说春秋蝉有磅礴气息。\n-第一卷·第十九节（依据：第一卷·第十九节）",
+            ["第一卷 · 第十九节：六转本命春秋蝉！"],
+        )
+        self.assertEqual(result["source_citation_status"], "verified")
+        self.assertEqual(result["source_citations_unverified"], [])
+        self.assertIn("第十九节", result["source_citations"])
+
+    def test_source_citation_metadata_normalizes_arabic_chapter_number(self) -> None:
+        result = source_citation_metadata(
+            "春秋蝉（依据：第19节）。",
+            ["第一卷 · 第十九节：六转本命春秋蝉！"],
+        )
+        self.assertEqual(result["source_citation_status"], "verified")
+        self.assertEqual(result["source_citations_unverified"], [])
+
     def test_qa_prompt_uses_retrieval_quality_to_set_fact_boundary(self) -> None:
         with patch(
             "server.source_search",
