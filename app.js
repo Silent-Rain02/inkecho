@@ -485,6 +485,21 @@ function normalizeSourceReferences(value) {
   )).slice(0, 4);
 }
 
+function normalizeSourceReferencesByVersion(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((references) => normalizeSourceReferences(references));
+}
+
+function normalizeSourceQueriesByVersion(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((query) => safeText(query, "", 600));
+}
+
+function normalizeSourceQualitiesByVersion(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((quality) => normalizeSourceQuality(quality));
+}
+
 function normalizeSourceQuality(value) {
   return ["strong", "partial", "limited", "none"].includes(value) ? value : "";
 }
@@ -531,6 +546,18 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   const sourceRefs = normalizeSourceReferences(source.sourceRefs);
   const sourceQuery = safeText(source.sourceQuery, "", 600);
   const sourceQuality = normalizeSourceQuality(source.sourceQuality);
+  const sourceRefsByVersion = normalizeSourceReferencesByVersion(source.sourceRefsByVersion);
+  const sourceQueriesByVersion = normalizeSourceQueriesByVersion(source.sourceQueriesByVersion);
+  const sourceQualitiesByVersion = normalizeSourceQualitiesByVersion(source.sourceQualitiesByVersion);
+  const currentSourceRefs = sourceRefsByVersion.length
+    ? (sourceRefsByVersion[versionIndex] || [])
+    : sourceRefs;
+  const currentSourceQuery = sourceQueriesByVersion.length
+    ? (sourceQueriesByVersion[versionIndex] || "")
+    : sourceQuery;
+  const currentSourceQuality = sourceQualitiesByVersion.length
+    ? (sourceQualitiesByVersion[versionIndex] || "")
+    : sourceQuality;
   const citationStatus = normalizeCitationStatus(source.sourceCitationStatus);
   const citationUnverified = Array.isArray(source.sourceCitationsUnverified)
     ? source.sourceCitationsUnverified.map((value) => safeText(value, "", 120)).filter(Boolean).slice(0, 8)
@@ -555,9 +582,9 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   };
   if (messageMode) normalized.mode = messageMode;
   if (normalized.role === "assistant" && currentSource) normalized.source = currentSource;
-  if (normalized.role === "assistant" && sourceRefs.length) normalized.sourceRefs = sourceRefs;
-  if (normalized.role === "assistant" && sourceQuery) normalized.sourceQuery = sourceQuery;
-  if (normalized.role === "assistant" && sourceQuality) normalized.sourceQuality = sourceQuality;
+  if (normalized.role === "assistant" && currentSourceRefs.length) normalized.sourceRefs = currentSourceRefs;
+  if (normalized.role === "assistant" && currentSourceQuery) normalized.sourceQuery = currentSourceQuery;
+  if (normalized.role === "assistant" && currentSourceQuality) normalized.sourceQuality = currentSourceQuality;
   if (normalized.role === "assistant" && currentCitationStatus) normalized.sourceCitationStatus = currentCitationStatus;
   if (normalized.role === "assistant" && currentCitationUnverified.length) normalized.sourceCitationsUnverified = currentCitationUnverified;
   if (normalized.role === "assistant" && versions.length > 1) {
@@ -567,6 +594,15 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
       savedSources[index] === "demo" || (version === content && source.source === "demo") ? "demo" : ""
     ));
     if (normalizedSources.some(Boolean)) normalized.sources = normalizedSources;
+    if (sourceRefsByVersion.length || currentSourceRefs.length) {
+      normalized.sourceRefsByVersion = versions.map((_, index) => sourceRefsByVersion[index] || (index === versionIndex ? currentSourceRefs : []));
+    }
+    if (sourceQueriesByVersion.length || currentSourceQuery) {
+      normalized.sourceQueriesByVersion = versions.map((_, index) => sourceQueriesByVersion[index] || (index === versionIndex ? currentSourceQuery : ""));
+    }
+    if (sourceQualitiesByVersion.length || currentSourceQuality) {
+      normalized.sourceQualitiesByVersion = versions.map((_, index) => sourceQualitiesByVersion[index] || (index === versionIndex ? currentSourceQuality : ""));
+    }
     if (citationStatuses.some(Boolean)) normalized.sourceCitationStatuses = citationStatuses;
     if (citationUnverifiedByVersion.some((values) => values.length)) {
       normalized.sourceCitationsUnverifiedByVersion = citationUnverifiedByVersion;
@@ -2115,6 +2151,21 @@ function switchMessageVersion(historyIndex, nextVersion) {
   if (!message || !Array.isArray(message.versions) || !message.versions[nextVersion]) return;
   message.versionIndex = nextVersion;
   message.content = message.versions[nextVersion];
+  if (Array.isArray(message.sourceRefsByVersion)) {
+    const references = message.sourceRefsByVersion[nextVersion] || [];
+    if (references.length) message.sourceRefs = references;
+    else delete message.sourceRefs;
+  }
+  if (Array.isArray(message.sourceQueriesByVersion)) {
+    const query = message.sourceQueriesByVersion[nextVersion] || "";
+    if (query) message.sourceQuery = query;
+    else delete message.sourceQuery;
+  }
+  if (Array.isArray(message.sourceQualitiesByVersion)) {
+    const quality = normalizeSourceQuality(message.sourceQualitiesByVersion[nextVersion]);
+    if (quality) message.sourceQuality = quality;
+    else delete message.sourceQuality;
+  }
   if (message.sources?.[nextVersion] === "demo") message.source = "demo";
   else delete message.source;
   if (Array.isArray(message.truncations)) message.truncated = Boolean(message.truncations[nextVersion]);
@@ -2501,10 +2552,16 @@ function cloneProjectState(source) {
     conversation: (source.conversation || []).map((item) => ({
       ...item,
       ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
+      ...(Array.isArray(item.sourceRefsByVersion) ? { sourceRefsByVersion: item.sourceRefsByVersion.map((references) => [...references]) } : {}),
+      ...(Array.isArray(item.sourceQueriesByVersion) ? { sourceQueriesByVersion: [...item.sourceQueriesByVersion] } : {}),
+      ...(Array.isArray(item.sourceQualitiesByVersion) ? { sourceQualitiesByVersion: [...item.sourceQualitiesByVersion] } : {}),
     })),
     conversationArchive: (source.conversationArchive || []).map((item) => ({
       ...item,
       ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
+      ...(Array.isArray(item.sourceRefsByVersion) ? { sourceRefsByVersion: item.sourceRefsByVersion.map((references) => [...references]) } : {}),
+      ...(Array.isArray(item.sourceQueriesByVersion) ? { sourceQueriesByVersion: [...item.sourceQueriesByVersion] } : {}),
+      ...(Array.isArray(item.sourceQualitiesByVersion) ? { sourceQualitiesByVersion: [...item.sourceQualitiesByVersion] } : {}),
     })),
     service: {
       ...(source.service || {}),
@@ -4261,6 +4318,21 @@ async function retryMessage(historyIndex, responseLengthOverride = "") {
     : previousVersions.map(() => Array.isArray(previousReply.sourceCitationsUnverified)
       ? previousReply.sourceCitationsUnverified
       : []);
+  const previousSourceRefsByVersion = Array.isArray(previousReply.sourceRefsByVersion)
+    ? previousReply.sourceRefsByVersion
+    : previousVersions.map((_, index) => index === (previousReply.versionIndex ?? previousVersions.length - 1)
+      ? (previousReply.sourceRefs || [])
+      : []);
+  const previousSourceQueriesByVersion = Array.isArray(previousReply.sourceQueriesByVersion)
+    ? previousReply.sourceQueriesByVersion
+    : previousVersions.map((_, index) => index === (previousReply.versionIndex ?? previousVersions.length - 1)
+      ? (previousReply.sourceQuery || "")
+      : "");
+  const previousSourceQualitiesByVersion = Array.isArray(previousReply.sourceQualitiesByVersion)
+    ? previousReply.sourceQualitiesByVersion
+    : previousVersions.map((_, index) => index === (previousReply.versionIndex ?? previousVersions.length - 1)
+      ? (previousReply.sourceQuality || "")
+      : "");
   const versionSources = versions.map((version) => {
     if (version === reply) return currentSource;
     const previousIndex = previousVersions.indexOf(version);
@@ -4281,6 +4353,21 @@ async function retryMessage(historyIndex, responseLengthOverride = "") {
     const previousIndex = previousVersions.indexOf(version);
     return previousIndex >= 0 ? previousCitationUnverifiedByVersion[previousIndex] || [] : [];
   });
+  const versionSourceRefsByVersion = versions.map((version) => {
+    if (version === reply) return assistantMessage.sourceRefs || [];
+    const previousIndex = previousVersions.indexOf(version);
+    return previousIndex >= 0 ? previousSourceRefsByVersion[previousIndex] || [] : [];
+  });
+  const versionSourceQueriesByVersion = versions.map((version) => {
+    if (version === reply) return assistantMessage.sourceQuery || "";
+    const previousIndex = previousVersions.indexOf(version);
+    return previousIndex >= 0 ? previousSourceQueriesByVersion[previousIndex] || "" : "";
+  });
+  const versionSourceQualitiesByVersion = versions.map((version) => {
+    if (version === reply) return normalizeSourceQuality(assistantMessage.sourceQuality);
+    const previousIndex = previousVersions.indexOf(version);
+    return previousIndex >= 0 ? previousSourceQualitiesByVersion[previousIndex] || "" : "";
+  });
   conversationHistory.push({
     role: "assistant",
     name: speaker,
@@ -4294,6 +4381,9 @@ async function retryMessage(historyIndex, responseLengthOverride = "") {
     ...(assistantMessage.sourceCitationsUnverified?.length ? { sourceCitationsUnverified: assistantMessage.sourceCitationsUnverified } : {}),
     ...(versionCitationStatuses.some(Boolean) ? { sourceCitationStatuses: versionCitationStatuses } : {}),
     ...(versionCitationUnverifiedByVersion.some((values) => values.length) ? { sourceCitationsUnverifiedByVersion: versionCitationUnverifiedByVersion } : {}),
+    ...(versionSourceRefsByVersion.some((references) => references.length) ? { sourceRefsByVersion: versionSourceRefsByVersion } : {}),
+    ...(versionSourceQueriesByVersion.some(Boolean) ? { sourceQueriesByVersion: versionSourceQueriesByVersion } : {}),
+    ...(versionSourceQualitiesByVersion.some(Boolean) ? { sourceQualitiesByVersion: versionSourceQualitiesByVersion } : {}),
     ...(versionTruncations.some(Boolean) ? { truncations: versionTruncations, truncated: Boolean(assistantMessage.truncated) } : {}),
     ...(versions.length > 1 ? { versions, sources: versionSources, versionIndex: versions.indexOf(reply) } : {}),
   });
