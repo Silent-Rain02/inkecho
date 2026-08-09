@@ -178,6 +178,7 @@ textarea { resize: vertical; }
 .character-list { display: grid; gap: 7px; margin-top: 8px; }
 .character-card { display: grid; grid-template-columns: 28px 1fr 16px; gap: 9px; align-items: center; width: 100%; padding: 8px 7px; border: 1px solid transparent; background: transparent; text-align: left; }
 .character-card:hover, .character-card.active { border-color: #dfe4d9; background: #f3f6ee; }
+.character-card:disabled, .mode-tab:disabled { cursor: wait; opacity: 0.58; }
 .character-card strong, .character-card small { display: block; }
 .character-card strong { font-size: 12px; font-weight: 500; }
 .character-card small { margin-top: 3px; color: var(--muted); font: 9px var(--mono); }
