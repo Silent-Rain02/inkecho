@@ -339,6 +339,14 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(result["source_citation_status"], "verified")
         self.assertEqual(result["source_citations_unverified"], [])
 
+    def test_source_citation_metadata_detects_bare_chapter_markers(self) -> None:
+        result = source_citation_metadata(
+            "春秋蝉在第十九节中首次明确出现。",
+            ["第一卷 · 第十九节：六转本命春秋蝉！"],
+        )
+        self.assertEqual(result["source_citation_status"], "verified")
+        self.assertEqual(result["source_citations"], ["第十九节"])
+
     def test_qa_prompt_uses_retrieval_quality_to_set_fact_boundary(self) -> None:
         with patch(
             "server.source_search",
