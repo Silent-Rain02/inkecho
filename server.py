@@ -494,6 +494,18 @@ def source_search(query: str, limit: int = 4, include_adjacent: bool = False) ->
         ]
         if exact_heading_matches:
             scored = exact_heading_matches
+    if heading_focus and named_terms:
+        heading_entity_matches = [
+            item for item in scored
+            if all(heading in normalize_chapter_markers(item[2]["title"]) for heading in heading_focus)
+            and any(term in normalize_chapter_markers(f"{item[2]['title']}\n{item[2]['text']}") for term in named_terms)
+        ]
+        if heading_entity_matches:
+            title_entity_matches = [
+                item for item in heading_entity_matches
+                if any(term in normalize_chapter_markers(item[2]["title"]) for term in named_terms)
+            ]
+            scored = title_entity_matches or heading_entity_matches
     scored.sort(key=lambda item: item[0], reverse=True)
     results: list[dict[str, str]] = []
     seen_titles: set[str] = set()
