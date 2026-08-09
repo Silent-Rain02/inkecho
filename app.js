@@ -803,13 +803,49 @@ function normalizeCheckpoint(item) {
   };
 }
 
+function isLegacyDemoProject(project) {
+  const context = project?.context && typeof project.context === "object" ? project.context : {};
+  const characters = Array.isArray(project?.characters) ? project.characters : [];
+  const names = characters.map((item) => safeText(item?.name, "", 40));
+  return (context.title === "红楼梦" || project?.name === "红楼梦")
+    && names.includes("林黛玉")
+    && names.includes("贾宝玉");
+}
+
+function createInkEchoDefaultProject() {
+  return createProject({
+    id: `project-${Date.now()}-inkecho`,
+    name: "蛊真人",
+    context: {
+      title: "蛊真人",
+      era: "蛊界 · 青茅山",
+      world: "以《蛊真人》原作为本地知识库，围绕方源、蛊道体系和原作剧情进行续写与内容问答。",
+    },
+    service: { provider: "custom_azure", model: providerDefaults.custom_azure },
+    characters: defaultCharacters,
+    selectedCharacterName: "方源",
+    mode: "续写",
+  });
+}
+
 function loadProjects() {
   try {
     const saved = JSON.parse(localStorage.getItem(projectsStorageKey) || "null");
     if (Array.isArray(saved) && saved.length) {
-      return saved.slice(0, maxProjects).map((project) => createProject(
+      const normalized = saved.slice(0, maxProjects).map((project) => createProject(
         project && typeof project === "object" ? project : {},
       ));
+      const hasInkEchoProject = normalized.some((project) => project.context?.title === "蛊真人");
+      if (!hasInkEchoProject && normalized.some(isLegacyDemoProject)) {
+        const defaultProject = createInkEchoDefaultProject();
+        try {
+          localStorage.setItem(activeProjectStorageKey, defaultProject.id);
+        } catch {
+          notifyStorageIssue();
+        }
+        return [defaultProject, ...normalized].slice(0, maxProjects);
+      }
+      return normalized;
     }
   } catch {
     // Fall through to the legacy single-project migration.
