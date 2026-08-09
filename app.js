@@ -71,6 +71,10 @@ const providerDiagnosticsDialog = document.querySelector("#providerDiagnosticsDi
 const providerDiagnosticsStats = document.querySelector("#providerDiagnosticsStats");
 const providerDiagnosticsText = document.querySelector("#providerDiagnosticsText");
 const copyProviderDiagnosticsButton = document.querySelector("#copyProviderDiagnostics");
+const sourceEvidenceDialog = document.querySelector("#sourceEvidenceDialog");
+const sourceEvidenceStats = document.querySelector("#sourceEvidenceStats");
+const sourceEvidenceList = document.querySelector("#sourceEvidenceList");
+const copySourceEvidenceButton = document.querySelector("#copySourceEvidence");
 const creativitySelect = document.querySelector("#creativitySelect");
 const creativityValue = document.querySelector("#creativityValue");
 const responseLengthSelect = document.querySelector("#responseLengthSelect");
@@ -1704,7 +1708,7 @@ function appendDemoSourceBadge(meta) {
   meta.appendChild(sourceBadge);
 }
 
-function renderSourceReferences(line, references) {
+function renderSourceReferences(line, references, historyIndex = null) {
   const safeReferences = normalizeSourceReferences(references);
   line.replaceChildren();
   line.hidden = !safeReferences.length;
@@ -1718,6 +1722,13 @@ function renderSourceReferences(line, references) {
     item.textContent = `${index ? " · " : "："}${reference}`;
     line.appendChild(item);
   });
+  const evidenceButton = document.createElement("button");
+  evidenceButton.type = "button";
+  evidenceButton.className = "source-reference-button";
+  evidenceButton.textContent = "查看依据";
+  evidenceButton.setAttribute("aria-label", "查看这条回复的原作检索依据");
+  evidenceButton.addEventListener("click", () => openSourceEvidence(historyIndex));
+  line.appendChild(evidenceButton);
 }
 
 function setAssistantBubbleText(bubble, text) {
@@ -1752,7 +1763,7 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
   else bubble.textContent = text;
   const sourceReferenceLine = document.createElement("div");
   sourceReferenceLine.className = "source-reference-line";
-  renderSourceReferences(sourceReferenceLine, sourceRefs);
+  renderSourceReferences(sourceReferenceLine, sourceRefs, historyIndex);
   content.append(meta, bubble, sourceReferenceLine);
   if (role === "assistant") {
     const actions = document.createElement("div");
@@ -1840,7 +1851,13 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
   messages.scrollTop = messages.scrollHeight;
   updateCount();
   filterConversationMessages();
-  return { row, bubble, meta, sourceReferenceLine, renderSourceReferences: (references) => renderSourceReferences(sourceReferenceLine, references) };
+  return {
+    row,
+    bubble,
+    meta,
+    sourceReferenceLine,
+    renderSourceReferences: (references) => renderSourceReferences(sourceReferenceLine, references, historyIndex),
+  };
 }
 
 function filterConversationMessages() {
@@ -3197,6 +3214,86 @@ function renderSourceStatus(status) {
   }
 }
 
+let sourceEvidenceText = "";
+let sourceEvidenceRequestId = 0;
+
+function sourceQueryForHistoryIndex(historyIndex) {
+  const project = getActiveProject();
+  const activeBeat = getActiveSceneBeat(project);
+  const boundary = Number.isInteger(historyIndex) ? historyIndex : conversationHistory.length;
+  const latestUser = [...conversationHistory.slice(0, boundary)]
+    .reverse()
+    .find((item) => item.role === "user")?.content || "";
+  return [latestUser, project?.context?.chapter, activeBeat?.title, activeBeat?.goal]
+    .filter(Boolean)
+    .join(" ")
+    .slice(0, 600);
+}
+
+function renderSourceEvidence(results, sourceName = "蛊真人", query = "") {
+  sourceEvidenceList.replaceChildren();
+  sourceEvidenceText = "";
+  if (!results.length) {
+    sourceEvidenceStats.textContent = `${sourceName} · 没有找到与当前问题直接相关的片段`;
+    const empty = document.createElement("p");
+    empty.className = "source-evidence-empty";
+    empty.textContent = "可以换一种问法，或在左侧补充当前章节 / 场景。";
+    sourceEvidenceList.appendChild(empty);
+    copySourceEvidenceButton.disabled = true;
+    return;
+  }
+  sourceEvidenceStats.textContent = `${sourceName} · ${results.length} 个检索片段 · 查询：${query}`;
+  const lines = [`${sourceName}原作检索依据`, `查询：${query}`, ""];
+  results.forEach((result, index) => {
+    const card = document.createElement("article");
+    card.className = "source-evidence-card";
+    const title = document.createElement("strong");
+    title.textContent = result.title || `片段 ${index + 1}`;
+    const text = document.createElement("pre");
+    text.className = "source-evidence-text";
+    text.textContent = result.text || "暂无片段内容";
+    card.append(title, text);
+    sourceEvidenceList.appendChild(card);
+    lines.push(`【${result.title || `片段 ${index + 1}`}】`, result.text || "", "");
+  });
+  sourceEvidenceText = lines.join("\n").trim();
+  copySourceEvidenceButton.disabled = false;
+}
+
+async function openSourceEvidence(historyIndex) {
+  const query = sourceQueryForHistoryIndex(historyIndex);
+  const requestId = ++sourceEvidenceRequestId;
+  sourceEvidenceStats.textContent = "正在读取本机知识库……";
+  sourceEvidenceList.replaceChildren();
+  sourceEvidenceText = "";
+  copySourceEvidenceButton.disabled = true;
+  sourceEvidenceDialog.showModal();
+  try {
+    const response = await fetchWithTimeout("/api/source/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    }, 15000);
+    const payload = await response.json();
+    if (requestId !== sourceEvidenceRequestId) return;
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "原作依据读取失败");
+    renderSourceEvidence(
+      Array.isArray(payload.results) ? payload.results : [],
+      payload.source?.name || "蛊真人",
+      payload.query || query,
+    );
+  } catch (error) {
+    if (requestId !== sourceEvidenceRequestId) return;
+    sourceEvidenceStats.textContent = "原作知识库暂时不可用";
+    const failure = document.createElement("p");
+    failure.className = "source-evidence-empty is-error";
+    failure.textContent = error?.name === "AbortError"
+      ? "读取超时，请检查本地 InkEcho 服务。"
+      : (error?.message || "读取检索依据失败，请检查本地服务状态。");
+    sourceEvidenceList.appendChild(failure);
+  }
+}
+
 async function fetchWithTimeout(url, options = {}, timeout = providerRequestTimeout) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
@@ -4338,6 +4435,10 @@ copyProviderConfigKeysButton.addEventListener("click", copyProviderConfigKeys);
 copyProviderDiagnosticsButton.addEventListener("click", () => copyText(providerDiagnosticsText.textContent, "连接诊断已复制"));
 providerDiagnosticsDialog.addEventListener("click", (event) => {
   if (event.target === providerDiagnosticsDialog) providerDiagnosticsDialog.close();
+});
+copySourceEvidenceButton.addEventListener("click", () => copyText(sourceEvidenceText, "检索依据已复制"));
+sourceEvidenceDialog.addEventListener("click", (event) => {
+  if (event.target === sourceEvidenceDialog) sourceEvidenceDialog.close();
 });
 generateSummaryButton.addEventListener("click", summarizeConversation);
 toggleContextModeButton.addEventListener("click", toggleContextMode);
