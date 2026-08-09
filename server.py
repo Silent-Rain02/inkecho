@@ -175,6 +175,7 @@ def is_placeholder(value: str) -> bool:
         or unwrapped.startswith("your_")
         or unwrapped.startswith("replace_with_")
         or "your-resource" in unwrapped
+        or "your-office-endpoint" in unwrapped
     )
 
 
