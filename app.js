@@ -4585,6 +4585,7 @@ providerSelect.addEventListener("change", () => {
   modelName.value = project.service?.models?.[provider] || providerDefaults[provider];
   saveServiceSettings();
   updateProviderUI();
+  if (["ollama", "openai", "compatible"].includes(provider)) refreshModels();
   showToast(`已切换到 ${providerSelect.options[providerSelect.selectedIndex].text}`);
 });
 
