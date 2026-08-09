@@ -155,6 +155,11 @@ class ServerConfigTests(unittest.TestCase):
             "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
         }, clear=True):
             self.assertFalse(provider_settings("custom_azure", "office-model").configured)
+        with patch.dict(os.environ, {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "real-looking-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://your-office-endpoint.example/v1",
+        }, clear=True):
+            self.assertFalse(provider_settings("custom_azure", "office-model").configured)
 
     def test_wrapped_logid_placeholder_is_not_forwarded(self) -> None:
         with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_LOGID": "${your_logid}"}, clear=True):
