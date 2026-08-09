@@ -803,6 +803,33 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("第 0 个事件", summary_text)
         self.assertIn("第 24 个事件", summary_text)
 
+    def test_scene_summary_excludes_qa_history_from_scene_events(self) -> None:
+        messages = build_messages(
+            {
+                "summary_target": "scene",
+                "messages": [
+                    {"role": "user", "content": "春秋蝉是什么？", "mode": "问答"},
+                    {"role": "assistant", "content": "原作资料回答，不是本幕行动。", "mode": "问答"},
+                    {"role": "user", "content": "方源推开石门，发现里面空无一物。", "mode": "续写"},
+                ],
+            }
+        )
+        history_text = "\n".join(item["content"] for item in messages[1:])
+        self.assertNotIn("春秋蝉是什么", history_text)
+        self.assertNotIn("原作资料回答", history_text)
+        self.assertIn("推开石门", history_text)
+
+    def test_story_summary_labels_qa_history_as_reference(self) -> None:
+        messages = build_messages(
+            {
+                "summary_target": "story",
+                "messages": [
+                    {"role": "user", "content": "春秋蝉是什么？", "mode": "问答"},
+                ],
+            }
+        )
+        self.assertIn("原作问答参考，不是剧情事件", messages[1]["content"])
+
     def test_summarize_chat_can_target_the_current_scene(self) -> None:
         class FakeCompletions:
             def __init__(self) -> None:
