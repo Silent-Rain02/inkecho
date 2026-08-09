@@ -27,6 +27,8 @@ MIN_REASONING_MODEL_TOKENS = 1800
 SOURCE_CHUNK_CHARS = 1800
 MAX_SOURCE_CHUNKS = 20_000
 SOURCE_HEADING_RE = re.compile(r"^\s*(第[一二三四五六七八九十百千万0-9]+(?:卷|章|节)[：:]?.*|序(?:[：:].*)?)\s*$")
+SOURCE_VOLUME_RE = re.compile(r"^\s*第[一二三四五六七八九十百千万0-9]+卷(?:[：:].*)?\s*$")
+SOURCE_SECTION_RE = re.compile(r"^\s*第[一二三四五六七八九十百千万0-9]+(?:章|节)[：:]?.*\s*$")
 SOURCE_HEADING_FOCUS_RE = re.compile(r"第[一二三四五六七八九十百千万0-9]+(?:卷|章|节)")
 SOURCE_CITATION_RE = re.compile(r"(?:依据|参考)[：:]\s*([^)\]）\]\n，。；;]+)")
 SOURCE_STOP_TERMS = {
@@ -46,7 +48,7 @@ LOW_INFORMATION_SOURCE_QUERIES = {
 }
 _source_cache_lock = Lock()
 _source_cache: dict[str, Any] = {"path": "", "mtime_ns": -1, "chunks": []}
-_source_search_cache: dict[tuple[int, str, int], list[dict[str, str]]] = {}
+_source_search_cache: dict[tuple[int, str, int, bool], list[dict[str, str]]] = {}
 SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'self'; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
@@ -203,6 +205,7 @@ def build_source_chunks(text: str) -> list[dict[str, str]]:
     """Split a long novel into titled, bounded chunks for lightweight retrieval."""
     chunks: list[dict[str, str]] = []
     heading = "作品开篇"
+    volume_heading = ""
     buffer: list[str] = []
 
     def flush() -> None:
@@ -226,7 +229,13 @@ def build_source_chunks(text: str) -> list[dict[str, str]]:
         match = SOURCE_HEADING_RE.match(line)
         if match:
             flush()
-            heading = line[:120]
+            if SOURCE_VOLUME_RE.match(line):
+                volume_heading = line[:120]
+                heading = volume_heading
+            elif volume_heading and SOURCE_SECTION_RE.match(line):
+                heading = f"{volume_heading} · {line[:120]}"
+            else:
+                heading = line[:120]
             continue
         buffer.append(line)
         if sum(len(item) for item in buffer) >= SOURCE_CHUNK_CHARS * 2:
@@ -350,13 +359,14 @@ def source_query_terms(query: str) -> list[tuple[str, float]]:
     return deduplicated[:80]
 
 
-def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
+def source_search(query: str, limit: int = 4, include_adjacent: bool = False) -> list[dict[str, str]]:
     """Find source passages with a small, dependency-free lexical scorer."""
     query = re.sub(r"\s+", " ", str(query or "").strip().lower())
     if not query:
         return []
     chunks = source_chunks()
-    cache_key = (id(chunks), query, max(1, min(limit, 8)))
+    bounded_limit = max(1, min(limit, 8))
+    cache_key = (id(chunks), query, bounded_limit, bool(include_adjacent))
     with _source_cache_lock:
         cached = _source_search_cache.get(cache_key)
     if cached is not None:
@@ -380,7 +390,7 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
         term: sum(term in f"{chunk['title']}\n{chunk['text']}".lower() for chunk in chunks)
         for term, _ in weighted_terms
     }
-    scored: list[tuple[float, dict[str, str]]] = []
+    scored: list[tuple[float, int, dict[str, str]]] = []
     for index, chunk in enumerate(chunks):
         title = chunk["title"].lower()
         haystack = f"{title}\n{chunk['text'].lower()}"
@@ -412,17 +422,56 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
             # should prefer the opening arc over later retrospective mentions.
             score += max(0.0, 56.0 - index / 8.0)
         if score:
-            scored.append((score, chunk))
+            scored.append((score, index, chunk))
+    if len(heading_focus) >= 2:
+        exact_heading_matches = [
+            item for item in scored
+            if all(heading in item[2]["title"].lower() for heading in heading_focus)
+        ]
+        if exact_heading_matches:
+            scored = exact_heading_matches
     scored.sort(key=lambda item: item[0], reverse=True)
     results: list[dict[str, str]] = []
     seen_titles: set[str] = set()
-    for _, chunk in scored:
+    selected_indices: list[int] = []
+    for _, index, chunk in scored:
         title = chunk["title"]
         if title in seen_titles:
             continue
         seen_titles.add(title)
+        selected_indices.append(index)
         results.append({"title": title, "text": source_snippet(chunk["text"], weighted_terms)})
-        if len(results) >= max(1, min(limit, 8)):
+        if len(results) >= bounded_limit:
+            break
+    if include_adjacent and heading_focus:
+        # Continuation benefits from the next titled passage: the current
+        # chapter anchors the branch while the following chapter supplies the
+        # immediate canon-facing handoff. QA keeps direct lexical evidence
+        # only, so this bridge is deliberately limited to creative modes.
+        for anchor_index in selected_indices:
+            anchor_title = chunks[anchor_index]["title"]
+            if not any(heading in anchor_title.lower() for heading in heading_focus):
+                continue
+            neighbor_index = anchor_index + 1
+            while neighbor_index < len(chunks) and chunks[neighbor_index]["title"] == anchor_title:
+                neighbor_index += 1
+            if neighbor_index >= len(chunks):
+                continue
+            neighbor = chunks[neighbor_index]
+            if neighbor["title"] in seen_titles:
+                continue
+            seen_titles.add(neighbor["title"])
+            neighbor_result = {
+                "title": neighbor["title"],
+                "text": source_snippet(neighbor["text"], weighted_terms),
+            }
+            anchor_result_index = next(
+                (result_index for result_index, result in enumerate(results)
+                 if result["title"] == anchor_title),
+                len(results) - 1,
+            )
+            results.insert(anchor_result_index + 1, neighbor_result)
+            results = results[:bounded_limit]
             break
     with _source_cache_lock:
         if len(_source_search_cache) >= 64:
@@ -483,9 +532,9 @@ def source_quality_prompt_hint(quality: str) -> str:
     return SOURCE_QUALITY_PROMPT_GUIDANCE.get(quality, SOURCE_QUALITY_PROMPT_GUIDANCE["none"])
 
 
-def source_evidence_metadata(query: str, limit: int = 4) -> dict[str, Any]:
+def source_evidence_metadata(query: str, limit: int = 4, include_adjacent: bool = False) -> dict[str, Any]:
     """Return bounded source attribution and retrieval quality for client display."""
-    matches = source_search(query, limit=limit)
+    matches = source_search(query, limit=limit, include_adjacent=include_adjacent)
     references: list[str] = []
     for match in matches:
         title = str(match.get("title") or "").strip()
@@ -532,7 +581,8 @@ def source_references(query: str, limit: int = 4) -> list[str]:
 
 
 def source_context_for_payload(payload: dict[str, Any]) -> str:
-    matches = source_search(source_query_from_payload(payload), limit=4)
+    mode = str(payload.get("mode") or "续写")[:20]
+    matches = source_search(source_query_from_payload(payload), limit=4, include_adjacent=mode == "续写")
     if not matches:
         return ""
     return "\n\n".join(f"【{item['title']}】\n{item['text']}" for item in matches)
@@ -788,7 +838,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         character_tone = "清晰、克制、以证据为先，不进行角色扮演。"
         character_details = "《蛊真人》原作资料助手：区分原作事实、合理推断与目前不确定内容；没有依据时明确说明。"
     source_query = source_query_from_payload(payload)
-    source_matches = source_search(source_query, limit=4)
+    source_matches = source_search(source_query, limit=4, include_adjacent=mode == "续写")
     source_context = "\n\n".join(f"【{item['title']}】\n{item['text']}" for item in source_matches)
     source_quality = source_evidence_quality(source_query, source_matches)
 
@@ -1003,7 +1053,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             payload = self.read_payload()
             if path == "/api/source/search":
                 query = str(payload.get("query") or "").strip()[:600]
-                results = source_search(query, limit=8)
+                results = source_search(query, limit=8, include_adjacent=payload.get("mode") == "续写")
                 self.send_json({
                     "ok": True,
                     "source": source_status(),
@@ -1023,7 +1073,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             else:
                 text, settings, truncated = complete_chat(payload)
                 source_query = source_query_from_payload(payload)
-                evidence = source_evidence_metadata(source_query)
+                evidence = source_evidence_metadata(source_query, include_adjacent=payload.get("mode") == "续写")
                 citation = source_citation_metadata(text, evidence["source_references"]) if payload.get("mode") == "问答" else {}
                 self.send_json({
                     "ok": True,
@@ -1052,7 +1102,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
     def stream_response(self, payload: dict[str, Any]) -> None:
         settings, deltas = stream_chat(payload)
         source_query = source_query_from_payload(payload)
-        evidence = source_evidence_metadata(source_query)
+        evidence = source_evidence_metadata(source_query, include_adjacent=payload.get("mode") == "续写")
         self._response_started = True
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
