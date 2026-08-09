@@ -3634,13 +3634,13 @@ async function loadSourceOutline(status) {
 let sourceEvidenceText = "";
 let sourceEvidenceRequestId = 0;
 
-function sourceQueryForHistoryIndex(historyIndex) {
+function sourceQueryForHistoryIndex(historyIndex, modeOverride = "") {
   const project = getActiveProject();
   const activeBeat = getActiveSceneBeat(project);
   const boundary = Number.isInteger(historyIndex) ? historyIndex : conversationHistory.length;
-  const evidenceMode = Number.isInteger(historyIndex)
-    ? normalizeMessageMode(conversationHistory[historyIndex]?.mode) || selectedMode
-    : selectedMode;
+  const evidenceMode = normalizeMessageMode(modeOverride)
+    || (Number.isInteger(historyIndex) ? normalizeMessageMode(conversationHistory[historyIndex]?.mode) : "")
+    || selectedMode;
   const latestUser = [...conversationHistory.slice(0, boundary)]
     .reverse()
     .find((item) => sourceQueryAllowsMessage(item, evidenceMode) && item.role === "user")?.content || "";
@@ -3684,8 +3684,8 @@ function renderSourceEvidence(results, sourceName = "蛊真人", query = "", sou
 }
 
 async function openSourceEvidence(historyIndex, savedQuery = "") {
-  const query = savedQuery || sourceQueryForHistoryIndex(historyIndex);
   const evidenceMode = normalizeMessageMode(conversationHistory[historyIndex]?.mode) || selectedMode;
+  const query = savedQuery || sourceQueryForHistoryIndex(historyIndex, evidenceMode);
   const requestId = ++sourceEvidenceRequestId;
   sourceEvidenceStats.textContent = "正在读取本机知识库……";
   sourceEvidenceList.replaceChildren();
@@ -4232,8 +4232,8 @@ async function requestStreamReply(onDelta, character = selectedCharacter, onStar
   return answer.trim();
 }
 
-function fallbackReply() {
-  const list = replyTemplates[selectedMode];
+function fallbackReply(mode = selectedMode) {
+  const list = replyTemplates[mode] || replyTemplates.续写;
   return list[Math.floor(Math.random() * list.length)];
 }
 
@@ -4253,32 +4253,32 @@ function sourceQueryAllowsMessage(item, mode = selectedMode) {
   return !itemMode || itemMode === "问答";
 }
 
-function getSourceUserQueries(primaryQuery = "") {
+function getSourceUserQueries(primaryQuery = "", mode = selectedMode) {
   const latest = String(primaryQuery || "").trim();
   if (!latest || !isLowInformationSourceQuery(latest)) return latest ? [latest] : [];
   const previous = [...conversationHistory]
     .reverse()
-    .find((item) => sourceQueryAllowsMessage(item) && item.role === "user" && String(item.content || "").trim() && !isLowInformationSourceQuery(item.content))
+    .find((item) => sourceQueryAllowsMessage(item, mode) && item.role === "user" && String(item.content || "").trim() && !isLowInformationSourceQuery(item.content))
     ?.content || "";
   return [latest, previous.trim()].filter(Boolean);
 }
 
-function composeSourceQuery(primaryQuery = "") {
+function composeSourceQuery(primaryQuery = "", mode = selectedMode) {
   const project = getActiveProject();
   const activeBeat = getActiveSceneBeat(project);
   const contextParts = [project?.context?.chapter];
-  if (selectedMode !== "问答") contextParts.push(activeBeat?.title, activeBeat?.goal);
+  if (mode !== "问答") contextParts.push(activeBeat?.title, activeBeat?.goal);
   return [
-    ...getSourceUserQueries(primaryQuery),
+    ...getSourceUserQueries(primaryQuery, mode),
     ...contextParts,
   ].filter(Boolean).join(" ").slice(0, 600);
 }
 
-function getSourceQuery() {
+function getSourceQuery(mode = selectedMode) {
   const latestUser = [...conversationHistory]
     .reverse()
-    .find((item) => sourceQueryAllowsMessage(item) && item.role === "user")?.content || "";
-  return composeSourceQuery(latestUser);
+    .find((item) => sourceQueryAllowsMessage(item, mode) && item.role === "user")?.content || "";
+  return composeSourceQuery(latestUser, mode);
 }
 
 function getDraftSourceQuery() {
@@ -4290,7 +4290,8 @@ function getDraftSourceQuery() {
 async function generateAssistantReply(assistantMessage, character = selectedCharacter, responseLengthOverride = "", modeOverride = "") {
   setSending(true);
   delete assistantMessage.bubble.dataset.source;
-  const sourceQuery = getSourceQuery();
+  const effectiveMode = normalizeMessageMode(modeOverride) || selectedMode;
+  const sourceQuery = getSourceQuery(effectiveMode);
   assistantMessage.sourceQuery = sourceQuery;
   let reply = "";
   try {
@@ -4331,7 +4332,7 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
     reply = (assistantMessage.bubble.dataset.rawText || "").trim();
     if (!stopped) setProviderBadge("连接失败", "#a26b46");
     if (!reply && !stopped) {
-      reply = fallbackReply();
+      reply = fallbackReply(effectiveMode);
       assistantMessage.bubble.dataset.source = "demo";
       assistantMessage.sourceQuality = "none";
       appendDemoSourceBadge(assistantMessage.meta);
