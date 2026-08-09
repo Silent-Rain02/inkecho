@@ -45,6 +45,10 @@ class FrontendContractTests(unittest.TestCase):
             "providerDiagnosticsStats",
             "providerDiagnosticsText",
             "copyProviderDiagnostics",
+            "sourceEvidenceDialog",
+            "sourceEvidenceStats",
+            "sourceEvidenceList",
+            "copySourceEvidence",
             "conversationContext",
             "contextDialog",
             "summaryPreviewDialog",
@@ -230,6 +234,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function renderSourceReferences", self.javascript)
         self.assertIn("source_references", self.javascript)
         self.assertIn("source-reference-line", self.javascript)
+        self.assertIn("function openSourceEvidence", self.javascript)
+        self.assertIn("/api/source/search", self.javascript)
+        self.assertIn("function renderSourceEvidence", self.javascript)
+        self.assertIn("原作检索依据", self.html)
         self.assertIn("pendingSummaryPreview = null", self.javascript)
         self.assertIn("function openSceneOutcomePreview", self.javascript)
         self.assertIn("function applySceneOutcomePreview", self.javascript)
