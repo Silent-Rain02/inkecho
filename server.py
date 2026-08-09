@@ -27,6 +27,7 @@ MIN_REASONING_MODEL_TOKENS = 1800
 SOURCE_CHUNK_CHARS = 1800
 MAX_SOURCE_CHUNKS = 20_000
 SOURCE_HEADING_RE = re.compile(r"^\s*(第[一二三四五六七八九十百千万0-9]+(?:卷|章|节)[：:]?.*|序(?:[：:].*)?)\s*$")
+SOURCE_HEADING_FOCUS_RE = re.compile(r"第[一二三四五六七八九十百千万0-9]+(?:卷|章|节)")
 SOURCE_STOP_TERMS = {
     "什么", "如何", "为什么", "怎么", "是否", "可以", "能够", "以及", "以及", "哪些", "哪个",
     "这个", "那个", "之后", "以前", "现在", "然后", "因为", "所以", "以及", "原作", "小说",
@@ -353,6 +354,9 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
     origin_focus = "重生" in query and "青茅山" in query and any(
         marker in query for marker in ("回到", "最先", "最优先", "初期", "开局")
     )
+    heading_focus = list(dict.fromkeys(
+        match.group(0).lower() for match in SOURCE_HEADING_FOCUS_RE.finditer(query)
+    ))
     named_terms = [
         term.lower()
         for term in SOURCE_KNOWN_TERMS
@@ -370,6 +374,13 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
         score = 0.0
         if query in haystack:
             score += 16.0
+        if heading_focus:
+            matched_headings = sum(heading in title for heading in heading_focus)
+            if matched_headings:
+                # A user-provided chapter is a strong navigation signal for
+                # continuation. It should beat a later chapter that happens
+                # to repeat the same character or Gu name.
+                score += 96.0 + 28.0 * (matched_headings - 1)
         for term, weight in weighted_terms:
             occurrences = haystack.count(term)
             if occurrences:
@@ -757,6 +768,9 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         system += (
             "\n问答输出格式：先给简洁结论，再用要点说明原作依据；可以明确标注“原作依据”“合理推断”“目前不确定”。"
             "不要把问答写成续写，不要为了完整而补造原作没有的细节。"
+            "对于人物、蛊虫、能力、关系、时间顺序或章节结论等具体事实，只有当前检索片段直接支持时才能写成原作事实；"
+            "事实句末尽量使用“（依据：章节标题）”标出当前片段中的依据。无法直接支持的内容必须标为“合理推断”或“目前不确定”，"
+            "不得用模型记忆把多个片段拼成未被明确支持的结论。"
             f"\n本次原作检索强度：{source_quality_prompt_hint(source_quality)}"
         )
     if reference:
