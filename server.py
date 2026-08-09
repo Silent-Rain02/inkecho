@@ -872,12 +872,14 @@ class InkEchoHandler(BaseHTTPRequestHandler):
                 self.stream_response(payload)
             else:
                 text, settings = complete_chat(payload)
+                source_query = source_query_from_payload(payload)
                 self.send_json({
                     "ok": True,
                     "text": text,
                     "provider": settings.provider,
                     "model": settings.model,
-                    "source_references": source_references(source_query_from_payload(payload)),
+                    "source_query": source_query,
+                    "source_references": source_references(source_query),
                 })
         except Exception as exc:  # noqa: BLE001
             print(f"[InkEcho] request failed: {type(exc).__name__}")
@@ -895,6 +897,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
 
     def stream_response(self, payload: dict[str, Any]) -> None:
         settings, deltas = stream_chat(payload)
+        source_query = source_query_from_payload(payload)
         self._response_started = True
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -907,7 +910,8 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             "type": "start",
             "provider": settings.provider,
             "model": settings.model,
-            "source_references": source_references(source_query_from_payload(payload)),
+            "source_query": source_query,
+            "source_references": source_references(source_query),
         })
         try:
             for delta in deltas:
