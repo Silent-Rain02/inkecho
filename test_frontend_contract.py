@@ -282,6 +282,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function applySceneOutcomePreview", self.javascript)
         self.assertIn("当前记录 ${current.length} 字", self.javascript)
         self.assertIn('applySceneOutcomePreviewButton.addEventListener("click", applySceneOutcomePreview)', self.javascript)
+        self.assertIn("还没有记录本幕结果", self.javascript)
+        self.assertIn("当前场景结果尚未覆盖最新剧情", self.javascript)
         self.assertIn("pendingSceneOutcomePreview = null", self.javascript)
         self.assertIn("function commitManualSummaryEdit", self.javascript)
         self.assertIn("let summaryEditPending = false", self.javascript)
