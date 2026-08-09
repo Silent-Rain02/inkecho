@@ -170,6 +170,7 @@ textarea { resize: vertical; }
 .source-status { margin-top: -14px; margin-bottom: 20px; color: #718b6a; font: 9px var(--mono); line-height: 1.5; }
 .source-status.is-warning { color: #a26b46; }
 .source-status.is-error { color: #a14f4f; }
+.source-outline-hint { margin: -16px 0 20px; color: var(--muted); font: 8px var(--mono); line-height: 1.5; }
 .field-input:focus-within, .sidebar > textarea:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
 .subheading-row { display: flex; justify-content: space-between; align-items: center; }
 .character-actions { display: flex; align-items: center; gap: 9px; }
