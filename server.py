@@ -542,6 +542,11 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     character_name = str(character.get("name") or "角色")[:80]
     character_tone = str(character.get("tone") or "")[:240]
     character_details = str(character.get("details") or "")[:500]
+    if mode == "问答":
+        creativity_hint = "原作问答：保持克制和事实优先，不进行文学化扩写或无依据的想象。"
+        character_name = "InkEcho"
+        character_tone = "清晰、克制、以证据为先，不进行角色扮演。"
+        character_details = "《蛊真人》原作资料助手：区分原作事实、合理推断与目前不确定内容；没有依据时明确说明。"
     source_context = source_context_for_payload(payload)
 
     system = (
