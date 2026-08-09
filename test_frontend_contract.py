@@ -174,6 +174,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function formatSourceAttribution", self.javascript)
         self.assertIn("原作参考：${references.join", self.javascript)
         self.assertIn("依据查询：${query}", self.javascript)
+        self.assertIn("const sourceAttribution = formatSourceAttribution(item)", self.javascript)
         self.assertIn("演示回复 · 模型服务未返回，本地模板生成", self.javascript)
         self.assertIn("appendDemoSourceBadge", self.javascript)
         self.assertIn("message-source-badge", self.javascript)
