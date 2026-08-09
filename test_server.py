@@ -566,6 +566,25 @@ class ServerConfigTests(unittest.TestCase):
         finally:
             os.unlink(source_path)
 
+    def test_source_search_decodes_common_chinese_text_encodings(self) -> None:
+        source_text = "第一节：青茅山\n方源回到青茅山，重新审视开窍大典。\n"
+        with tempfile.NamedTemporaryFile("wb", suffix=".txt", delete=False) as handle:
+            handle.write(source_text.encode("gb18030"))
+            source_path = handle.name
+        try:
+            with patch.dict(
+                os.environ,
+                {"INK_ECHO_SOURCE_FILE": source_path, "INK_ECHO_SOURCE_NAME": "蛊真人"},
+                clear=True,
+            ):
+                status = source_status()
+                results = source_search("方源 青茅山")
+            self.assertTrue(status["available"])
+            self.assertTrue(results)
+            self.assertIn("方源回到青茅山", results[0]["text"])
+        finally:
+            os.unlink(source_path)
+
     def test_prompt_includes_retrieved_source_context(self) -> None:
         with patch(
             "server.source_search",
