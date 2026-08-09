@@ -909,6 +909,16 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     character_tone = str(character.get("tone") or "")[:240]
     character_details = str(character.get("details") or "")[:500]
     if mode == "问答":
+        # Creative notes can contain user-authored continuations or speculative
+        # canon. Keep only work/chapter navigation in QA prompts; retrieval
+        # snippets remain the sole source that may support canon claims.
+        scene_goal = ""
+        scene_plan = ""
+        era = ""
+        world = ""
+        reference = ""
+        summary = ""
+        instructions = ""
         creativity_hint = "原作问答：保持克制和事实优先，不进行文学化扩写或无依据的想象。"
         response_length_hint = {
             "concise": "精简问答：先给结论，再用一到两条依据说明，明确标注不确定处。",
