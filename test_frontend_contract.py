@@ -248,6 +248,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("previewSourceButton.addEventListener", self.javascript)
         self.assertIn("先检索原作依据", self.html)
         self.assertIn("source_query: getSourceQuery()", self.javascript)
+        self.assertIn('if (["ollama", "openai", "compatible"].includes(provider)) refreshModels()', self.javascript)
         self.assertIn("function renderSourceStatus", self.javascript)
         self.assertIn("function normalizeSourceReferences", self.javascript)
         self.assertIn("function renderSourceReferences", self.javascript)
