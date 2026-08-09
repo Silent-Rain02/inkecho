@@ -114,6 +114,7 @@ class FrontendContractTests(unittest.TestCase):
             "commandPaletteList",
             "commandPaletteHint",
             "sourceStatus",
+            "previewSource",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -228,6 +229,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("蛊真人", self.html)
         self.assertIn("蛊真人", self.javascript)
         self.assertIn("function getSourceQuery", self.javascript)
+        self.assertIn("function getDraftSourceQuery", self.javascript)
+        self.assertIn("previewSourceButton.addEventListener", self.javascript)
+        self.assertIn("先检索原作依据", self.html)
         self.assertIn("source_query: getSourceQuery()", self.javascript)
         self.assertIn("function renderSourceStatus", self.javascript)
         self.assertIn("function normalizeSourceReferences", self.javascript)
