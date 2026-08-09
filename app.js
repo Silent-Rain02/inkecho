@@ -5343,6 +5343,12 @@ function advanceCurrentBeat() {
   const current = currentIndex >= 0 ? project.beats[currentIndex] : null;
   const next = current ? project.beats[currentIndex + 1] : null;
   if (!current || !next) return;
+  const freshness = getSceneOutcomeFreshness(current, project);
+  if (!current.outcome?.trim()) {
+    if (!window.confirm(`当前场景「${current.title}」还没有记录本幕结果，仍然推进到「${next.title}」吗？`)) return;
+  } else if (freshness.includes("新增") || freshness.includes("不在当前") || freshness.includes("旧数据")) {
+    if (!window.confirm(`当前场景结果尚未覆盖最新剧情（${freshness}），仍然推进到「${next.title}」吗？`)) return;
+  }
   current.status = "done";
   next.status = "active";
   project.activeBeatId = next.id;
