@@ -56,6 +56,40 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("方源为什么要离开青茅山？", query)
         self.assertIn("承接离开前的决定", query)
 
+    def test_qa_source_query_ignores_creative_mode_history(self) -> None:
+        query = source_query_from_payload(
+            {
+                "mode": "问答",
+                "source_query": "续写方源在青茅山的下一幕 第一卷",
+                "messages": [
+                    {"role": "user", "content": "写方源在青茅山的下一幕", "mode": "续写"},
+                    {"role": "assistant", "content": "二创回复", "mode": "续写"},
+                    {"role": "user", "content": "春秋蝉是什么？", "mode": "问答"},
+                ],
+                "context": {"chapter": "第一卷 · 第十九节", "sceneGoal": "不要带入二创情节"},
+            }
+        )
+        self.assertIn("春秋蝉是什么？", query)
+        self.assertIn("第一卷 · 第十九节", query)
+        self.assertNotIn("下一幕", query)
+
+    def test_qa_prompt_excludes_known_non_qa_assistant_history(self) -> None:
+        messages = build_messages(
+            {
+                "mode": "问答",
+                "messages": [
+                    {"role": "user", "content": "写一段二创", "mode": "续写"},
+                    {"role": "assistant", "content": "这是一段不属于原作的二创内容", "mode": "续写"},
+                    {"role": "user", "content": "春秋蝉是什么？", "mode": "问答"},
+                    {"role": "assistant", "content": "上一条问答答案", "mode": "问答"},
+                ],
+            }
+        )
+        history_text = "\n".join(item["content"] for item in messages[1:])
+        self.assertNotIn("这是一段不属于原作的二创内容", history_text)
+        self.assertIn("上一条问答答案", history_text)
+        self.assertIn("不是原作证据", messages[0]["content"])
+
     def test_generation_budget_leaves_room_for_reasoning_models(self) -> None:
         reasoning = SimpleNamespace(model="gpt-5-mini-2025-08-07", provider="custom_azure")
         local = SimpleNamespace(model="qwen3:8b", provider="ollama")
