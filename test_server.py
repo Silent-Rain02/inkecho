@@ -156,8 +156,16 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("当前角色：InkEcho", qa_prompt)
         self.assertIn("《蛊真人》原作资料助手", qa_prompt)
         self.assertIn("事实优先", qa_prompt)
+        self.assertIn("你是 InkEcho 的《蛊真人》原作资料助手", qa_prompt)
+        self.assertIn("分层说明原作依据", qa_prompt)
+        self.assertNotIn("文学创作伙伴", qa_prompt)
         self.assertNotIn("这是不应出现在问答人格中的角色语气", qa_prompt)
         self.assertNotIn("这是不应进入问答上下文的角色设定", qa_prompt)
+
+    def test_qa_mode_uses_qa_specific_response_length_guidance(self) -> None:
+        qa_prompt = build_messages({"mode": "问答", "response_length": "expanded"})[0]["content"]
+        self.assertIn("展开问答：可以补充时间线", qa_prompt)
+        self.assertNotIn("充分铺陈场景", qa_prompt)
 
     def test_source_references_only_expose_unique_section_titles(self) -> None:
         with patch(
