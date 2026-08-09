@@ -1973,6 +1973,16 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
       retryButton.setAttribute("aria-label", "重新生成这条回复");
       retryButton.addEventListener("click", () => retryMessage(historyIndex));
       actions.appendChild(retryButton);
+      if (currentTruncated && historyIndex === conversationHistory.length - 1) {
+        const expandRetryButton = document.createElement("button");
+        expandRetryButton.type = "button";
+        expandRetryButton.className = "message-action message-expand-retry";
+        expandRetryButton.textContent = "展开重试";
+        expandRetryButton.setAttribute("aria-label", "用展开篇幅重新生成这条回复");
+        expandRetryButton.title = "只对这次重试使用展开篇幅，不改变项目默认回复长度";
+        expandRetryButton.addEventListener("click", () => retryMessage(historyIndex, "expanded"));
+        actions.appendChild(expandRetryButton);
+      }
       const branchButton = document.createElement("button");
       branchButton.type = "button";
       branchButton.className = "message-action";
@@ -3934,7 +3944,7 @@ async function requestModelReply() {
   return payload.text;
 }
 
-async function requestStreamReply(onDelta, character = selectedCharacter, onStart = null, sourceQuery = getSourceQuery(), onDone = null) {
+async function requestStreamReply(onDelta, character = selectedCharacter, onStart = null, sourceQuery = getSourceQuery(), onDone = null, responseLengthOverride = "") {
   const controller = new AbortController();
   streamController = controller;
   const response = await withAbortTimeout(fetch("/api/chat/stream", {
@@ -3946,7 +3956,7 @@ async function requestStreamReply(onDelta, character = selectedCharacter, onStar
       model: modelName.value.trim(),
       mode: selectedMode,
       creativity: creativitySelect.value,
-      response_length: responseLengthSelect.value,
+      response_length: responseLengthOverride || responseLengthSelect.value,
       character,
       context: getContext(),
       messages: getModelMessages(),
@@ -4057,7 +4067,7 @@ function getDraftSourceQuery() {
   return sourceQueryForHistoryIndex(null);
 }
 
-async function generateAssistantReply(assistantMessage, character = selectedCharacter) {
+async function generateAssistantReply(assistantMessage, character = selectedCharacter, responseLengthOverride = "") {
   setSending(true);
   delete assistantMessage.bubble.dataset.source;
   const sourceQuery = getSourceQuery();
@@ -4090,7 +4100,7 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
           appendCitationWarningBadge(assistantMessage.meta, assistantMessage.sourceCitationsUnverified);
         }
       }
-    });
+    }, responseLengthOverride);
   } catch (error) {
     const timedOut = error?.name === "StreamTimeoutError";
     const stopped = error?.name === "AbortError" && !timedOut;
@@ -4118,7 +4128,7 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
   return reply;
 }
 
-async function retryMessage(historyIndex) {
+async function retryMessage(historyIndex, responseLengthOverride = "") {
   if (preventWorkspaceMutation("重试回复")) return;
   if (historyIndex !== conversationHistory.length - 1 || conversationHistory.at(-1)?.role !== "assistant") {
     showToast("请先重试最后一条回复");
@@ -4143,7 +4153,7 @@ async function retryMessage(historyIndex) {
     historyIndex: conversationHistory.length,
     avatarClass: getAssistantAvatarClass(speaker),
   });
-  const reply = await generateAssistantReply(assistantMessage, character);
+  const reply = await generateAssistantReply(assistantMessage, character, responseLengthOverride);
   const versions = Array.from(new Set([...previousVersions, reply].filter(Boolean)));
   const currentSource = assistantMessage.bubble.dataset.source === "demo" ? "demo" : "";
   const previousSources = Array.isArray(previousReply.sources)
