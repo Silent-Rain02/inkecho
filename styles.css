@@ -250,6 +250,9 @@ textarea { resize: vertical; }
 .message-meta strong { font-size: 11px; font-weight: 600; }
 .message-meta time { color: var(--muted); font: 9px var(--mono); }
 .message-source-badge { padding: 2px 5px; border: 1px solid #e1c9a9; color: #986a3d; background: #fbf2e7; font: 8px var(--mono); letter-spacing: 0.02em; }
+.source-reference-line { margin-top: 6px; color: #81917d; font: 9px var(--mono); line-height: 1.5; overflow-wrap: anywhere; }
+.source-reference-line[hidden] { display: none; }
+.source-reference-item { color: #9a806a; }
 .message-row.user .message-meta { justify-content: flex-end; }
 .bubble { padding: 12px 15px; border: 1px solid var(--line); background: #fbfbf7; color: #414843; font-size: 13px; line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; }
 .bubble code { padding: 1px 4px; color: #765443; background: #f2e9de; font: 0.9em var(--mono); }
