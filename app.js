@@ -1744,9 +1744,10 @@ function toggleContextMode() {
 }
 
 function getContextUsageBreakdown() {
-  const context = getContext();
+  const context = getModelPreviewContext();
   const contextChars = Object.values(context).reduce((total, value) => total + value.length, 0);
-  const characterChars = [selectedCharacter.name, selectedCharacter.tone, selectedCharacter.details]
+  const previewCharacter = getModelPreviewCharacter();
+  const characterChars = [previewCharacter.name, previewCharacter.tone, previewCharacter.details]
     .filter(Boolean)
     .join("").length;
   const historyChars = getModelMessages().reduce((total, message) => total + (message.content || "").length, 0);
@@ -1771,11 +1772,14 @@ function updateContextUsage() {
   contextUsage.title = isSummaryContextMode()
     ? `已启用精简上下文：剧情摘要 + 最近两轮对话；${formatContextUsageBreakdown(breakdown)}；完整历史仍保存在本地`
     : `服务端历史预算约 ${serverHistoryBudget.toLocaleString("zh-CN")} 字；${formatContextUsageBreakdown(breakdown)}`;
+  if (selectedMode === "问答") {
+    contextUsage.title += "；问答模式已排除场景计划、参考片段、剧情摘要和创作要求";
+  }
 }
 
 function getContextPreviewText() {
   const project = getActiveProject();
-  const context = getContext();
+  const context = getModelPreviewContext();
   const modelMessages = getModelMessages();
   const conversation = modelMessages.length
     ? modelMessages.map((message) => {
@@ -1791,6 +1795,7 @@ function getContextPreviewText() {
     `创作倾向：${getEffectiveCreativityLabel()}`,
     `回复长度：${responseLengthLabels[responseLengthSelect.value] || "标准"}`,
     `上下文策略：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : `最近对话 + 最近 ${continuityBridgeMessageCount} 条归档桥接`}`,
+    selectedMode === "问答" ? "问答隔离：只发送作品 / 章节定位和原作检索依据；创作笔记未发送" : "",
     `项目状态：${formatProjectHealth(project)}`,
     `新鲜度提醒：${formatContextFreshnessNotices(project)}`,
     "",
@@ -1806,9 +1811,9 @@ function getContextPreviewText() {
     context.reference ? `参考片段：\n${context.reference}` : "参考片段：未填写",
     "",
     "【当前角色卡】",
-    `角色：${selectedCharacter.name || "未填写"}`,
-    `性格与说话方式：${selectedCharacter.tone || "未填写"}`,
-    `人物设定：${selectedCharacter.details || "未填写"}`,
+    `角色：${getModelPreviewCharacter().name || "未填写"}`,
+    `性格与说话方式：${getModelPreviewCharacter().tone || "未填写"}`,
+    `人物设定：${getModelPreviewCharacter().details || "未填写"}`,
     "",
     `【本次对话 · ${modelMessages.length} 条】`,
     conversation,
@@ -3192,6 +3197,31 @@ function getContext() {
     summary: safeText(workSummary.value, "", 2000),
     instructions: safeText(workInstructions.value, "", 1200),
   };
+}
+
+function getModelPreviewContext(context = getContext()) {
+  if (selectedMode !== "问答") return context;
+  return {
+    ...context,
+    sceneGoal: "",
+    scenePlan: "",
+    era: "",
+    world: "",
+    reference: "",
+    summary: "",
+    instructions: "",
+  };
+}
+
+function getModelPreviewCharacter() {
+  if (selectedMode === "问答") {
+    return {
+      name: "InkEcho",
+      tone: "清晰、克制、以证据为先，不进行角色扮演。",
+      details: "《蛊真人》原作资料助手：区分原作事实、合理推断与目前不确定内容；没有依据时明确说明。",
+    };
+  }
+  return selectedCharacter;
 }
 
 function exportSession() {
