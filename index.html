@@ -101,8 +101,10 @@
           </div>
           <div class="field-input has-icon">
             <span>§</span>
-            <input id="workChapter" type="text" maxlength="120" placeholder="例如：第三回 · 潇湘馆夜话" />
+            <input id="workChapter" type="text" maxlength="120" list="sourceChapterOptions" placeholder="例如：第一卷 · 第一节：纵身亡魔心仍不悔" />
           </div>
+          <datalist id="sourceChapterOptions"></datalist>
+          <p class="source-outline-hint" id="sourceOutlineHint" aria-live="polite">原作章节建议加载中……</p>
           <div class="scene-meta">
             <span id="activeBeatHint">未选择场景卡</span>
             <span id="beatCount">00 / 24</span>
