@@ -181,6 +181,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("const responseMode = normalizeMessageMode(previousReply.mode)", self.javascript)
         self.assertIn("mode: modeOverride || selectedMode", self.javascript)
         self.assertIn("formatMessageMode(item)", self.javascript)
+        self.assertIn("const evidenceMode = normalizeMessageMode", self.javascript)
+        self.assertIn("body: JSON.stringify({ query, mode: evidenceMode })", self.javascript)
         self.assertIn("function getEffectiveCreativityLabel", self.javascript)
         self.assertIn("function syncModeControls", self.javascript)
         self.assertIn('document.querySelectorAll(".mode-tab, .character-card")', self.javascript)
