@@ -12,6 +12,7 @@ from server import (
     build_source_chunks,
     complete_chat,
     error_status,
+    generation_budget,
     InkEchoHandler,
     list_provider_models,
     provider_health_snapshot,
@@ -34,6 +35,13 @@ from server import (
 
 
 class ServerConfigTests(unittest.TestCase):
+    def test_generation_budget_leaves_room_for_reasoning_models(self) -> None:
+        reasoning = SimpleNamespace(model="gpt-5-mini-2025-08-07", provider="custom_azure")
+        local = SimpleNamespace(model="qwen3:8b", provider="ollama")
+        self.assertEqual(generation_budget(reasoning, 420), 1800)
+        self.assertEqual(generation_budget(reasoning, 2400), 2400)
+        self.assertEqual(generation_budget(local, 420), 420)
+
     def test_supported_provider_can_be_selected_without_network(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             settings = provider_settings("ollama", "qwen3:8b")
@@ -388,7 +396,7 @@ class ServerConfigTests(unittest.TestCase):
             settings = probe_provider({"provider": "custom_azure", "model": "office-model"})
         self.assertEqual(settings.model, "office-model")
         self.assertEqual(completions.kwargs["model"], "office-model")
-        self.assertEqual(completions.kwargs["max_tokens"], 2)
+        self.assertEqual(completions.kwargs["max_tokens"], 16)
         self.assertEqual(completions.kwargs["messages"], [{"role": "user", "content": "请只回复：好"}])
 
     def test_summarize_chat_requests_a_compact_story_summary(self) -> None:
