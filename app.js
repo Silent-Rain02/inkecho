@@ -3914,26 +3914,45 @@ function fallbackReply() {
   return list[Math.floor(Math.random() * list.length)];
 }
 
-function getSourceQuery() {
+const lowInformationSourceQueries = new Set([
+  "继续", "继续写", "继续写下去", "接着写", "往下写", "下一段", "然后呢", "具体呢",
+  "为什么", "还有吗", "展开说说", "再说说", "再来一点",
+]);
+
+function isLowInformationSourceQuery(value) {
+  const normalized = String(value || "").trim().toLowerCase().replace(/[^\w\u4e00-\u9fff]/g, "");
+  return !normalized || lowInformationSourceQueries.has(normalized);
+}
+
+function getSourceUserQueries(primaryQuery = "") {
+  const latest = String(primaryQuery || "").trim();
+  if (!latest || !isLowInformationSourceQuery(latest)) return latest ? [latest] : [];
+  const previous = [...conversationHistory]
+    .reverse()
+    .find((item) => item.role === "user" && String(item.content || "").trim() && !isLowInformationSourceQuery(item.content))
+    ?.content || "";
+  return [latest, previous.trim()].filter(Boolean);
+}
+
+function composeSourceQuery(primaryQuery = "") {
   const project = getActiveProject();
   const activeBeat = getActiveSceneBeat(project);
+  return [
+    ...getSourceUserQueries(primaryQuery),
+    project?.context?.chapter,
+    activeBeat?.title,
+    activeBeat?.goal,
+  ].filter(Boolean).join(" ").slice(0, 600);
+}
+
+function getSourceQuery() {
   const latestUser = [...conversationHistory].reverse().find((item) => item.role === "user")?.content || "";
-  return [latestUser, project?.context?.chapter, activeBeat?.title, activeBeat?.goal]
-    .filter(Boolean)
-    .join(" ")
-    .slice(0, 600);
+  return composeSourceQuery(latestUser);
 }
 
 function getDraftSourceQuery() {
   const draft = messageInput.value.trim();
-  if (draft) {
-    const project = getActiveProject();
-    const activeBeat = getActiveSceneBeat(project);
-    return [draft, project?.context?.chapter, activeBeat?.title, activeBeat?.goal]
-      .filter(Boolean)
-      .join(" ")
-      .slice(0, 600);
-  }
+  if (draft) return composeSourceQuery(draft);
   return sourceQueryForHistoryIndex(null);
 }
 
