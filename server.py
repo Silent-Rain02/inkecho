@@ -315,14 +315,18 @@ def is_low_information_source_query(query: str) -> bool:
 
 
 def source_query_from_payload(payload: dict[str, Any]) -> str:
+    request_mode = str(payload.get("mode") or "续写")[:20]
     explicit = str(payload.get("source_query") or "").strip()
-    if explicit:
+    if explicit and request_mode != "问答":
         return explicit[:600]
     context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
     query_parts = []
     user_queries: list[str] = []
     for item in reversed(payload.get("messages") or []):
         if isinstance(item, dict) and item.get("role") == "user" and isinstance(item.get("content"), str):
+            item_mode = str(item.get("mode") or "")[:20]
+            if request_mode == "问答" and item_mode and item_mode != "问答":
+                continue
             content = item["content"].strip()
             if not content:
                 continue
@@ -883,6 +887,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         system += (
             "\n问答输出格式：先给简洁结论，再用要点说明原作依据；可以明确标注“原作依据”“合理推断”“目前不确定”。"
             "不要把问答写成续写，不要为了完整而补造原作没有的细节。"
+            "项目摘要、场景计划、用户参考片段和历史创作回复都只是用户笔记或二创上下文，不是原作证据；不得把它们引用为原作事实。"
             "对于人物、蛊虫、能力、关系、时间顺序或章节结论等具体事实，只有当前检索片段直接支持时才能写成原作事实；"
             "事实句末尽量使用“（依据：章节标题）”标出当前片段中的依据。无法直接支持的内容必须标为“合理推断”或“目前不确定”，"
             "不得用模型记忆把多个片段拼成未被明确支持的结论。"
@@ -916,6 +921,9 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
             continue
         role = item.get("role")
         content = item.get("content")
+        item_mode = str(item.get("mode") or "")[:20]
+        if mode == "问答" and role == "assistant" and item_mode and item_mode != "问答":
+            continue
         if role in {"user", "assistant"} and isinstance(content, str) and content.strip():
             bounded_content = content[:4000]
             if history_chars + len(bounded_content) > budget:
