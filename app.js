@@ -1200,9 +1200,9 @@ function hydrateActiveProject() {
   providerSelect.value = project.service.provider;
   modelName.value = project.service.models?.[project.service.provider] || project.service.model;
   creativitySelect.value = creativityLabels[project.service.creativity] ? project.service.creativity : "balanced";
-  creativityValue.textContent = creativityLabels[creativitySelect.value];
   responseLengthSelect.value = responseLengthLabels[project.service.responseLength] ? project.service.responseLength : "standard";
   responseLengthValue.textContent = responseLengthLabels[responseLengthSelect.value];
+  syncModeControls();
   conversationTitle.textContent = getConversationTitle();
   document.querySelectorAll(".mode-tab").forEach((tab) => {
     const active = tab.dataset.mode === selectedMode;
@@ -1693,7 +1693,7 @@ function getContextPreviewText() {
     "InkEcho · 模型上下文预览",
     `模型：${modelName.value.trim() || "未填写"}`,
     `模式：${selectedMode}`,
-    `创作倾向：${creativityLabels[creativitySelect.value] || "平衡"}`,
+    `创作倾向：${getEffectiveCreativityLabel()}`,
     `回复长度：${responseLengthLabels[responseLengthSelect.value] || "标准"}`,
     `上下文策略：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : "完整对话"}`,
     `项目状态：${formatProjectHealth(project)}`,
@@ -3287,6 +3287,17 @@ function updateProviderUI() {
   checkProviderHealth(provider);
 }
 
+function getEffectiveCreativityLabel() {
+  return selectedMode === "问答" ? "事实优先" : (creativityLabels[creativitySelect.value] || "平衡");
+}
+
+function syncModeControls() {
+  const factualMode = selectedMode === "问答";
+  creativitySelect.disabled = factualMode;
+  creativitySelect.title = factualMode ? "问答模式固定为事实优先" : "";
+  creativityValue.textContent = getEffectiveCreativityLabel();
+}
+
 function setProviderBadge(label, color) {
   providerBadge.textContent = label;
   providerBadge.style.color = color;
@@ -4519,6 +4530,7 @@ document.querySelectorAll(".mode-tab").forEach((tab) => {
       item.setAttribute("aria-selected", String(active));
     });
     composerHint.textContent = modeHints[selectedMode];
+    syncModeControls();
     renderModePrompts();
     persistActiveProject();
     showToast(`已切换到「${selectedMode}」模式`);
@@ -4559,7 +4571,7 @@ modelName.addEventListener("change", () => {
 });
 
 creativitySelect.addEventListener("change", () => {
-  creativityValue.textContent = creativityLabels[creativitySelect.value];
+  syncModeControls();
   saveServiceSettings();
   showToast(`创作倾向：${creativityLabels[creativitySelect.value]}`);
 });
