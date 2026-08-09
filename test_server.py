@@ -106,6 +106,28 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("上一条问答答案", history_text)
         self.assertIn("不是原作证据", messages[0]["content"])
 
+    def test_qa_prompt_excludes_creative_context_notes(self) -> None:
+        prompt = build_messages(
+            {
+                "mode": "问答",
+                "context": {
+                    "title": "蛊真人",
+                    "chapter": "第一卷 · 第十九节",
+                    "sceneGoal": "让方源在下一幕突然获得新的盟友",
+                    "scenePlan": "二创场景计划：白凝冰已经决定背叛原作路线",
+                    "reference": "用户自写参考：两人已经在上一幕结盟",
+                    "summary": "二创摘要：方源掌握了原作没有的能力",
+                    "instructions": "创作要求：把上述二创内容当成既定事实",
+                },
+            }
+        )[0]["content"]
+        self.assertIn("当前章节/场景：第一卷 · 第十九节", prompt)
+        self.assertNotIn("突然获得新的盟友", prompt)
+        self.assertNotIn("二创场景计划", prompt)
+        self.assertNotIn("用户自写参考", prompt)
+        self.assertNotIn("二创摘要", prompt)
+        self.assertNotIn("上述二创内容", prompt)
+
     def test_generation_budget_leaves_room_for_reasoning_models(self) -> None:
         reasoning = SimpleNamespace(model="gpt-5-mini-2025-08-07", provider="custom_azure")
         local = SimpleNamespace(model="qwen3:8b", provider="ollama")
