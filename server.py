@@ -642,7 +642,8 @@ def source_evidence_metadata(query: str, limit: int = 4, include_adjacent: bool 
 
 def source_citation_metadata(answer: str, references: list[str]) -> dict[str, Any]:
     """Audit model chapter citations against the sections retrieved for this answer."""
-    raw_citations = SOURCE_CITATION_RE.findall(str(answer or ""))
+    answer_text = str(answer or "")
+    raw_citations = SOURCE_CITATION_RE.findall(answer_text)
     citations: list[str] = []
     for raw in raw_citations:
         for value in re.split(r"[、,，/及和与]+", raw):
@@ -652,6 +653,14 @@ def source_citation_metadata(answer: str, references: list[str]) -> dict[str, An
                 citation = candidate.strip()
                 if citation and citation not in citations:
                     citations.append(citation)
+    # Models also commonly cite a chapter in prose or parentheses without an
+    # explicit “依据：” / “参考：” prefix. Treat those explicit chapter
+    # markers as citations too, so the UI can distinguish verified from
+    # unverified references instead of silently reporting no citation.
+    for candidate in SOURCE_HEADING_FOCUS_RE.findall(answer_text):
+        citation = candidate.strip()
+        if citation and citation not in citations:
+            citations.append(citation)
     normalized_references = [normalize_chapter_markers(re.sub(r"\s+", "", str(reference or ""))) for reference in references]
     unverified = [
         citation for citation in citations
