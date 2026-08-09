@@ -3969,8 +3969,10 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
       messages.scrollTop = messages.scrollHeight;
     }, character, (metadata) => {
       const references = normalizeSourceReferences(metadata?.source_references);
+      const effectiveSourceQuery = safeText(metadata?.source_query, sourceQuery, 600);
+      assistantMessage.sourceQuery = effectiveSourceQuery;
       assistantMessage.sourceRefs = references;
-      assistantMessage.renderSourceReferences(references, sourceQuery);
+      assistantMessage.renderSourceReferences(references, effectiveSourceQuery);
     }, sourceQuery);
   } catch (error) {
     const timedOut = error?.name === "StreamTimeoutError";
