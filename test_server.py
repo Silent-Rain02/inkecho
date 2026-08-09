@@ -25,6 +25,7 @@ from server import (
     SECURITY_HEADERS,
     STATIC_FILES,
     history_budget_chars,
+    source_references,
     source_search,
     source_status,
     static_asset_path,
@@ -137,6 +138,19 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("不只给建议", rewrite_prompt)
         self.assertIn("第一人称内心独白", monologue_prompt)
         self.assertIn("原作知识库", qa_prompt)
+        self.assertIn("原作依据", qa_prompt)
+
+    def test_source_references_only_expose_unique_section_titles(self) -> None:
+        with patch(
+            "server.source_search",
+            return_value=[
+                {"title": "第一节：青茅山", "text": "片段一"},
+                {"title": "第一节：青茅山", "text": "片段二"},
+                {"title": "第二节：重生", "text": "片段三"},
+            ],
+        ):
+            references = source_references("方源")
+        self.assertEqual(references, ["第一节：青茅山", "第二节：重生"])
 
     def test_source_chunks_keep_section_titles_and_bound_length(self) -> None:
         chunks = build_source_chunks("第一卷\n" + "甲" * 2100 + "\n第二节：重生\n" + "乙" * 3)
@@ -547,6 +561,19 @@ class HttpRouteTests(unittest.TestCase):
         status, payload = handler.responses[0]
         self.assertEqual(status, 400)
         self.assertIn("尚未完成环境变量配置", payload["error"])
+
+    def test_chat_route_returns_safe_source_references(self) -> None:
+        body = json.dumps({"provider": "ollama", "model": "qwen3:8b", "messages": []}).encode("utf-8")
+        handler = CaptureHandler("/api/chat", body)
+        settings = SimpleNamespace(provider="ollama", model="qwen3:8b")
+        with patch("server.complete_chat", return_value=("回答", settings)), patch(
+            "server.source_references", return_value=["第一节：青茅山"]
+        ):
+            handler.do_POST()
+        status, payload = handler.responses[0]
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["text"], "回答")
+        self.assertEqual(payload["source_references"], ["第一节：青茅山"])
 
     def test_probe_route_returns_selected_provider_and_model(self) -> None:
         body = json.dumps({"provider": "ollama", "model": "qwen3:8b"}).encode("utf-8")
