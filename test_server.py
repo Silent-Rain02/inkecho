@@ -101,6 +101,7 @@ class ServerConfigTests(unittest.TestCase):
             }
         )
         history_text = "\n".join(item["content"] for item in messages[1:])
+        self.assertNotIn("写一段二创", history_text)
         self.assertNotIn("这是一段不属于原作的二创内容", history_text)
         self.assertIn("上一条问答答案", history_text)
         self.assertIn("不是原作证据", messages[0]["content"])
