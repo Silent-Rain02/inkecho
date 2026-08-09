@@ -142,6 +142,23 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("资料助手", qa_prompt)
         self.assertIn("不进行当前角色扮演", qa_prompt)
 
+    def test_qa_mode_ignores_selected_character_persona(self) -> None:
+        qa_prompt = build_messages(
+            {
+                "mode": "问答",
+                "character": {
+                    "name": "方源",
+                    "tone": "这是不应出现在问答人格中的角色语气",
+                    "details": "这是不应进入问答上下文的角色设定",
+                },
+            }
+        )[0]["content"]
+        self.assertIn("当前角色：InkEcho", qa_prompt)
+        self.assertIn("《蛊真人》原作资料助手", qa_prompt)
+        self.assertIn("事实优先", qa_prompt)
+        self.assertNotIn("这是不应出现在问答人格中的角色语气", qa_prompt)
+        self.assertNotIn("这是不应进入问答上下文的角色设定", qa_prompt)
+
     def test_source_references_only_expose_unique_section_titles(self) -> None:
         with patch(
             "server.source_search",
