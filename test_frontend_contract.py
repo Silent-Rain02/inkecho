@@ -253,6 +253,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function normalizeSourceReferences", self.javascript)
         self.assertIn("function renderSourceReferences", self.javascript)
         self.assertIn("source_references", self.javascript)
+        self.assertIn("const effectiveSourceQuery = safeText(metadata?.source_query, sourceQuery, 600)", self.javascript)
+        self.assertIn("assistantMessage.sourceQuery = effectiveSourceQuery", self.javascript)
         self.assertIn("source-reference-line", self.javascript)
         self.assertIn("function openSourceEvidence", self.javascript)
         self.assertIn("/api/source/search", self.javascript)
