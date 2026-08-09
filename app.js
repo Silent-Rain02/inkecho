@@ -466,6 +466,7 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
     : [];
   const currentSource = source.source === "demo" || savedSources[versionIndex] === "demo" ? "demo" : "";
   const sourceRefs = normalizeSourceReferences(source.sourceRefs);
+  const sourceQuery = safeText(source.sourceQuery, "", 600);
   const normalized = {
     role: source.role === "user" ? "user" : "assistant",
     name: safeText(source.name, source.role === "user" ? "我" : fallbackAssistantName, 40),
@@ -473,6 +474,7 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   };
   if (normalized.role === "assistant" && currentSource) normalized.source = currentSource;
   if (normalized.role === "assistant" && sourceRefs.length) normalized.sourceRefs = sourceRefs;
+  if (normalized.role === "assistant" && sourceQuery) normalized.sourceQuery = sourceQuery;
   if (normalized.role === "assistant" && versions.length > 1) {
     normalized.versions = versions;
     normalized.versionIndex = versionIndex;
@@ -1708,7 +1710,7 @@ function appendDemoSourceBadge(meta) {
   meta.appendChild(sourceBadge);
 }
 
-function renderSourceReferences(line, references, historyIndex = null) {
+function renderSourceReferences(line, references, historyIndex = null, sourceQuery = "") {
   const safeReferences = normalizeSourceReferences(references);
   line.replaceChildren();
   line.hidden = !safeReferences.length;
@@ -1727,7 +1729,7 @@ function renderSourceReferences(line, references, historyIndex = null) {
   evidenceButton.className = "source-reference-button";
   evidenceButton.textContent = "查看依据";
   evidenceButton.setAttribute("aria-label", "查看这条回复的原作检索依据");
-  evidenceButton.addEventListener("click", () => openSourceEvidence(historyIndex));
+  evidenceButton.addEventListener("click", () => openSourceEvidence(historyIndex, sourceQuery));
   line.appendChild(evidenceButton);
 }
 
@@ -1737,7 +1739,7 @@ function setAssistantBubbleText(bubble, text) {
   bubble.innerHTML = renderAssistantMarkdown(rawText);
 }
 
-function addMessage({ role, name, text, avatarClass, historyIndex, versions, sources, source, sourceRefs, versionIndex = 0 }) {
+function addMessage({ role, name, text, avatarClass, historyIndex, versions, sources, source, sourceRefs, sourceQuery, versionIndex = 0 }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
   if (Number.isInteger(historyIndex)) row.dataset.historyIndex = String(historyIndex);
@@ -1763,7 +1765,7 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
   else bubble.textContent = text;
   const sourceReferenceLine = document.createElement("div");
   sourceReferenceLine.className = "source-reference-line";
-  renderSourceReferences(sourceReferenceLine, sourceRefs, historyIndex);
+  renderSourceReferences(sourceReferenceLine, sourceRefs, historyIndex, sourceQuery);
   content.append(meta, bubble, sourceReferenceLine);
   if (role === "assistant") {
     const actions = document.createElement("div");
@@ -1856,7 +1858,7 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
     bubble,
     meta,
     sourceReferenceLine,
-    renderSourceReferences: (references) => renderSourceReferences(sourceReferenceLine, references, historyIndex),
+    renderSourceReferences: (references) => renderSourceReferences(sourceReferenceLine, references, historyIndex, sourceQuery),
   };
 }
 
@@ -2801,6 +2803,7 @@ function renderConversation() {
       sources: item.sources,
       source: item.source,
       sourceRefs: item.sourceRefs,
+      sourceQuery: item.sourceQuery,
       versionIndex: item.versionIndex,
     });
   });
@@ -3260,8 +3263,8 @@ function renderSourceEvidence(results, sourceName = "蛊真人", query = "") {
   copySourceEvidenceButton.disabled = false;
 }
 
-async function openSourceEvidence(historyIndex) {
-  const query = sourceQueryForHistoryIndex(historyIndex);
+async function openSourceEvidence(historyIndex, savedQuery = "") {
+  const query = savedQuery || sourceQueryForHistoryIndex(historyIndex);
   const requestId = ++sourceEvidenceRequestId;
   sourceEvidenceStats.textContent = "正在读取本机知识库……";
   sourceEvidenceList.replaceChildren();
@@ -3720,7 +3723,7 @@ async function requestModelReply() {
   return payload.text;
 }
 
-async function requestStreamReply(onDelta, character = selectedCharacter, onStart = null) {
+async function requestStreamReply(onDelta, character = selectedCharacter, onStart = null, sourceQuery = getSourceQuery()) {
   const controller = new AbortController();
   streamController = controller;
   const response = await withAbortTimeout(fetch("/api/chat/stream", {
@@ -3736,7 +3739,7 @@ async function requestStreamReply(onDelta, character = selectedCharacter, onStar
       character,
       context: getContext(),
       messages: getModelMessages(),
-      source_query: getSourceQuery(),
+      source_query: sourceQuery,
     }),
   }), controller, streamIdleTimeout, "模型长时间没有响应，请检查服务状态");
   if (!response.ok || !response.body) {
@@ -3813,6 +3816,8 @@ function getSourceQuery() {
 async function generateAssistantReply(assistantMessage, character = selectedCharacter) {
   setSending(true);
   delete assistantMessage.bubble.dataset.source;
+  const sourceQuery = getSourceQuery();
+  assistantMessage.sourceQuery = sourceQuery;
   let reply = "";
   try {
     reply = await requestStreamReply((delta) => {
@@ -3823,7 +3828,7 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
       const references = normalizeSourceReferences(metadata?.source_references);
       assistantMessage.sourceRefs = references;
       assistantMessage.renderSourceReferences(references);
-    });
+    }, sourceQuery);
   } catch (error) {
     const timedOut = error?.name === "StreamTimeoutError";
     const stopped = error?.name === "AbortError" && !timedOut;
@@ -3890,6 +3895,7 @@ async function retryMessage(historyIndex) {
     content: reply,
     ...(currentSource ? { source: currentSource } : {}),
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
+    ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
     ...(versions.length > 1 ? { versions, sources: versionSources, versionIndex: versions.indexOf(reply) } : {}),
   });
   saveConversation();
@@ -4533,6 +4539,7 @@ composer.addEventListener("submit", async (event) => {
     content: reply,
     ...(source ? { source } : {}),
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
+    ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
   });
   saveConversation();
 });
