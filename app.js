@@ -1704,6 +1704,18 @@ function getModelMessages({ fullHistory = false } = {}) {
   return selected.reverse();
 }
 
+function getPreviewModelMessages() {
+  return getModelMessages().reduce((selected, item) => {
+    const itemMode = normalizeMessageMode(item.mode);
+    if (selectedMode === "问答" && itemMode && itemMode !== "问答") return selected;
+    const content = selectedMode !== "问答" && itemMode === "问答"
+      ? `【原作问答参考，不是剧情对话】\n${item.content}`
+      : item.content;
+    selected.push({ ...item, content });
+    return selected;
+  }, []);
+}
+
 function updateContextModeUI() {
   if (!toggleContextModeButton) return;
   const compact = isSummaryContextMode();
@@ -1750,7 +1762,7 @@ function getContextUsageBreakdown() {
   const characterChars = [previewCharacter.name, previewCharacter.tone, previewCharacter.details]
     .filter(Boolean)
     .join("").length;
-  const historyChars = getModelMessages().reduce((total, message) => total + (message.content || "").length, 0);
+  const historyChars = getPreviewModelMessages().reduce((total, message) => total + (message.content || "").length, 0);
   return {
     contextChars,
     characterChars,
@@ -1780,7 +1792,7 @@ function updateContextUsage() {
 function getContextPreviewText() {
   const project = getActiveProject();
   const context = getModelPreviewContext();
-  const modelMessages = getModelMessages();
+  const modelMessages = getPreviewModelMessages();
   const conversation = modelMessages.length
     ? modelMessages.map((message) => {
       const speaker = message.role === "assistant" ? (message.name || selectedCharacter.name) : "我";
@@ -1796,6 +1808,7 @@ function getContextPreviewText() {
     `回复长度：${responseLengthLabels[responseLengthSelect.value] || "标准"}`,
     `上下文策略：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : `最近对话 + 最近 ${continuityBridgeMessageCount} 条归档桥接`}`,
     selectedMode === "问答" ? "问答隔离：只发送作品 / 章节定位和原作检索依据；创作笔记未发送" : "",
+    selectedMode === "问答" ? "问答历史：已排除带续写 / 改写 / 独白标记的历史消息" : "",
     `项目状态：${formatProjectHealth(project)}`,
     `新鲜度提醒：${formatContextFreshnessNotices(project)}`,
     "",
