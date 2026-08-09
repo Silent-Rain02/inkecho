@@ -279,6 +279,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("问答:", self.javascript)
         self.assertIn("蛊真人", self.html)
         self.assertIn("蛊真人", self.javascript)
+        self.assertIn("status.encoding", self.javascript)
         self.assertIn("function getSourceQuery", self.javascript)
         self.assertIn("function isLowInformationSourceQuery", self.javascript)
         self.assertIn("function sourceQueryAllowsMessage", self.javascript)
