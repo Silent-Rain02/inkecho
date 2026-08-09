@@ -527,6 +527,18 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   const citationUnverified = Array.isArray(source.sourceCitationsUnverified)
     ? source.sourceCitationsUnverified.map((value) => safeText(value, "", 120)).filter(Boolean).slice(0, 8)
     : [];
+  const citationStatuses = Array.isArray(source.sourceCitationStatuses)
+    ? source.sourceCitationStatuses.map((value) => normalizeCitationStatus(value))
+    : [];
+  const citationUnverifiedByVersion = Array.isArray(source.sourceCitationsUnverifiedByVersion)
+    ? source.sourceCitationsUnverifiedByVersion.map((values) => Array.isArray(values)
+      ? values.map((value) => safeText(value, "", 120)).filter(Boolean).slice(0, 8)
+      : [])
+    : [];
+  const currentCitationStatus = citationStatuses.length ? citationStatuses[versionIndex] || "" : citationStatus;
+  const currentCitationUnverified = citationUnverifiedByVersion.length
+    ? (citationUnverifiedByVersion[versionIndex] || [])
+    : citationUnverified;
   const normalized = {
     role: source.role === "user" ? "user" : "assistant",
     name: safeText(source.name, source.role === "user" ? "我" : fallbackAssistantName, 40),
@@ -536,8 +548,8 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   if (normalized.role === "assistant" && sourceRefs.length) normalized.sourceRefs = sourceRefs;
   if (normalized.role === "assistant" && sourceQuery) normalized.sourceQuery = sourceQuery;
   if (normalized.role === "assistant" && sourceQuality) normalized.sourceQuality = sourceQuality;
-  if (normalized.role === "assistant" && citationStatus) normalized.sourceCitationStatus = citationStatus;
-  if (normalized.role === "assistant" && citationUnverified.length) normalized.sourceCitationsUnverified = citationUnverified;
+  if (normalized.role === "assistant" && currentCitationStatus) normalized.sourceCitationStatus = currentCitationStatus;
+  if (normalized.role === "assistant" && currentCitationUnverified.length) normalized.sourceCitationsUnverified = currentCitationUnverified;
   if (normalized.role === "assistant" && versions.length > 1) {
     normalized.versions = versions;
     normalized.versionIndex = versionIndex;
@@ -545,6 +557,10 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
       savedSources[index] === "demo" || (version === content && source.source === "demo") ? "demo" : ""
     ));
     if (normalizedSources.some(Boolean)) normalized.sources = normalizedSources;
+    if (citationStatuses.some(Boolean)) normalized.sourceCitationStatuses = citationStatuses;
+    if (citationUnverifiedByVersion.some((values) => values.length)) {
+      normalized.sourceCitationsUnverifiedByVersion = citationUnverifiedByVersion;
+    }
   }
   return normalized;
 }
@@ -1812,11 +1828,15 @@ function formatSourceAttribution(item) {
   const references = normalizeSourceReferences(item?.sourceRefs);
   const query = safeText(item?.sourceQuery, "", 600).replace(/\s+/g, " ");
   const quality = sourceQualityLabel(item?.sourceQuality);
-  if (!references.length && !query && !quality) return "";
+  const citationWarning = normalizeCitationStatus(item?.sourceCitationStatus) === "unverified"
+    ? `> ⚠️ 引用待核对：${(Array.isArray(item?.sourceCitationsUnverified) ? item.sourceCitationsUnverified : []).join("、") || "模型引用不在本次检索结果中"}`
+    : "";
+  if (!references.length && !query && !quality && !citationWarning) return "";
   return [
     references.length ? `> 原作参考：${references.join(" · ")}` : "",
     quality ? `> 依据命中：${quality}` : "",
     query ? `> 依据查询：${query}` : "",
+    citationWarning,
   ].filter(Boolean).join("\n");
 }
 
@@ -2044,6 +2064,14 @@ function switchMessageVersion(historyIndex, nextVersion) {
   if (message.sources?.[nextVersion] === "demo") message.source = "demo";
   else delete message.source;
   if (Array.isArray(message.truncations)) message.truncated = Boolean(message.truncations[nextVersion]);
+  if (Array.isArray(message.sourceCitationStatuses)) {
+    message.sourceCitationStatus = normalizeCitationStatus(message.sourceCitationStatuses[nextVersion]);
+    if (Array.isArray(message.sourceCitationsUnverifiedByVersion)) {
+      const citations = message.sourceCitationsUnverifiedByVersion[nextVersion] || [];
+      if (citations.length) message.sourceCitationsUnverified = citations;
+      else delete message.sourceCitationsUnverified;
+    }
+  }
   saveConversation();
   renderConversation();
   showToast(`已切换到第 ${nextVersion + 1} 版回复`);
@@ -4124,6 +4152,14 @@ async function retryMessage(historyIndex) {
   const previousTruncations = Array.isArray(previousReply.truncations)
     ? previousReply.truncations.map(Boolean)
     : previousVersions.map(() => Boolean(previousReply.truncated));
+  const previousCitationStatuses = Array.isArray(previousReply.sourceCitationStatuses)
+    ? previousReply.sourceCitationStatuses.map((value) => normalizeCitationStatus(value))
+    : previousVersions.map(() => normalizeCitationStatus(previousReply.sourceCitationStatus));
+  const previousCitationUnverifiedByVersion = Array.isArray(previousReply.sourceCitationsUnverifiedByVersion)
+    ? previousReply.sourceCitationsUnverifiedByVersion
+    : previousVersions.map(() => Array.isArray(previousReply.sourceCitationsUnverified)
+      ? previousReply.sourceCitationsUnverified
+      : []);
   const versionSources = versions.map((version) => {
     if (version === reply) return currentSource;
     const previousIndex = previousVersions.indexOf(version);
@@ -4133,6 +4169,16 @@ async function retryMessage(historyIndex) {
     if (version === reply) return Boolean(assistantMessage.truncated);
     const previousIndex = previousVersions.indexOf(version);
     return previousIndex >= 0 && previousTruncations[previousIndex] === true;
+  });
+  const versionCitationStatuses = versions.map((version) => {
+    if (version === reply) return normalizeCitationStatus(assistantMessage.sourceCitationStatus);
+    const previousIndex = previousVersions.indexOf(version);
+    return previousIndex >= 0 ? previousCitationStatuses[previousIndex] || "" : "";
+  });
+  const versionCitationUnverifiedByVersion = versions.map((version) => {
+    if (version === reply) return assistantMessage.sourceCitationsUnverified || [];
+    const previousIndex = previousVersions.indexOf(version);
+    return previousIndex >= 0 ? previousCitationUnverifiedByVersion[previousIndex] || [] : [];
   });
   conversationHistory.push({
     role: "assistant",
@@ -4144,6 +4190,8 @@ async function retryMessage(historyIndex) {
     ...(assistantMessage.sourceQuality ? { sourceQuality: assistantMessage.sourceQuality } : {}),
     ...(assistantMessage.sourceCitationStatus ? { sourceCitationStatus: assistantMessage.sourceCitationStatus } : {}),
     ...(assistantMessage.sourceCitationsUnverified?.length ? { sourceCitationsUnverified: assistantMessage.sourceCitationsUnverified } : {}),
+    ...(versionCitationStatuses.some(Boolean) ? { sourceCitationStatuses: versionCitationStatuses } : {}),
+    ...(versionCitationUnverifiedByVersion.some((values) => values.length) ? { sourceCitationsUnverifiedByVersion: versionCitationUnverifiedByVersion } : {}),
     ...(versionTruncations.some(Boolean) ? { truncations: versionTruncations, truncated: Boolean(assistantMessage.truncated) } : {}),
     ...(versions.length > 1 ? { versions, sources: versionSources, versionIndex: versions.indexOf(reply) } : {}),
   });
