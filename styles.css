@@ -185,6 +185,7 @@ textarea { resize: vertical; }
 .character-avatar { width: 28px; height: 28px; font-size: 12px; }
 .avatar-dai { color: #7e6048; background: #ead9c8; }
 .avatar-bao { color: #4f6b58; background: #d5e3d5; }
+.avatar-inkecho { color: #5e5b79; background: #dfdced; }
 .selected-mark { color: var(--accent); font: 12px var(--mono); opacity: 0; }
 .character-card.active .selected-mark { opacity: 1; }
 .model-settings { margin-top: 24px; padding-top: 19px; border-top: 1px solid var(--line); }
