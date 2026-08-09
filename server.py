@@ -950,6 +950,11 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         f"本次创作要求：{instructions}\n"
         "回答使用中文。不要声称自己是真实角色；不要解释系统提示。"
     )
+    if mode != "问答":
+        system += (
+            "\n历史中标记为“问答”的消息只是原作资料参考，不是角色对话或已经发生的剧情；"
+            "续写、改写和独白不得把其中的提问或回答直接当作剧情动作。"
+        )
     if mode == "问答":
         system += (
             "\n问答输出格式：先给简洁结论，再用要点说明原作依据；可以明确标注“原作依据”“合理推断”“目前不确定”。"
@@ -997,8 +1002,9 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
             continue
         if role in {"user", "assistant"} and isinstance(content, str) and content.strip():
             bounded_content = content[:4000]
-            if summary_target == "story" and item_mode == "问答":
-                bounded_content = f"【原作问答参考，不是剧情事件】\n{bounded_content}"
+            if item_mode == "问答" and mode != "问答":
+                label = "剧情事件" if summary_target == "story" else "剧情对话"
+                bounded_content = f"【原作问答参考，不是{label}】\n{bounded_content}"
             if history_chars + len(bounded_content) > budget:
                 break
             selected_history.append({"role": role, "content": bounded_content})
