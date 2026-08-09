@@ -618,13 +618,16 @@ def source_citation_metadata(answer: str, references: list[str]) -> dict[str, An
     citations: list[str] = []
     for raw in raw_citations:
         for value in re.split(r"[、,，/及和与]+", raw):
-            citation = re.sub(r"\s+", "", value).strip(" .。:：")[:120]
-            if citation and citation not in citations:
-                citations.append(citation)
-    normalized_references = [re.sub(r"\s+", "", str(reference or "")).lower() for reference in references]
+            cleaned = re.sub(r"\s+", "", value).strip(" -*_.'\"“”‘’。:：()（）[]【】")[:120]
+            heading_citations = SOURCE_HEADING_FOCUS_RE.findall(cleaned)
+            for candidate in heading_citations:
+                citation = candidate.strip()
+                if citation and citation not in citations:
+                    citations.append(citation)
+    normalized_references = [normalize_chapter_markers(re.sub(r"\s+", "", str(reference or ""))) for reference in references]
     unverified = [
         citation for citation in citations
-        if not any(citation.lower() in reference for reference in normalized_references)
+        if not any(normalize_chapter_markers(citation) in reference for reference in normalized_references)
     ]
     if unverified:
         status = "unverified"
