@@ -176,6 +176,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function syncModeControls", self.javascript)
         self.assertIn("creativitySelect.disabled = factualMode", self.javascript)
         self.assertIn('return selectedMode === "问答" ? "事实优先"', self.javascript)
+        self.assertIn("conversationTitle.textContent = getConversationTitle()", self.javascript)
         self.assertIn("原作参考：${references.join", self.javascript)
         self.assertIn("依据查询：${query}", self.javascript)
         self.assertIn("const sourceAttribution = formatSourceAttribution(item)", self.javascript)
