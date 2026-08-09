@@ -304,10 +304,17 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
         if score:
             scored.append((score, chunk))
     scored.sort(key=lambda item: item[0], reverse=True)
-    return [
-        {"title": chunk["title"], "text": chunk["text"][:1000]}
-        for _, chunk in scored[:max(1, min(limit, 8))]
-    ]
+    results: list[dict[str, str]] = []
+    seen_titles: set[str] = set()
+    for _, chunk in scored:
+        title = chunk["title"]
+        if title in seen_titles:
+            continue
+        seen_titles.add(title)
+        results.append({"title": title, "text": chunk["text"][:1000]})
+        if len(results) >= max(1, min(limit, 8)):
+            break
+    return results
 
 
 def source_references(query: str, limit: int = 4) -> list[str]:
