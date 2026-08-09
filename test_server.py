@@ -185,6 +185,8 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("事实优先", qa_prompt)
         self.assertIn("你是 InkEcho 的《蛊真人》原作资料助手", qa_prompt)
         self.assertIn("分层说明原作依据", qa_prompt)
+        self.assertIn("事实句末尽量使用“（依据：章节标题）”", qa_prompt)
+        self.assertIn("不得用模型记忆把多个片段拼成未被明确支持的结论", qa_prompt)
         self.assertNotIn("文学创作伙伴", qa_prompt)
         self.assertNotIn("这是不应出现在问答人格中的角色语气", qa_prompt)
         self.assertNotIn("这是不应进入问答上下文的角色设定", qa_prompt)
@@ -246,6 +248,17 @@ class ServerConfigTests(unittest.TestCase):
         ):
             results = source_search("方源", limit=4)
         self.assertEqual([item["title"] for item in results], ["第一节：青茅山", "第二节：重生"])
+
+    def test_source_search_prioritizes_requested_chapter(self) -> None:
+        with patch(
+            "server.source_chunks",
+            return_value=[
+                {"title": "后文：春秋蝉", "text": "方源再次提到春秋蝉。"},
+                {"title": "第十九节：六转本命春秋蝉！", "text": "方源在空窍中观察春秋蝉。"},
+            ],
+        ):
+            results = source_search("第十九节 春秋蝉是什么", limit=2)
+        self.assertEqual(results[0]["title"], "第十九节：六转本命春秋蝉！")
 
     def test_source_search_centers_evidence_on_the_matched_term(self) -> None:
         prefix = "无关铺垫。" * 220
