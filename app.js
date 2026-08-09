@@ -1775,6 +1775,16 @@ function getMessageSourceLabel(item) {
   return item?.source === "demo" ? "演示回复 · 模型服务未返回，本地模板生成" : "";
 }
 
+function formatSourceAttribution(item) {
+  const references = normalizeSourceReferences(item?.sourceRefs);
+  const query = safeText(item?.sourceQuery, "", 600).replace(/\s+/g, " ");
+  if (!references.length && !query) return "";
+  return [
+    references.length ? `> 原作参考：${references.join(" · ")}` : "",
+    query ? `> 依据查询：${query}` : "",
+  ].filter(Boolean).join("\n");
+}
+
 function appendDemoSourceBadge(meta) {
   if (!meta || meta.querySelector(".message-source-badge")) return;
   const sourceBadge = document.createElement("span");
@@ -2051,7 +2061,10 @@ function formatProjectHandoff() {
     const content = rawContent.slice(0, 1200);
     const suffix = rawContent.length > 1200 ? "\n（本段已截取前 1200 字）" : "";
     const sourceNote = getMessageSourceLabel(item);
-    return `### ${speaker}\n${sourceNote ? `> ⚠️ ${sourceNote}\n` : ""}${content}${suffix}`;
+    const sourceAttribution = formatSourceAttribution(item);
+    return [`### ${speaker}`, sourceNote ? `> ⚠️ ${sourceNote}` : "", sourceAttribution, `${content}${suffix}`]
+      .filter(Boolean)
+      .join("\n");
   });
   const highlights = (project.highlights || []).slice(-8).map((item) => `- **${item.name || "摘录"}**：${item.content}`);
   const checkpoints = (project.checkpoints || []).slice().reverse().slice(0, 6).map(
@@ -2154,7 +2167,10 @@ function formatConversationForExport() {
       ].join("\n")
       : "";
     const sourceNote = getMessageSourceLabel(item);
-    return [`### ${speaker}`, sourceNote ? `> ⚠️ ${sourceNote}` : "", item.content, alternativeBlock].filter(Boolean).join("\n\n");
+    const sourceAttribution = formatSourceAttribution(item);
+    return [`### ${speaker}`, sourceNote ? `> ⚠️ ${sourceNote}` : "", sourceAttribution, item.content, alternativeBlock]
+      .filter(Boolean)
+      .join("\n\n");
   }).join("\n\n---\n\n");
 }
 
