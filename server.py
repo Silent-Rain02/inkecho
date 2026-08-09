@@ -30,6 +30,7 @@ SOURCE_HEADING_RE = re.compile(r"^\s*(第[一二三四五六七八九十百千�
 SOURCE_VOLUME_RE = re.compile(r"^\s*第[一二三四五六七八九十百千万0-9]+卷(?:[：:].*)?\s*$")
 SOURCE_SECTION_RE = re.compile(r"^\s*第[一二三四五六七八九十百千万0-9]+(?:章|节)[：:]?.*\s*$")
 SOURCE_HEADING_FOCUS_RE = re.compile(r"第[一二三四五六七八九十百千万0-9]+(?:卷|章|节)")
+SOURCE_HEADING_MARKER_RE = re.compile(r"第([一二三四五六七八九十百千万零〇两0-9]+)(卷|章|节)")
 SOURCE_CITATION_RE = re.compile(r"(?:依据|参考)[：:]\s*([^)\]）\]\n，。；;]+)")
 SOURCE_STOP_TERMS = {
     "什么", "如何", "为什么", "怎么", "是否", "可以", "能够", "以及", "以及", "哪些", "哪个",
@@ -42,6 +43,8 @@ SOURCE_KNOWN_TERMS = (
     "月光蛊", "青茅山", "方源", "方正", "白家寨", "熊家寨", "花酒", "酒虫", "元石", "蛊师",
     "蛊虫", "蛊仙", "真元", "仙窍", "炼蛊", "重生", "影宗", "天庭", "长生",
 )
+CHINESE_NUMERAL_DIGITS = {"零": 0, "〇": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+CHINESE_NUMERAL_UNITS = {"十": 10, "百": 100, "千": 1000, "万": 10000}
 LOW_INFORMATION_SOURCE_QUERIES = {
     "继续", "继续写", "继续写下去", "接着写", "往下写", "下一段", "然后呢", "具体呢",
     "为什么", "还有吗", "展开说说", "再说说", "再来一点",
@@ -347,10 +350,46 @@ def source_query_from_payload(payload: dict[str, Any]) -> str:
     return " ".join(part for part in query_parts if part)[:600]
 
 
+def chinese_numeral_to_int(value: str) -> int | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    if raw.isdigit():
+        return int(raw)
+    total = 0
+    section = 0
+    current = 0
+    for char in raw:
+        if char in CHINESE_NUMERAL_DIGITS:
+            current = CHINESE_NUMERAL_DIGITS[char]
+            continue
+        unit = CHINESE_NUMERAL_UNITS.get(char)
+        if unit is None:
+            return None
+        if unit == 10_000:
+            section = (section + current) * unit
+            total += section
+            section = 0
+        else:
+            section += (current or 1) * unit
+        current = 0
+    return total + section + current
+
+
+def normalize_chapter_markers(value: str) -> str:
+    def replace(match: re.Match[str]) -> str:
+        number = chinese_numeral_to_int(match.group(1))
+        return f"第{number}{match.group(2)}" if number is not None else match.group(0)
+
+    return SOURCE_HEADING_MARKER_RE.sub(replace, str(value or "")).lower()
+
+
 def source_query_terms(query: str) -> list[tuple[str, float]]:
     """Build domain-aware terms without crossing Chinese word boundaries."""
     weighted_terms: list[tuple[str, float]] = []
     query_without_known_terms = query
+    for marker in SOURCE_HEADING_FOCUS_RE.findall(query):
+        weighted_terms.append((normalize_chapter_markers(marker), 6.0))
     for known in sorted(SOURCE_KNOWN_TERMS, key=len, reverse=True):
         if known not in query_without_known_terms:
             continue
@@ -403,7 +442,7 @@ def source_search(query: str, limit: int = 4, include_adjacent: bool = False) ->
         marker in query for marker in ("回到", "最先", "最优先", "初期", "开局")
     )
     heading_focus = list(dict.fromkeys(
-        match.group(0).lower() for match in SOURCE_HEADING_FOCUS_RE.finditer(query)
+        normalize_chapter_markers(match.group(0)) for match in SOURCE_HEADING_FOCUS_RE.finditer(query)
     ))
     named_terms = [
         term.lower()
@@ -417,8 +456,8 @@ def source_search(query: str, limit: int = 4, include_adjacent: bool = False) ->
     }
     scored: list[tuple[float, int, dict[str, str]]] = []
     for index, chunk in enumerate(chunks):
-        title = chunk["title"].lower()
-        haystack = f"{title}\n{chunk['text'].lower()}"
+        title = normalize_chapter_markers(chunk["title"])
+        haystack = normalize_chapter_markers(f"{chunk['title']}\n{chunk['text']}")
         score = 0.0
         if query in haystack:
             score += 16.0
@@ -451,7 +490,7 @@ def source_search(query: str, limit: int = 4, include_adjacent: bool = False) ->
     if len(heading_focus) >= 2:
         exact_heading_matches = [
             item for item in scored
-            if all(heading in item[2]["title"].lower() for heading in heading_focus)
+            if all(heading in normalize_chapter_markers(item[2]["title"]) for heading in heading_focus)
         ]
         if exact_heading_matches:
             scored = exact_heading_matches
@@ -475,7 +514,7 @@ def source_search(query: str, limit: int = 4, include_adjacent: bool = False) ->
         # only, so this bridge is deliberately limited to creative modes.
         for anchor_index in selected_indices:
             anchor_title = chunks[anchor_index]["title"]
-            if not any(heading in anchor_title.lower() for heading in heading_focus):
+            if not any(heading in normalize_chapter_markers(anchor_title) for heading in heading_focus):
                 continue
             neighbor_index = anchor_index + 1
             while neighbor_index < len(chunks) and chunks[neighbor_index]["title"] == anchor_title:
