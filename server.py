@@ -62,6 +62,12 @@ MODE_GUIDANCE = {
     "独白": "独白要求：以当前角色的第一人称内心独白为主，集中表达感受、记忆与未说出口的话，不替其他角色展开对话。",
     "问答": "问答要求：以资料助手口吻回答，不进行当前角色扮演；优先依据原作知识库和已有上下文，明确区分原文事实、合理推断和不确定内容，不要为了完整而编造原作没有的信息。",
 }
+SOURCE_QUALITY_PROMPT_GUIDANCE = {
+    "strong": "检索命中充分：只有被当前片段直接支持的内容才能标为“原作依据”；不要把片段之外的记忆补成事实。",
+    "partial": "检索命中有限：优先回答片段直接支持的部分；无法由片段直接确认的内容必须标为“合理推断”或“目前不确定”。",
+    "limited": "检索只有单一命中：只陈述片段中明确出现的内容；不要根据常识或记忆扩展原作结论，必要时说明依据不足。",
+    "none": "当前未命中可靠片段：不要把模型记忆写成原作事实，应明确说明目前依据不足，并只给出谨慎的可能性。",
+}
 RESPONSE_LENGTH_GUIDANCE = {
     "concise": (420, "精简回复：聚焦一个关键动作或情绪，尽量控制在较短篇幅内。"),
     "standard": (700, "标准回复：完整推进一个小场景，兼顾动作、氛围与人物反应。"),
@@ -445,6 +451,10 @@ def source_evidence_quality(query: str, matches: list[dict[str, str]]) -> str:
     return "limited"
 
 
+def source_quality_prompt_hint(quality: str) -> str:
+    return SOURCE_QUALITY_PROMPT_GUIDANCE.get(quality, SOURCE_QUALITY_PROMPT_GUIDANCE["none"])
+
+
 def source_evidence_metadata(query: str, limit: int = 4) -> dict[str, Any]:
     """Return bounded source attribution and retrieval quality for client display."""
     matches = source_search(query, limit=limit)
@@ -722,7 +732,10 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         character_name = "InkEcho"
         character_tone = "清晰、克制、以证据为先，不进行角色扮演。"
         character_details = "《蛊真人》原作资料助手：区分原作事实、合理推断与目前不确定内容；没有依据时明确说明。"
-    source_context = source_context_for_payload(payload)
+    source_query = source_query_from_payload(payload)
+    source_matches = source_search(source_query, limit=4)
+    source_context = "\n\n".join(f"【{item['title']}】\n{item['text']}" for item in source_matches)
+    source_quality = source_evidence_quality(source_query, source_matches)
 
     identity = (
         "你是 InkEcho 的《蛊真人》原作资料助手。你的任务是基于检索依据和对话上下文回答原作问题，不进行角色扮演。\n"
@@ -744,6 +757,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         system += (
             "\n问答输出格式：先给简洁结论，再用要点说明原作依据；可以明确标注“原作依据”“合理推断”“目前不确定”。"
             "不要把问答写成续写，不要为了完整而补造原作没有的细节。"
+            f"\n本次原作检索强度：{source_quality_prompt_hint(source_quality)}"
         )
     if reference:
         system += (
@@ -754,7 +768,8 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         system += (
             f"\n{source_name()}原作知识库检索片段（仅作为事实和设定参考）：\n"
             f"{source_context}\n"
-            "请优先依据这些片段回答原作问题；续写时只借鉴人物、设定和已发生事实，不要直接复制或逐句改写片段。"
+            "请优先依据这些片段回答原作问题；问答时只把片段直接支持的内容标为原作依据，其余内容必须标为合理推断或目前不确定；"
+            "续写时只借鉴人物、设定和已发生事实，不要直接复制或逐句改写片段。"
         )
     elif mode == "问答":
         system += (
