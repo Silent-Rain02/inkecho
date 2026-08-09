@@ -485,6 +485,10 @@ function normalizeSourceQuality(value) {
   return ["strong", "partial", "limited", "none"].includes(value) ? value : "";
 }
 
+function normalizeMessageMode(value) {
+  return Object.prototype.hasOwnProperty.call(modeHints, value) ? value : "";
+}
+
 function sourceQualityLabel(value) {
   return {
     strong: "命中充分",
@@ -539,11 +543,13 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   const currentCitationUnverified = citationUnverifiedByVersion.length
     ? (citationUnverifiedByVersion[versionIndex] || [])
     : citationUnverified;
+  const messageMode = normalizeMessageMode(source.mode);
   const normalized = {
     role: source.role === "user" ? "user" : "assistant",
     name: safeText(source.name, source.role === "user" ? "我" : fallbackAssistantName, 40),
     content: versions[versionIndex] || content,
   };
+  if (messageMode) normalized.mode = messageMode;
   if (normalized.role === "assistant" && currentSource) normalized.source = currentSource;
   if (normalized.role === "assistant" && sourceRefs.length) normalized.sourceRefs = sourceRefs;
   if (normalized.role === "assistant" && sourceQuery) normalized.sourceQuery = sourceQuery;
@@ -1840,6 +1846,11 @@ function formatSourceAttribution(item) {
   ].filter(Boolean).join("\n");
 }
 
+function formatMessageMode(item) {
+  const mode = normalizeMessageMode(item?.mode);
+  return mode ? `> 生成模式：${mode}` : "";
+}
+
 function appendDemoSourceBadge(meta) {
   if (!meta || meta.querySelector(".message-source-badge")) return;
   const sourceBadge = document.createElement("span");
@@ -1917,7 +1928,7 @@ function setAssistantBubbleText(bubble, text) {
   bubble.innerHTML = renderAssistantMarkdown(rawText);
 }
 
-function addMessage({ role, name, text, avatarClass, historyIndex, versions, sources, source, sourceRefs, sourceQuery, sourceQuality, sourceCitationStatus, sourceCitationsUnverified, truncated = false, truncations, versionIndex = 0 }) {
+function addMessage({ role, name, text, avatarClass, historyIndex, mode, versions, sources, source, sourceRefs, sourceQuery, sourceQuality, sourceCitationStatus, sourceCitationsUnverified, truncated = false, truncations, versionIndex = 0 }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
   if (Number.isInteger(historyIndex)) row.dataset.historyIndex = String(historyIndex);
@@ -1935,6 +1946,14 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
   const time = document.createElement("time");
   time.textContent = role === "user" ? "刚刚" : "现在";
   meta.append(nameElement, time);
+  const messageMode = normalizeMessageMode(mode);
+  if (role === "assistant" && messageMode) {
+    const modeBadge = document.createElement("span");
+    modeBadge.className = "message-mode-badge";
+    modeBadge.textContent = messageMode;
+    modeBadge.title = `这条回复生成于「${messageMode}」模式`;
+    meta.appendChild(modeBadge);
+  }
   const currentSource = source === "demo" || sources?.[versionIndex] === "demo" ? "demo" : "";
   if (role === "assistant" && currentSource) appendDemoSourceBadge(meta);
   const currentTruncated = Boolean(truncated || truncations?.[versionIndex]);
@@ -2137,7 +2156,7 @@ async function copyConversation() {
   const transcript = getConversationForDisplay().map((item) => {
     const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
     const sourceAttribution = formatSourceAttribution(item);
-    return [`${speaker}：${item.content}`, sourceAttribution].filter(Boolean).join("\n");
+    return [`${speaker}：${item.content}`, formatMessageMode(item), sourceAttribution].filter(Boolean).join("\n");
   }).join("\n\n");
   await copyText(transcript, "对话已复制", "当前还没有对话内容");
 }
@@ -2171,8 +2190,9 @@ function formatProjectHandoff() {
     const content = rawContent.slice(0, 1200);
     const suffix = rawContent.length > 1200 ? "\n（本段已截取前 1200 字）" : "";
     const sourceNote = getMessageSourceLabel(item);
+    const messageMode = formatMessageMode(item);
     const sourceAttribution = formatSourceAttribution(item);
-    return [`### ${speaker}`, sourceNote ? `> ⚠️ ${sourceNote}` : "", sourceAttribution, `${content}${suffix}`]
+    return [`### ${speaker}`, sourceNote ? `> ⚠️ ${sourceNote}` : "", messageMode, sourceAttribution, `${content}${suffix}`]
       .filter(Boolean)
       .join("\n");
   });
@@ -2277,8 +2297,9 @@ function formatConversationForExport() {
       ].join("\n")
       : "";
     const sourceNote = getMessageSourceLabel(item);
+    const messageMode = formatMessageMode(item);
     const sourceAttribution = formatSourceAttribution(item);
-    return [`### ${speaker}`, sourceNote ? `> ⚠️ ${sourceNote}` : "", sourceAttribution, item.content, alternativeBlock]
+    return [`### ${speaker}`, sourceNote ? `> ⚠️ ${sourceNote}` : "", messageMode, sourceAttribution, item.content, alternativeBlock]
       .filter(Boolean)
       .join("\n\n");
   }).join("\n\n---\n\n");
@@ -3001,6 +3022,7 @@ function renderConversation() {
       name: item.name || (assistant ? selectedCharacter.name : "我"),
       text: item.content,
       historyIndex: index,
+      mode: item.mode,
       avatarClass: assistant
         ? getAssistantAvatarClass(item.name || selectedCharacter.name)
         : "user-avatar",
@@ -3950,7 +3972,7 @@ async function requestModelReply() {
   return payload.text;
 }
 
-async function requestStreamReply(onDelta, character = selectedCharacter, onStart = null, sourceQuery = getSourceQuery(), onDone = null, responseLengthOverride = "") {
+async function requestStreamReply(onDelta, character = selectedCharacter, onStart = null, sourceQuery = getSourceQuery(), onDone = null, responseLengthOverride = "", modeOverride = "") {
   const controller = new AbortController();
   streamController = controller;
   const response = await withAbortTimeout(fetch("/api/chat/stream", {
@@ -3960,7 +3982,7 @@ async function requestStreamReply(onDelta, character = selectedCharacter, onStar
     body: JSON.stringify({
       provider: providerSelect.value,
       model: modelName.value.trim(),
-      mode: selectedMode,
+      mode: modeOverride || selectedMode,
       creativity: creativitySelect.value,
       response_length: responseLengthOverride || responseLengthSelect.value,
       character,
@@ -4073,7 +4095,7 @@ function getDraftSourceQuery() {
   return sourceQueryForHistoryIndex(null);
 }
 
-async function generateAssistantReply(assistantMessage, character = selectedCharacter, responseLengthOverride = "") {
+async function generateAssistantReply(assistantMessage, character = selectedCharacter, responseLengthOverride = "", modeOverride = "") {
   setSending(true);
   delete assistantMessage.bubble.dataset.source;
   const sourceQuery = getSourceQuery();
@@ -4107,7 +4129,7 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
           appendCitationWarningBadge(assistantMessage.meta, assistantMessage.sourceCitationsUnverified);
         }
       }
-    }, responseLengthOverride);
+    }, responseLengthOverride, modeOverride);
   } catch (error) {
     const timedOut = error?.name === "StreamTimeoutError";
     const stopped = error?.name === "AbortError" && !timedOut;
@@ -4143,6 +4165,7 @@ async function retryMessage(historyIndex, responseLengthOverride = "") {
   }
 
   const previousReply = conversationHistory.at(-1);
+  const responseMode = normalizeMessageMode(previousReply.mode) || selectedMode;
   const speaker = previousReply.name || selectedCharacter.name;
   const previousVersions = Array.isArray(previousReply.versions)
     ? previousReply.versions.filter((version) => typeof version === "string" && version.trim())
@@ -4158,9 +4181,10 @@ async function retryMessage(historyIndex, responseLengthOverride = "") {
     name: speaker,
     text: "",
     historyIndex: conversationHistory.length,
+    mode: responseMode,
     avatarClass: getAssistantAvatarClass(speaker),
   });
-  const reply = await generateAssistantReply(assistantMessage, character, responseLengthOverride);
+  const reply = await generateAssistantReply(assistantMessage, character, responseLengthOverride, responseMode);
   const versions = Array.from(new Set([...previousVersions, reply].filter(Boolean)));
   const currentSource = assistantMessage.bubble.dataset.source === "demo" ? "demo" : "";
   const previousSources = Array.isArray(previousReply.sources)
@@ -4201,6 +4225,7 @@ async function retryMessage(historyIndex, responseLengthOverride = "") {
     role: "assistant",
     name: speaker,
     content: reply,
+    ...(responseMode ? { mode: responseMode } : {}),
     ...(currentSource ? { source: currentSource } : {}),
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
     ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
@@ -4858,8 +4883,8 @@ composer.addEventListener("submit", async (event) => {
     return;
   }
 
-  addMessage({ role: "user", name: "我", text, historyIndex: conversationHistory.length, avatarClass: "user-avatar" });
-  conversationHistory.push({ role: "user", name: "我", content: text });
+  addMessage({ role: "user", name: "我", text, historyIndex: conversationHistory.length, mode: selectedMode, avatarClass: "user-avatar" });
+  conversationHistory.push({ role: "user", name: "我", content: text, mode: selectedMode });
   messageInput.value = "";
   saveDraft();
   saveConversation();
@@ -4871,6 +4896,7 @@ composer.addEventListener("submit", async (event) => {
     name: responseName,
     text: "",
     historyIndex: conversationHistory.length,
+    mode: selectedMode,
     avatarClass: getAssistantAvatarClass(responseName),
   });
   const reply = await generateAssistantReply(assistantMessage, character);
@@ -4880,6 +4906,7 @@ composer.addEventListener("submit", async (event) => {
     role: "assistant",
     name: responseName,
     content: reply,
+    ...(selectedMode ? { mode: selectedMode } : {}),
     ...(source ? { source } : {}),
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
     ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
