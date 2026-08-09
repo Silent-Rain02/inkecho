@@ -28,6 +28,7 @@ from server import (
     history_budget_chars,
     source_references,
     source_evidence_quality,
+    source_quality_prompt_hint,
     source_query_from_payload,
     source_query_terms,
     source_search,
@@ -215,6 +216,24 @@ class ServerConfigTests(unittest.TestCase):
             {"title": "第三节", "text": "仍然是蛊虫。"},
         ]), "partial")
         self.assertEqual(source_evidence_quality("完全不存在的设定", []), "none")
+
+    def test_qa_prompt_uses_retrieval_quality_to_set_fact_boundary(self) -> None:
+        with patch(
+            "server.source_search",
+            return_value=[
+                {"title": "第一节", "text": "只出现一个相关词。"},
+                {"title": "第二节", "text": "另一个弱命中。"},
+                {"title": "第三节", "text": "第三个弱命中。"},
+            ],
+        ):
+            prompt = build_messages({
+                "mode": "问答",
+                "messages": [{"role": "user", "content": "这个设定究竟是什么？"}],
+            })[0]["content"]
+        self.assertIn("检索命中有限", prompt)
+        self.assertIn("目前不确定", prompt)
+        self.assertIn("只把片段直接支持的内容标为原作依据", prompt)
+        self.assertIn("当前未命中可靠片段", source_quality_prompt_hint("none"))
 
     def test_source_search_deduplicates_chunks_from_same_section(self) -> None:
         with patch(
