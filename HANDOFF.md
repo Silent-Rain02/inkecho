@@ -40,6 +40,7 @@ INK_ECHO_SOURCE_FILE=/绝对路径/新蛊无删减错别字修正5.0.txt
 4. 内容问答要求优先依据检索片段并标注“原作依据 / 合理推断 / 目前不确定”；续写只借用人物、设定和事实，不直接复制原文。
 5. 若知识库或模型服务不可用，前端明确显示配置 / 演示状态，不把演示回复伪装成原作事实。
 6. 模型流式响应的 `start` 事件只携带有限的章节标题 `source_references`，前端将其显示在回复下方；原文片段不会写入浏览器项目数据。
+7. 点击回复下方的“查看依据”会调用本地 `/api/source/search`，在临时弹窗中展示有限片段并支持复制；关闭弹窗后不会保存这些片段。
 
 ## 服务端接口
 
@@ -63,7 +64,7 @@ INK_ECHO_SOURCE_FILE=/绝对路径/新蛊无删减错别字修正5.0.txt
 - `POST /api/chat`：非流式回复
 - `POST /api/chat/stream`：SSE 流式回复
 
-聊天响应会额外返回安全的 `source_references` 章节标题列表；`POST /api/source/search` 仅供本地调试检索，返回有限片段，不是原文下载接口。
+聊天响应会额外返回安全的 `source_references` 章节标题列表；`POST /api/source/search` 仅返回有限检索片段，不是原文下载接口，前端依据面板也不会把结果持久化。
 
 支持 `custom_azure`、`ollama`、`openai`、`azure` 和 `compatible`。每个项目会按服务分别记住模型名，办公网端点与本地 Ollama 的配置示例都在 `.env.example`。服务端会过滤 `replace_with_your_key`、`your-deployment-name` 等配置占位符，避免状态误报。
 
