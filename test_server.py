@@ -28,6 +28,7 @@ from server import (
     history_budget_chars,
     source_references,
     source_evidence_quality,
+    source_citation_metadata,
     source_quality_prompt_hint,
     source_query_from_payload,
     source_query_terms,
@@ -218,6 +219,20 @@ class ServerConfigTests(unittest.TestCase):
             {"title": "第三节", "text": "仍然是蛊虫。"},
         ]), "partial")
         self.assertEqual(source_evidence_quality("完全不存在的设定", []), "none")
+
+    def test_source_citation_metadata_flags_chapters_outside_retrieved_evidence(self) -> None:
+        verified = source_citation_metadata(
+            "春秋蝉是仙蛊（依据：第十九节）。",
+            ["第十九节：六转本命春秋蝉！"],
+        )
+        self.assertEqual(verified["source_citation_status"], "verified")
+        self.assertEqual(verified["source_citations_unverified"], [])
+        unverified = source_citation_metadata(
+            "春秋蝉还有另一项能力（依据：第九百九十九节）。",
+            ["第十九节：六转本命春秋蝉！"],
+        )
+        self.assertEqual(unverified["source_citation_status"], "unverified")
+        self.assertEqual(unverified["source_citations_unverified"], ["第九百九十九节"])
 
     def test_qa_prompt_uses_retrieval_quality_to_set_fact_boundary(self) -> None:
         with patch(
@@ -869,6 +884,32 @@ class HttpRouteTests(unittest.TestCase):
         self.assertEqual(payload["source_references"], ["第一节：青茅山"])
         self.assertEqual(payload["source_quality"], "strong")
 
+    def test_chat_route_returns_citation_audit_for_qa(self) -> None:
+        body = json.dumps({
+            "provider": "ollama",
+            "model": "qwen3:8b",
+            "mode": "问答",
+            "messages": [{"role": "user", "content": "春秋蝉是什么？"}],
+        }).encode("utf-8")
+        handler = CaptureHandler("/api/chat", body)
+        settings = SimpleNamespace(provider="ollama", model="qwen3:8b")
+        with patch(
+            "server.complete_chat",
+            return_value=("答案（依据：第九百九十九节）。", settings, False),
+        ), patch(
+            "server.source_evidence_metadata",
+            return_value={
+                "source_references": ["第十九节：六转本命春秋蝉！"],
+                "source_quality": "strong",
+                "source_match_count": 1,
+            },
+        ):
+            handler.do_POST()
+        status, payload = handler.responses[0]
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["source_citation_status"], "unverified")
+        self.assertEqual(payload["source_citations_unverified"], ["第九百九十九节"])
+
     def test_stream_start_returns_server_source_query(self) -> None:
         body = json.dumps({
             "provider": "ollama",
@@ -892,6 +933,27 @@ class HttpRouteTests(unittest.TestCase):
         self.assertEqual(handler.events[0]["source_references"], ["第一节：青茅山"])
         self.assertEqual(handler.events[0]["source_quality"], "strong")
         self.assertEqual(handler.events[-1], {"type": "done", "truncated": False})
+
+    def test_stream_done_returns_citation_audit_for_qa(self) -> None:
+        body = json.dumps({
+            "provider": "ollama",
+            "model": "qwen3:8b",
+            "mode": "问答",
+            "messages": [{"role": "user", "content": "春秋蝉是什么？"}],
+        }).encode("utf-8")
+        handler = StreamCaptureHandler("/api/chat/stream", body)
+        settings = SimpleNamespace(provider="ollama", model="qwen3:8b")
+        with patch("server.stream_chat", return_value=(settings, iter(["答案（依据：第九百九十九节）。"]))), patch(
+            "server.source_evidence_metadata", return_value={
+                "source_references": ["第十九节：六转本命春秋蝉！"],
+                "source_quality": "strong",
+                "source_match_count": 1,
+            }
+        ):
+            handler.do_POST()
+        self.assertEqual(handler.events[-1]["type"], "done")
+        self.assertEqual(handler.events[-1]["source_citation_status"], "unverified")
+        self.assertEqual(handler.events[-1]["source_citations_unverified"], ["第九百九十九节"])
 
     def test_source_search_route_returns_status_and_matches(self) -> None:
         body = json.dumps({"query": "方源"}).encode("utf-8")
