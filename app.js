@@ -191,6 +191,29 @@ const modeHints = {
   独白: "让角色说出心里话……",
 };
 
+const modePromptSets = {
+  续写: [
+    { title: "一封未寄出的信", subtitle: "换一个角度，重新理解角色。", prompt: "写一封没有寄出的信，告诉我你最想改变原作里的哪一刻。" },
+    { title: "让天气开口", subtitle: "为场景增加一层隐秘的情绪。", prompt: "如果今天的雨会替人说话，它会对你说些什么？请用一段诗意的文字回答。" },
+    { title: "不存在的下午", subtitle: "从日常细节里长出新故事。", prompt: "写一个原作没有发生过的下午，让人物在一个小动作里改变后续选择。" },
+  ],
+  问答: [
+    { title: "人物处境", subtitle: "梳理方源在青茅山的关键目标。", prompt: "方源重生回到青茅山后，最优先要确认哪些事情？请区分原作依据与推断。" },
+    { title: "蛊虫辨析", subtitle: "了解蛊虫的作用、代价与限制。", prompt: "春秋蝉在原作中的作用、风险和关键转折是什么？请标注原作依据。" },
+    { title: "势力关系", subtitle: "看清古月、白家与熊家的格局。", prompt: "青茅山三大山寨之间是什么关系？请按原作事实、推断和不确定内容回答。" },
+  ],
+  改写: [
+    { title: "换一种选择", subtitle: "保留人物心性，改变后果。", prompt: "保留人物核心性格，改写这一幕中最关键的一个选择。" },
+    { title: "收紧对白", subtitle: "让潜台词比解释更有力量。", prompt: "把这段对白改得更克制，让人物用动作和停顿表达真实意图。" },
+    { title: "另一种结局", subtitle: "从一个细节分岔出新线索。", prompt: "如果这一幕的结果相反，后续剧情最合理的变化是什么？" },
+  ],
+  独白: [
+    { title: "不肯承认的事", subtitle: "让角色面对最隐秘的动机。", prompt: "让当前角色说出一件他最不愿承认、却一直影响选择的事情。" },
+    { title: "力量与代价", subtitle: "把取舍写成一段内心拉扯。", prompt: "让角色独白：为了力量，他愿意付出什么，又绝不愿失去什么？" },
+    { title: "回望重生", subtitle: "从记忆深处重新审视一条路。", prompt: "让角色回望一次改变命运的决定，用第一人称写出当时没有说出口的话。" },
+  ],
+};
+
 const projectStatusLabels = {
   all: "全部项目",
   attention: "需要处理",
@@ -1173,6 +1196,7 @@ function hydrateActiveProject() {
     tab.setAttribute("aria-selected", String(active));
   });
   composerHint.textContent = modeHints[selectedMode];
+  renderModePrompts();
   updateContextModeUI();
 }
 
@@ -4247,6 +4271,22 @@ function renderCustomPrompts() {
   });
 }
 
+function renderModePrompts() {
+  if (!promptList) return;
+  const prompts = modePromptSets[selectedMode] || modePromptSets.续写;
+  const cards = Array.from(promptList.querySelectorAll(".prompt-card:not(.custom-prompt-card)"));
+  cards.slice(0, prompts.length).forEach((card, index) => {
+    const prompt = prompts[index];
+    card.dataset.prompt = prompt.prompt;
+    const number = card.querySelector(".prompt-number");
+    const title = card.querySelector("strong");
+    const subtitle = card.querySelector("small");
+    if (number) number.textContent = String(index + 1).padStart(2, "0");
+    if (title) title.textContent = prompt.title;
+    if (subtitle) subtitle.textContent = prompt.subtitle;
+  });
+}
+
 function openPromptEditor(index = null) {
   editingPromptIndex = Number.isInteger(index) ? index : null;
   const prompt = editingPromptIndex === null ? null : getActiveProject().prompts[editingPromptIndex];
@@ -4435,6 +4475,7 @@ document.querySelectorAll(".mode-tab").forEach((tab) => {
       item.setAttribute("aria-selected", String(active));
     });
     composerHint.textContent = modeHints[selectedMode];
+    renderModePrompts();
     persistActiveProject();
     showToast(`已切换到「${selectedMode}」模式`);
   });
