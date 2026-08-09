@@ -109,6 +109,7 @@ class FrontendContractTests(unittest.TestCase):
             "commandPaletteSearch",
             "commandPaletteList",
             "commandPaletteHint",
+            "sourceStatus",
         }
         self.assertTrue(required.issubset(ids))
         self.assertIn("captureSceneOutcome", self.javascript)
@@ -218,6 +219,13 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function applySummaryPreview", self.javascript)
         self.assertIn("当前摘要 ${current.length} 字", self.javascript)
         self.assertIn('applySummaryPreviewButton.addEventListener("click", applySummaryPreview)', self.javascript)
+        self.assertIn('data-mode="问答"', self.html)
+        self.assertIn("问答:", self.javascript)
+        self.assertIn("蛊真人", self.html)
+        self.assertIn("蛊真人", self.javascript)
+        self.assertIn("function getSourceQuery", self.javascript)
+        self.assertIn("source_query: getSourceQuery()", self.javascript)
+        self.assertIn("function renderSourceStatus", self.javascript)
         self.assertIn("pendingSummaryPreview = null", self.javascript)
         self.assertIn("function openSceneOutcomePreview", self.javascript)
         self.assertIn("function applySceneOutcomePreview", self.javascript)
