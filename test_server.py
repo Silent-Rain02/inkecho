@@ -575,6 +575,18 @@ class HttpRouteTests(unittest.TestCase):
         self.assertEqual(payload["text"], "回答")
         self.assertEqual(payload["source_references"], ["第一节：青茅山"])
 
+    def test_source_search_route_returns_status_and_matches(self) -> None:
+        body = json.dumps({"query": "方源"}).encode("utf-8")
+        handler = CaptureHandler("/api/source/search", body)
+        with patch("server.source_status", return_value={"name": "蛊真人", "available": True, "chunks": 2}), patch(
+            "server.source_search", return_value=[{"title": "第一节：青茅山", "text": "方源回到青茅山。"}]
+        ):
+            handler.do_POST()
+        status, payload = handler.responses[0]
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["source"]["name"], "蛊真人")
+        self.assertEqual(payload["results"][0]["title"], "第一节：青茅山")
+
     def test_probe_route_returns_selected_provider_and_model(self) -> None:
         body = json.dumps({"provider": "ollama", "model": "qwen3:8b"}).encode("utf-8")
         handler = CaptureHandler("/api/probe", body)
