@@ -580,6 +580,7 @@ class ServerConfigTests(unittest.TestCase):
                 status = source_status()
                 results = source_search("方源 青茅山")
             self.assertTrue(status["available"])
+            self.assertEqual(status["encoding"], "gb18030")
             self.assertTrue(results)
             self.assertIn("方源回到青茅山", results[0]["text"])
         finally:
