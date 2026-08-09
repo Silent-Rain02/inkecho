@@ -2,17 +2,17 @@
 
 [![CI](https://github.com/Silent-Rain02/inkecho/actions/workflows/ci.yml/badge.svg)](https://github.com/Silent-Rain02/inkecho/actions/workflows/ci.yml)
 
-InkEcho 是一个用于文学作品对话、续写和二次创作的项目。
+InkEcho 是一个以《蛊真人》为原作基础的续写与内容问答工作台。
 
 接手开发可先阅读 [HANDOFF.md](HANDOFF.md)。
 
 ## 项目简介
 
-项目围绕文学作品内容，提供便于阅读、讨论、角色对话和创意改写的创作空间。
+项目围绕本地《蛊真人》知识库，提供原作内容问答、角色 / 世界观检索和非照抄式剧情续写空间。
 
 ## 当前状态
 
-当前已完成一个可本地运行的文学创作工作台原型，支持多种模型服务、流式对话、项目管理和 JSON 备份。
+当前已完成一个可本地运行的《蛊真人》创作工作台，支持多种模型服务、流式对话、原作检索、项目管理和 JSON 备份。原始小说文件只从本机路径读取，不提交到 GitHub。
 
 ## 已实现
 
@@ -42,7 +42,8 @@ InkEcho 是一个用于文学作品对话、续写和二次创作的项目。
 - 启用精简上下文前也会检查场景结果新鲜度；有未覆盖最新剧情的场景结果时会明确提示，因为场景计划仍会随请求发送
 - 本次创作要求字段，可指定文风、叙事视角、禁用元素和改写边界
 - 角色卡切换、自定义角色添加、编辑与删除；每张角色卡可记录性格语气之外的人物设定、愿望、秘密和关系，并随模型请求与 Markdown 导出保存
-- 续写、改写、角色独白三种创作模式，并为每种模式提供独立写作约束
+- 续写、内容问答、改写、角色独白四种创作模式，并为每种模式提供独立约束
+- 本地原作知识库：按卷 / 节切分文本，检索与当前问题相关的片段；续写和问答共享检索上下文
 - 项目级创作倾向：克制叙事、平衡、大胆想象
 - 项目级回复长度：精简、标准、展开，并作用于流式生成预算
 - 对话消息发送、快捷键发送和会话重置
@@ -155,7 +156,7 @@ InkEcho 是一个用于文学作品对话、续写和二次创作的项目。
 ```bash
 INK_ECHO_PROVIDER=custom_azure
 INK_ECHO_CUSTOM_AZURE_API_KEY=你的密钥
-INK_ECHO_CUSTOM_AZURE_ENDPOINT=https://aidp-i18ntt-sg.tiktok-row.net/api/modelhub/online/v2/crawl
+INK_ECHO_CUSTOM_AZURE_ENDPOINT=你的办公网端点（仅填写在本机 .env）
 INK_ECHO_CUSTOM_AZURE_MODEL=gpt-5-mini-2025-08-07
 INK_ECHO_CUSTOM_AZURE_LOGID=你的logid
 ```
@@ -169,6 +170,17 @@ INK_ECHO_PROVIDER=ollama
 INK_ECHO_OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
 INK_ECHO_OLLAMA_MODEL=qwen3:8b
 ```
+
+### 原作知识库
+
+将 `.env.example` 复制为 `.env`，配置你本机的《蛊真人》纯文本路径：
+
+```bash
+INK_ECHO_SOURCE_NAME=蛊真人
+INK_ECHO_SOURCE_FILE=/绝对路径/新蛊无删减错别字修正5.0.txt
+```
+
+服务端只在本地读取并检索该文件，不提供原文静态下载，也不会把原文提交到 GitHub。
 
 ## 本地运行
 
