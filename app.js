@@ -3583,7 +3583,8 @@ function renderSourceStatus(status) {
     return;
   }
   if (status.available) {
-    sourceStatus.textContent = `原作知识库：${status.name || "蛊真人"} · 已加载 ${Number(status.chunks || 0).toLocaleString("zh-CN")} 个片段`;
+    const encoding = String(status.encoding || "").toUpperCase();
+    sourceStatus.textContent = `原作知识库：${status.name || "蛊真人"} · 已加载 ${Number(status.chunks || 0).toLocaleString("zh-CN")} 个片段${encoding ? ` · ${encoding}` : ""}`;
     sourceStatus.classList.remove("is-warning", "is-error");
   } else if (status.configured) {
     sourceStatus.textContent = `原作知识库：${status.error || "原文文件不可用"}`;
