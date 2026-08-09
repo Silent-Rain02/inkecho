@@ -3875,9 +3875,9 @@ async function testProviderConnection() {
   }
 }
 
-function openSummaryPreview(summary, projectId, messageCount) {
+function openSummaryPreview(summary, projectId, messageCount, messageThrough = "") {
   const current = workSummary.value.trim();
-  pendingSummaryPreview = { summary, projectId, messageCount };
+  pendingSummaryPreview = { summary, projectId, messageCount, messageThrough };
   summaryPreviewStats.textContent = `当前摘要 ${current.length} 字 · 新摘要 ${summary.length} 字 · 覆盖 ${messageCount} 条消息`;
   currentSummaryPreview.textContent = current || "暂无摘要";
   nextSummaryPreview.textContent = summary || "暂无摘要";
@@ -3890,14 +3890,16 @@ function applySummaryPreview() {
     summaryPreviewDialog.close();
     return;
   }
-  if (activeProjectId !== pending.projectId) {
+  const project = getActiveProject();
+  const currentMessageCount = getConversationMessageCount(project);
+  const currentMessageThrough = highlightKey(getConversationForDisplay(project).at(-1));
+  if (activeProjectId !== pending.projectId || currentMessageCount !== pending.messageCount || currentMessageThrough !== pending.messageThrough) {
     pendingSummaryPreview = null;
     summaryPreviewDialog.close();
-    showToast("当前项目已切换，摘要未写入");
+    showToast(activeProjectId !== pending.projectId ? "当前项目已切换，摘要未写入" : "预览生成后已有新剧情，摘要未写入；请重新提炼");
     return;
   }
   workSummary.value = pending.summary;
-  const project = getActiveProject();
   project.summaryMessageCount = pending.messageCount;
   project.summaryUpdatedAt = Date.now();
   renderSummaryFreshness();
@@ -3926,13 +3928,15 @@ function applySceneOutcomePreview() {
     sceneOutcomePreviewDialog.close();
     return;
   }
-  if (activeProjectId !== pending.projectId) {
+  const currentProject = getActiveProject();
+  const currentMessageThrough = highlightKey(getConversationForDisplay(currentProject).at(-1));
+  if (activeProjectId !== pending.projectId || currentMessageThrough !== pending.outcomeThrough) {
     pendingSceneOutcomePreview = null;
     sceneOutcomePreviewDialog.close();
-    showToast("当前项目已切换，本幕结果未写入");
+    showToast(activeProjectId !== pending.projectId ? "当前项目已切换，本幕结果未写入" : "预览生成后已有新剧情，本幕结果未写入；请重新提炼");
     return;
   }
-  const project = getActiveProject();
+  const project = currentProject;
   const beat = project?.beats.find((item) => item.id === pending.beatId);
   if (!beat) {
     pendingSceneOutcomePreview = null;
@@ -3992,7 +3996,12 @@ async function summarizeConversation() {
     }
     const project = getActiveProject();
     setProviderBadge("已连接", "#6f8b6a");
-    openSummaryPreview(payload.summary.slice(0, 2000), projectId, getConversationMessageCount(project));
+    openSummaryPreview(
+      payload.summary.slice(0, 2000),
+      projectId,
+      getConversationMessageCount(project),
+      highlightKey(getConversationForDisplay(project).at(-1)),
+    );
   } catch (error) {
     showToast(error?.name === "AbortError" ? "摘要生成超时，请检查服务状态" : (error?.userMessage || "剧情摘要生成失败"));
   } finally {
@@ -5027,6 +5036,10 @@ composer.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (isSending) {
     stopGeneration();
+    return;
+  }
+  if (isSummarizing) {
+    showToast("摘要提炼完成后再发送");
     return;
   }
   const text = messageInput.value.trim();
