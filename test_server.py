@@ -830,6 +830,22 @@ class ServerConfigTests(unittest.TestCase):
         )
         self.assertIn("原作问答参考，不是剧情事件", messages[1]["content"])
 
+    def test_creative_prompt_labels_qa_history_as_reference_not_dialogue(self) -> None:
+        messages = build_messages(
+            {
+                "mode": "续写",
+                "messages": [
+                    {"role": "user", "content": "春秋蝉是什么？", "mode": "问答"},
+                    {"role": "assistant", "content": "资料回答，不是上一幕对白。", "mode": "问答"},
+                    {"role": "user", "content": "请继续写下一幕。", "mode": "续写"},
+                ],
+            }
+        )
+        history_text = "\n".join(item["content"] for item in messages[1:])
+        self.assertIn("原作问答参考，不是剧情对话", history_text)
+        self.assertIn("资料回答，不是上一幕对白", history_text)
+        self.assertIn("不得把其中的提问或回答直接当作剧情动作", messages[0]["content"])
+
     def test_summarize_chat_can_target_the_current_scene(self) -> None:
         class FakeCompletions:
             def __init__(self) -> None:
