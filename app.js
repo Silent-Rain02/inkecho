@@ -2027,7 +2027,8 @@ async function copyMessage(text) {
 async function copyConversation() {
   const transcript = getConversationForDisplay().map((item) => {
     const speaker = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
-    return `${speaker}：${item.content}`;
+    const sourceAttribution = formatSourceAttribution(item);
+    return [`${speaker}：${item.content}`, sourceAttribution].filter(Boolean).join("\n");
   }).join("\n\n");
   await copyText(transcript, "对话已复制", "当前还没有对话内容");
 }
