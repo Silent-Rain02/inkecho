@@ -79,6 +79,7 @@ const creativitySelect = document.querySelector("#creativitySelect");
 const creativityValue = document.querySelector("#creativityValue");
 const responseLengthSelect = document.querySelector("#responseLengthSelect");
 const responseLengthValue = document.querySelector("#responseLengthValue");
+const previewSourceButton = document.querySelector("#previewSource");
 const sendButton = document.querySelector(".send-button");
 const draftStatus = document.querySelector("#draftStatus");
 const toggleFocusModeButton = document.querySelector("#toggleFocusMode");
@@ -3891,6 +3892,19 @@ function getSourceQuery() {
     .slice(0, 600);
 }
 
+function getDraftSourceQuery() {
+  const draft = messageInput.value.trim();
+  if (draft) {
+    const project = getActiveProject();
+    const activeBeat = getActiveSceneBeat(project);
+    return [draft, project?.context?.chapter, activeBeat?.title, activeBeat?.goal]
+      .filter(Boolean)
+      .join(" ")
+      .slice(0, 600);
+  }
+  return sourceQueryForHistoryIndex(null);
+}
+
 async function generateAssistantReply(assistantMessage, character = selectedCharacter) {
   setSending(true);
   delete assistantMessage.bubble.dataset.source;
@@ -4502,6 +4516,15 @@ document.querySelectorAll(".prompt-card").forEach((card) => {
 
 document.querySelector(".composer-tools button").addEventListener("click", () => {
   referenceFile.click();
+});
+previewSourceButton.addEventListener("click", () => {
+  const query = getDraftSourceQuery();
+  if (!query) {
+    showToast("先输入问题或补充当前章节 / 场景");
+    messageInput.focus();
+    return;
+  }
+  openSourceEvidence(null, query);
 });
 
 providerSelect.addEventListener("change", () => {
