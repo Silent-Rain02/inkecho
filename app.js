@@ -3379,11 +3379,12 @@ function sourceQueryForHistoryIndex(historyIndex) {
     .slice(0, 600);
 }
 
-function renderSourceEvidence(results, sourceName = "蛊真人", query = "") {
+function renderSourceEvidence(results, sourceName = "蛊真人", query = "", sourceQuality = "") {
   sourceEvidenceList.replaceChildren();
   sourceEvidenceText = "";
+  const quality = sourceQualityLabel(sourceQuality);
   if (!results.length) {
-    sourceEvidenceStats.textContent = `${sourceName} · 没有找到与当前问题直接相关的片段`;
+    sourceEvidenceStats.textContent = `${sourceName} · 检索强度：${quality || "未命中"} · 没有找到与当前问题直接相关的片段`;
     const empty = document.createElement("p");
     empty.className = "source-evidence-empty";
     empty.textContent = "可以换一种问法，或在左侧补充当前章节 / 场景。";
@@ -3391,8 +3392,8 @@ function renderSourceEvidence(results, sourceName = "蛊真人", query = "") {
     copySourceEvidenceButton.disabled = true;
     return;
   }
-  sourceEvidenceStats.textContent = `${sourceName} · ${results.length} 个检索片段 · 查询：${query}`;
-  const lines = [`${sourceName}原作检索依据`, `查询：${query}`, ""];
+  sourceEvidenceStats.textContent = `${sourceName} · 检索强度：${quality || "未标注"} · ${results.length} 个检索片段 · 查询：${query}`;
+  const lines = [`${sourceName}原作检索依据`, `检索强度：${quality || "未标注"}（不代表模型答案的事实置信度）`, `查询：${query}`, ""];
   results.forEach((result, index) => {
     const card = document.createElement("article");
     card.className = "source-evidence-card";
@@ -3430,6 +3431,7 @@ async function openSourceEvidence(historyIndex, savedQuery = "") {
       Array.isArray(payload.results) ? payload.results : [],
       payload.source?.name || "蛊真人",
       payload.query || query,
+      payload.source_quality || "",
     );
   } catch (error) {
     if (requestId !== sourceEvidenceRequestId) return;
