@@ -259,6 +259,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function getModelPreviewContext", self.javascript)
         self.assertIn("function getModelPreviewCharacter", self.javascript)
         self.assertIn("function getPreviewModelMessages", self.javascript)
+        self.assertIn("function getModelMessageSource", self.javascript)
+        self.assertIn("historyChars + content.length > serverHistoryBudget", self.javascript)
         self.assertIn("问答历史：已排除带续写 / 改写 / 独白标记的历史消息", self.javascript)
         self.assertIn("原作问答参考，不是剧情对话", self.javascript)
         self.assertIn("问答隔离：只发送作品 / 章节定位和原作检索依据；创作笔记未发送", self.javascript)
