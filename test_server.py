@@ -377,6 +377,21 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(results[0]["title"], "第一卷 · 第十九节：春秋蝉")
         self.assertIn(("第19节", 6.0), source_query_terms("第19节"))
 
+    def test_source_search_combines_chapter_and_named_entity_focus(self) -> None:
+        with patch(
+            "server.source_chunks",
+            return_value=[
+                {"title": "第一卷 · 第十九节：春秋蝉", "text": "春秋蝉的气息令空窍危险。"},
+                {"title": "第二卷 · 第十九节：其他转折", "text": "方源在新的卷中处理局势。"},
+                {"title": "第三卷 · 第十九节：春秋蝉旧闻", "text": "春秋蝉只作为旧闻被提及。"},
+            ],
+        ):
+            results = source_search("第19节 春秋蝉", limit=4)
+        self.assertEqual(
+            [item["title"] for item in results],
+            ["第一卷 · 第十九节：春秋蝉", "第三卷 · 第十九节：春秋蝉旧闻"],
+        )
+
     def test_qa_retrieval_does_not_add_adjacent_chapter(self) -> None:
         with patch(
             "server.source_search",
