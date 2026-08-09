@@ -183,6 +183,19 @@ class ServerConfigTests(unittest.TestCase):
             results = source_search("方源", limit=4)
         self.assertEqual([item["title"] for item in results], ["第一节：青茅山", "第二节：重生"])
 
+    def test_source_search_centers_evidence_on_the_matched_term(self) -> None:
+        prefix = "无关铺垫。" * 220
+        suffix = "后续内容。" * 80
+        with patch(
+            "server.source_chunks",
+            return_value=[{"title": "第一节：青茅山", "text": f"{prefix}方源在青茅山重新判断局势。{suffix}"}],
+        ):
+            results = source_search("方源 青茅山", limit=1)
+        self.assertTrue(results)
+        self.assertIn("方源在青茅山重新判断局势", results[0]["text"])
+        self.assertTrue(results[0]["text"].startswith("…"))
+        self.assertLessEqual(len(results[0]["text"]), 1001)
+
     def test_source_chunks_keep_section_titles_and_bound_length(self) -> None:
         chunks = build_source_chunks("第一卷\n" + "甲" * 2100 + "\n第二节：重生\n" + "乙" * 3)
         self.assertGreaterEqual(len(chunks), 2)
