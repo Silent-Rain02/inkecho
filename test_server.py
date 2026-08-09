@@ -329,13 +329,14 @@ class ServerConfigTests(unittest.TestCase):
             "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
         }
         with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
-            text, _ = complete_chat({
+            text, _, truncated = complete_chat({
                 "provider": "custom_azure",
                 "model": "demo-model",
                 "response_length": "expanded",
                 "messages": [{"role": "user", "content": "继续"}],
             })
         self.assertEqual(text, "一段展开的回复。")
+        self.assertFalse(truncated)
         self.assertEqual(fake_completions.kwargs["max_tokens"], 1200)
 
     def test_complete_chat_accepts_structured_text_content(self) -> None:
@@ -356,12 +357,38 @@ class ServerConfigTests(unittest.TestCase):
             "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
         }
         with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
-            text, _ = complete_chat({
+            text, _, truncated = complete_chat({
                 "provider": "custom_azure",
                 "model": "office-model",
                 "messages": [{"role": "user", "content": "回答"}],
             })
         self.assertEqual(text, "结构化回复")
+        self.assertFalse(truncated)
+
+    def test_complete_chat_marks_length_limited_response(self) -> None:
+        fake_client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(
+                    create=lambda **kwargs: SimpleNamespace(
+                        choices=[SimpleNamespace(
+                            message=SimpleNamespace(content="未完成的回复"),
+                            finish_reason="length",
+                        )]
+                    )
+                )
+            )
+        )
+        environment = {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "test-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
+        }
+        with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
+            _, _, truncated = complete_chat({
+                "provider": "custom_azure",
+                "model": "office-model",
+                "messages": [{"role": "user", "content": "回答"}],
+            })
+        self.assertTrue(truncated)
 
     def test_stream_chat_yields_incremental_content_with_selected_model(self) -> None:
         class FakeCompletions:
@@ -395,6 +422,30 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(completions.kwargs["model"], "office-model")
         self.assertEqual(completions.kwargs["max_tokens"], 1200)
         self.assertTrue(completions.kwargs["stream"])
+
+    def test_stream_chat_retains_length_stop_reason(self) -> None:
+        fake_client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(
+                    create=lambda **kwargs: iter([
+                        SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="未完"), finish_reason=None)]),
+                        SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="成"), finish_reason="length")]),
+                    ])
+                )
+            )
+        )
+        environment = {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "test-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
+        }
+        with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
+            _, deltas = stream_chat({
+                "provider": "custom_azure",
+                "model": "office-model",
+                "messages": [{"role": "user", "content": "回答"}],
+            })
+            self.assertEqual(list(deltas), ["未完", "成"])
+        self.assertTrue(deltas.truncated)
 
     def test_stream_chat_accepts_structured_text_deltas(self) -> None:
         fake_client = SimpleNamespace(
@@ -758,13 +809,14 @@ class HttpRouteTests(unittest.TestCase):
         }).encode("utf-8")
         handler = CaptureHandler("/api/chat", body)
         settings = SimpleNamespace(provider="ollama", model="qwen3:8b")
-        with patch("server.complete_chat", return_value=("回答", settings)), patch(
+        with patch("server.complete_chat", return_value=("回答", settings, False)), patch(
             "server.source_references", return_value=["第一节：青茅山"]
         ):
             handler.do_POST()
         status, payload = handler.responses[0]
         self.assertEqual(status, 200)
         self.assertEqual(payload["text"], "回答")
+        self.assertFalse(payload["truncated"])
         self.assertEqual(payload["source_query"], "春秋蝉有什么风险？ 青茅山")
         self.assertEqual(payload["source_references"], ["第一节：青茅山"])
 
@@ -785,7 +837,7 @@ class HttpRouteTests(unittest.TestCase):
         self.assertEqual(handler.events[0]["type"], "start")
         self.assertEqual(handler.events[0]["source_query"], "春秋蝉有什么风险？ 青茅山")
         self.assertEqual(handler.events[0]["source_references"], ["第一节：青茅山"])
-        self.assertEqual(handler.events[-1], {"type": "done"})
+        self.assertEqual(handler.events[-1], {"type": "done", "truncated": False})
 
     def test_source_search_route_returns_status_and_matches(self) -> None:
         body = json.dumps({"query": "方源"}).encode("utf-8")
