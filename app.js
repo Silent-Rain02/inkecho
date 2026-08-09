@@ -1870,6 +1870,18 @@ function appendCitationWarningBadge(meta, citations = []) {
   meta.appendChild(badge);
 }
 
+function appendExpandedRetryAction(actions, historyIndex) {
+  if (!actions || !Number.isInteger(historyIndex) || actions.querySelector(".message-expand-retry")) return;
+  const expandRetryButton = document.createElement("button");
+  expandRetryButton.type = "button";
+  expandRetryButton.className = "message-action message-expand-retry";
+  expandRetryButton.textContent = "展开重试";
+  expandRetryButton.setAttribute("aria-label", "用展开篇幅重新生成这条回复");
+  expandRetryButton.title = "只对这次重试使用展开篇幅，不改变项目默认回复长度";
+  expandRetryButton.addEventListener("click", () => retryMessage(historyIndex, "expanded"));
+  actions.appendChild(expandRetryButton);
+}
+
 function renderSourceReferences(line, references, historyIndex = null, sourceQuery = "", sourceQuality = "") {
   const safeReferences = normalizeSourceReferences(references);
   const quality = sourceQualityLabel(sourceQuality);
@@ -1938,8 +1950,9 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
   sourceReferenceLine.className = "source-reference-line";
   renderSourceReferences(sourceReferenceLine, sourceRefs, historyIndex, sourceQuery, sourceQuality);
   content.append(meta, bubble, sourceReferenceLine);
+  let actions = null;
   if (role === "assistant") {
-    const actions = document.createElement("div");
+    actions = document.createElement("div");
     actions.className = "message-actions";
     const copyButton = document.createElement("button");
     copyButton.type = "button";
@@ -1973,16 +1986,7 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
       retryButton.setAttribute("aria-label", "重新生成这条回复");
       retryButton.addEventListener("click", () => retryMessage(historyIndex));
       actions.appendChild(retryButton);
-      if (currentTruncated && historyIndex === conversationHistory.length - 1) {
-        const expandRetryButton = document.createElement("button");
-        expandRetryButton.type = "button";
-        expandRetryButton.className = "message-action message-expand-retry";
-        expandRetryButton.textContent = "展开重试";
-        expandRetryButton.setAttribute("aria-label", "用展开篇幅重新生成这条回复");
-        expandRetryButton.title = "只对这次重试使用展开篇幅，不改变项目默认回复长度";
-        expandRetryButton.addEventListener("click", () => retryMessage(historyIndex, "expanded"));
-        actions.appendChild(expandRetryButton);
-      }
+      if (currentTruncated && historyIndex === conversationHistory.length - 1) appendExpandedRetryAction(actions, historyIndex);
       const branchButton = document.createElement("button");
       branchButton.type = "button";
       branchButton.className = "message-action";
@@ -2042,6 +2046,8 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
     sourceReferenceLine,
     renderSourceReferences: (references, query = sourceQuery, quality = sourceQuality) => renderSourceReferences(sourceReferenceLine, references, historyIndex, query, quality),
     sourceQuality,
+    actions,
+    historyIndex,
   };
 }
 
@@ -4090,6 +4096,7 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
       if (metadata?.truncated) {
         assistantMessage.truncated = true;
         appendTruncatedBadge(assistantMessage.meta);
+        appendExpandedRetryAction(assistantMessage.actions, assistantMessage.historyIndex);
       }
       if (metadata?.source_citation_status) {
         assistantMessage.sourceCitationStatus = normalizeCitationStatus(metadata.source_citation_status);
