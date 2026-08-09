@@ -224,10 +224,25 @@ class ServerConfigTests(unittest.TestCase):
             results = source_search("方源重生回到青茅山后要确认什么", limit=2)
         self.assertEqual(results[0]["title"], "第二节：逆光阴五百年觉悟")
 
-    def test_source_query_terms_prioritize_longer_phrases(self) -> None:
+    def test_source_search_prefers_opening_arc_for_reincarnation_question(self) -> None:
+        chunks = [
+            {"title": "第二节：逆光阴五百年觉悟", "text": "方源重生回到青茅山，先观察自身处境。"},
+            *[{"title": f"中间章节 {index}", "text": "无关片段。"} for index in range(500)],
+            {"title": "后文：再次重生", "text": "方源重生后在青茅山反复回忆往事。"},
+        ]
+        with patch(
+            "server.source_chunks",
+            return_value=chunks,
+        ):
+            results = source_search("方源重生回到青茅山后最先确认什么", limit=2)
+        self.assertEqual(results[0]["title"], "第二节：逆光阴五百年觉悟")
+
+    def test_source_query_terms_preserve_domain_terms_without_crossing_words(self) -> None:
         terms = dict(source_query_terms("方源重生回到青茅山"))
         self.assertGreater(terms["青茅山"], terms["青茅"])
-        self.assertGreater(terms["方源重"], terms["方源"])
+        self.assertIn("方源", terms)
+        self.assertIn("重生", terms)
+        self.assertNotIn("方源重", terms)
 
     def test_source_chunks_keep_section_titles_and_bound_length(self) -> None:
         chunks = build_source_chunks("第一卷\n" + "甲" * 2100 + "\n第二节：重生\n" + "乙" * 3)
