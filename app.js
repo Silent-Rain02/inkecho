@@ -3513,6 +3513,7 @@ function renderSourceEvidence(results, sourceName = "蛊真人", query = "", sou
 
 async function openSourceEvidence(historyIndex, savedQuery = "") {
   const query = savedQuery || sourceQueryForHistoryIndex(historyIndex);
+  const evidenceMode = normalizeMessageMode(conversationHistory[historyIndex]?.mode) || selectedMode;
   const requestId = ++sourceEvidenceRequestId;
   sourceEvidenceStats.textContent = "正在读取本机知识库……";
   sourceEvidenceList.replaceChildren();
@@ -3523,7 +3524,7 @@ async function openSourceEvidence(historyIndex, savedQuery = "") {
     const response = await fetchWithTimeout("/api/source/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, mode: evidenceMode }),
     }, 15000);
     const payload = await response.json();
     if (requestId !== sourceEvidenceRequestId) return;
