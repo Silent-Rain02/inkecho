@@ -26,6 +26,7 @@ from server import (
     STATIC_FILES,
     history_budget_chars,
     source_references,
+    source_query_terms,
     source_search,
     source_status,
     static_asset_path,
@@ -203,6 +204,22 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("方源在青茅山重新判断局势", results[0]["text"])
         self.assertTrue(results[0]["text"].startswith("…"))
         self.assertLessEqual(len(results[0]["text"]), 1001)
+
+    def test_source_search_rewards_shared_named_terms(self) -> None:
+        with patch(
+            "server.source_chunks",
+            return_value=[
+                {"title": "后文：重生", "text": "方源重生后再次提到往事。"},
+                {"title": "第二节：逆光阴五百年觉悟", "text": "方源重生回到青茅山，重新确认开窍大典。"},
+            ],
+        ):
+            results = source_search("方源重生回到青茅山后要确认什么", limit=2)
+        self.assertEqual(results[0]["title"], "第二节：逆光阴五百年觉悟")
+
+    def test_source_query_terms_prioritize_longer_phrases(self) -> None:
+        terms = dict(source_query_terms("方源重生回到青茅山"))
+        self.assertGreater(terms["青茅山"], terms["青茅"])
+        self.assertGreater(terms["方源重"], terms["方源"])
 
     def test_source_chunks_keep_section_titles_and_bound_length(self) -> None:
         chunks = build_source_chunks("第一卷\n" + "甲" * 2100 + "\n第二节：重生\n" + "乙" * 3)
