@@ -253,6 +253,7 @@ textarea { resize: vertical; }
 .source-reference-line { margin-top: 6px; color: #81917d; font: 9px var(--mono); line-height: 1.5; overflow-wrap: anywhere; }
 .source-reference-line[hidden] { display: none; }
 .source-reference-item { color: #9a806a; }
+.source-reference-missing { color: #a26b46; }
 .source-reference-button { margin-left: 8px; padding: 0; border: 0; border-bottom: 1px solid currentColor; color: var(--accent); background: transparent; font: inherit; }
 .source-reference-button:hover { color: var(--accent-dark); }
 .message-row.user .message-meta { justify-content: flex-end; }
