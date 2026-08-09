@@ -167,6 +167,9 @@ textarea { resize: vertical; }
 .sidebar > textarea { min-height: 64px; margin-bottom: 21px; padding: 9px 10px; border: 1px solid var(--line); line-height: 1.7; }
 .reference-meta { display: flex; justify-content: space-between; align-items: center; margin: -14px 0 20px; color: var(--muted); font: 9px var(--mono); }
 .reference-meta .text-button { font-size: 9px; }
+.source-status { margin-top: -14px; margin-bottom: 20px; color: #718b6a; font: 9px var(--mono); line-height: 1.5; }
+.source-status.is-warning { color: #a26b46; }
+.source-status.is-error { color: #a14f4f; }
 .field-input:focus-within, .sidebar > textarea:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(186, 200, 179, 0.18); }
 .subheading-row { display: flex; justify-content: space-between; align-items: center; }
 .character-actions { display: flex; align-items: center; gap: 9px; }
