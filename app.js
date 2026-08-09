@@ -92,6 +92,7 @@ const importProjectsButton = document.querySelector("#importProjects");
 const projectBackupFile = document.querySelector("#projectBackupFile");
 const storageStatus = document.querySelector("#storageStatus");
 const deleteProjectButton = document.querySelector("#deleteProject");
+const sourceStatus = document.querySelector("#sourceStatus");
 const workChapter = document.querySelector("#workChapter");
 const workReference = document.querySelector("#workReference");
 const workSummary = document.querySelector("#workSummary");
@@ -175,12 +176,13 @@ const promptLibraryStorageKey = "inkecho.prompt-library.v1";
 const activeProjectStorageKey = "inkecho.active-project.v1";
 const focusModeStorageKey = "inkecho.focus-mode.v1";
 const defaultCharacters = [
-  { name: "林黛玉", tone: "清冷、敏锐，却藏着很深的真心。", details: "寄居贾府，敏感于礼法与人情的细微变化；愿望是被真诚地理解，却不肯轻易示弱。" },
-  { name: "贾宝玉", tone: "真挚、叛逆，对世俗规矩总有自己的看法。", details: "出身富贵家族，却厌倦被安排的人生；珍视真心和自由，常用玩笑掩饰无法改变现实的失落。" },
+  { name: "方源", tone: "冷静、决绝、善于权衡利弊，不被表面道德束缚。", details: "拥有漫长人生经验和明确目标，擅长在资源、风险与人心之间做取舍；不轻易被情绪改变判断。" },
+  { name: "白凝冰", tone: "锋利、骄傲、追求极致，常以强硬掩饰真实情绪。", details: "天资出众、意志强烈，习惯以竞争和行动证明自己；对力量与自由有近乎极端的追求。" },
 ];
 
 const modeHints = {
-  续写: "续写这一段故事……",
+  续写: "续写《蛊真人》的这一段故事……",
+  问答: "询问《蛊真人》的角色、蛊虫、势力或剧情……",
   改写: "告诉我想改写的情节……",
   独白: "让角色说出心里话……",
 };
@@ -367,12 +369,15 @@ const replyTemplates = {
     "我并不是不想说，只是有些话一旦说出口，就再也不能假装没有发生。若你愿意听，我便从最不敢面对的那一刻讲起。",
     "人总以为自己在等待一个答案，其实等到最后，才发现想要的不过是有人理解这份沉默。",
   ],
+  问答: [
+    "当前模型服务或原作知识库暂时不可用，无法可靠回答这个原作问题。请先检查本地知识库配置。",
+  ],
 };
 
 let selectedCharacter = {
-  name: "林黛玉",
-  tone: "清冷、敏锐，却藏着很深的真心。",
-  details: "寄居贾府，敏感于礼法与人情的细微变化；愿望是被真诚地理解，却不肯轻易示弱。",
+  name: "方源",
+  tone: "冷静、决绝、善于权衡利弊，不被表面道德束缚。",
+  details: "拥有漫长人生经验和明确目标，擅长在资源、风险与人心之间做取舍；不轻易被情绪改变判断。",
 };
 let selectedMode = "续写";
 let toastTimer;
@@ -393,9 +398,9 @@ let editingPromptIndex = null;
 let editingBeatId = null;
 let storageWarningShown = false;
 const defaultConversationHistory = [
-  { role: "assistant", name: "林黛玉", content: "今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？" },
-  { role: "user", name: "我", content: "如果这一回不写离别，你想把故事带到哪里去？" },
-  { role: "assistant", name: "林黛玉", content: "那便去看一场没有结局的雨吧。雨停之前，谁也不必急着把心事说完。" },
+  { role: "assistant", name: "方源", content: "《蛊真人》原作知识库已经准备好。你可以指定章节或场景让我续写，也可以直接提问原作内容。" },
+  { role: "user", name: "我", content: "方源重生回到青茅山后，最先需要确认哪些事情？" },
+  { role: "assistant", name: "方源", content: "先确认重生的时间与自身处境，再梳理青茅山的势力、开窍大典和能够利用的资源。先掌握局面，才谈得上下一步取舍。" },
 ];
 let projects = loadProjects();
 let customTemplates = loadCustomTemplates();
@@ -793,7 +798,7 @@ function loadProjects() {
     // Fall through to the legacy single-project migration.
   }
 
-  let context = { title: "红楼梦", era: "清代 · 金陵", world: "大观园里的春日将尽，人物在礼法与真心之间周旋。" };
+  let context = { title: "蛊真人", era: "蛊界 · 青茅山", world: "以《蛊真人》原作为本地知识库，围绕方源、蛊道体系和原作剧情进行续写与内容问答。" };
   let service = { provider: "custom_azure", model: providerDefaults.custom_azure };
   try {
     const savedContext = JSON.parse(localStorage.getItem(workspaceStorageKey) || "null");
@@ -810,7 +815,7 @@ function loadProjects() {
     conversation: loadConversation(),
     service,
     characters: defaultCharacters,
-    selectedCharacterName: "林黛玉",
+    selectedCharacterName: "方源",
     mode: "续写",
   })];
 }
@@ -822,7 +827,7 @@ function loadConversation() {
       return saved
         .filter((item) => item && ["user", "assistant"].includes(item.role) && typeof item.content === "string")
         .slice(-maxConversationMessages)
-        .map((item) => ({ ...item, name: item.name || (item.role === "user" ? "我" : "林黛玉") }));
+        .map((item) => ({ ...item, name: item.name || (item.role === "user" ? "我" : "方源") }));
     }
   } catch {
     // Ignore malformed or unavailable local storage.
@@ -2743,7 +2748,7 @@ function renderConversation() {
       text: item.content,
       historyIndex: index,
       avatarClass: assistant
-        ? item.name === "贾宝玉" ? "avatar-bao" : "avatar-dai"
+        ? item.name === "白凝冰" ? "avatar-bao" : "avatar-dai"
         : "user-avatar",
       versions: item.versions,
       sources: item.sources,
@@ -3140,6 +3145,27 @@ function setProviderBadge(label, color) {
   providerBadge.style.color = color;
 }
 
+function renderSourceStatus(status) {
+  if (!sourceStatus) return;
+  if (!status) {
+    sourceStatus.textContent = "原作知识库：服务未连接";
+    sourceStatus.classList.add("is-warning");
+    return;
+  }
+  if (status.available) {
+    sourceStatus.textContent = `原作知识库：${status.name || "蛊真人"} · 已加载 ${Number(status.chunks || 0).toLocaleString("zh-CN")} 个片段`;
+    sourceStatus.classList.remove("is-warning", "is-error");
+  } else if (status.configured) {
+    sourceStatus.textContent = `原作知识库：${status.error || "原文文件不可用"}`;
+    sourceStatus.classList.remove("is-error");
+    sourceStatus.classList.add("is-warning");
+  } else {
+    sourceStatus.textContent = "原作知识库：待配置 · 请补 INK_ECHO_SOURCE_FILE";
+    sourceStatus.classList.remove("is-error");
+    sourceStatus.classList.add("is-warning");
+  }
+}
+
 async function fetchWithTimeout(url, options = {}, timeout = providerRequestTimeout) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
@@ -3255,6 +3281,7 @@ async function checkProviderHealth(provider = providerSelect.value) {
     if (Number.isFinite(Number(payload.request_timeout))) {
       serverRequestTimeout = Math.max(5000, Math.min(Number(payload.request_timeout) * 1000, 120000));
     }
+    renderSourceStatus(payload.source);
     const configured = Boolean(payload.providers && payload.providers[provider]);
     const missing = payload.provider_details?.[provider]?.missing;
     const missingKeys = payload.provider_details?.[provider]?.missing_keys;
@@ -3269,6 +3296,7 @@ async function checkProviderHealth(provider = providerSelect.value) {
     setProviderBadge(configured ? "配置完整" : "待配置", configured ? "#6f8b6a" : "#a26b46");
   } catch (error) {
     if (requestId !== providerHealthRequestId) return;
+    renderSourceStatus(null);
     providerDescription.textContent = providerDescriptions[provider];
     setProviderBadge(error?.name === "AbortError" ? "连接超时" : "离线演示", "#a26b46");
   }
@@ -3551,6 +3579,7 @@ async function requestModelReply() {
       character: selectedCharacter,
       context: getContext(),
       messages: getModelMessages(),
+      source_query: getSourceQuery(),
     }),
   });
   const payload = await response.json();
@@ -3579,6 +3608,7 @@ async function requestStreamReply(onDelta, character = selectedCharacter) {
       character,
       context: getContext(),
       messages: getModelMessages(),
+      source_query: getSourceQuery(),
     }),
   }), controller, streamIdleTimeout, "模型长时间没有响应，请检查服务状态");
   if (!response.ok || !response.body) {
@@ -3641,6 +3671,16 @@ function fallbackReply() {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+function getSourceQuery() {
+  const project = getActiveProject();
+  const activeBeat = getActiveSceneBeat(project);
+  const latestUser = [...conversationHistory].reverse().find((item) => item.role === "user")?.content || "";
+  return [latestUser, project?.context?.chapter, activeBeat?.title, activeBeat?.goal]
+    .filter(Boolean)
+    .join(" ")
+    .slice(0, 600);
+}
+
 async function generateAssistantReply(assistantMessage, character = selectedCharacter) {
   setSending(true);
   delete assistantMessage.bubble.dataset.source;
@@ -3698,7 +3738,7 @@ async function retryMessage(historyIndex) {
     name: speaker,
     text: "",
     historyIndex: conversationHistory.length,
-    avatarClass: speaker === "贾宝玉" ? "avatar-bao" : "avatar-dai",
+    avatarClass: speaker === "白凝冰" ? "avatar-bao" : "avatar-dai",
   });
   const reply = await generateAssistantReply(assistantMessage, character);
   const versions = Array.from(new Set([...previousVersions, reply].filter(Boolean)));
@@ -3743,13 +3783,13 @@ function createCharacterCard(character) {
   card.dataset.tone = character.tone;
   card.dataset.details = character.details || "";
   const avatar = document.createElement("span");
-  avatar.className = `character-avatar ${character.name === "林黛玉" ? "avatar-dai" : "avatar-bao"}`;
+  avatar.className = `character-avatar ${character.name === "方源" ? "avatar-dai" : "avatar-bao"}`;
   avatar.textContent = character.name.slice(0, 1);
   const description = document.createElement("span");
   const title = document.createElement("strong");
   title.textContent = character.name;
   const subtitle = document.createElement("small");
-  subtitle.textContent = character.name === "林黛玉" ? "清冷 · 诗意 · 敏锐" : (character.tone || "新角色 · 待设定").slice(0, 18);
+  subtitle.textContent = character.name === "方源" ? "冷静 · 果断 · 深谋" : (character.tone || "新角色 · 待设定").slice(0, 18);
   description.append(title, subtitle);
   const mark = document.createElement("span");
   mark.className = "selected-mark";
@@ -4344,7 +4384,7 @@ composer.addEventListener("submit", async (event) => {
     name: character.name,
     text: "",
     historyIndex: conversationHistory.length,
-    avatarClass: character.name === "贾宝玉" ? "avatar-bao" : "avatar-dai",
+    avatarClass: character.name === "白凝冰" ? "avatar-bao" : "avatar-dai",
   });
   const reply = await generateAssistantReply(assistantMessage, character);
 
@@ -5045,7 +5085,7 @@ function createNewProject() {
     id: `project-${Date.now()}`,
     name: cleanName,
     context: { title: cleanName, era: "", world: "" },
-    conversation: [{ role: "assistant", name: "林黛玉", content: `「${cleanName}」已经准备好。先写下第一句，让故事找到自己的方向。` }],
+    conversation: [{ role: "assistant", name: "方源", content: `「${cleanName}」已经准备好。你可以指定《蛊真人》的章节位置，或先提出一个原作问题。` }],
     service: {
       provider: providerSelect.value,
       model: modelName.value.trim(),
@@ -5053,7 +5093,7 @@ function createNewProject() {
       responseLength: responseLengthSelect.value,
     },
     characters: defaultCharacters,
-    selectedCharacterName: "林黛玉",
+    selectedCharacterName: "方源",
     mode: "续写",
   });
   projects.push(project);
