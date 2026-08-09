@@ -442,6 +442,19 @@ try {
 if (!projects.some((project) => project.id === activeProjectId)) activeProjectId = projects[0].id;
 let conversationHistory = loadConversation();
 
+function getConversationTitle() {
+  return selectedMode === "问答" ? "《蛊真人》原作问答" : `与${selectedCharacter.name}对话`;
+}
+
+function getAssistantDisplayName(character = selectedCharacter) {
+  return selectedMode === "问答" ? "InkEcho" : character.name;
+}
+
+function getAssistantAvatarClass(name) {
+  if (name === "InkEcho") return "avatar-inkecho";
+  return name === "白凝冰" ? "avatar-bao" : "avatar-dai";
+}
+
 function safeText(value, fallback = "", maxLength = 240) {
   const text = typeof value === "string" ? value : value == null ? "" : String(value);
   return text.trim().slice(0, maxLength) || fallback;
@@ -1189,7 +1202,7 @@ function hydrateActiveProject() {
   creativityValue.textContent = creativityLabels[creativitySelect.value];
   responseLengthSelect.value = responseLengthLabels[project.service.responseLength] ? project.service.responseLength : "standard";
   responseLengthValue.textContent = responseLengthLabels[responseLengthSelect.value];
-  conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+  conversationTitle.textContent = getConversationTitle();
   document.querySelectorAll(".mode-tab").forEach((tab) => {
     const active = tab.dataset.mode === selectedMode;
     tab.classList.toggle("active", active);
@@ -1811,7 +1824,7 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
 
   const avatar = document.createElement("span");
   avatar.className = `message-avatar ${avatarClass}`;
-  avatar.textContent = role === "user" ? "I" : name.slice(0, 1);
+  avatar.textContent = role === "user" ? "I" : avatarClass === "avatar-inkecho" ? "IE" : name.slice(0, 1);
 
   const content = document.createElement("div");
   content.className = "message-content";
@@ -2862,7 +2875,7 @@ function renderConversation() {
       text: item.content,
       historyIndex: index,
       avatarClass: assistant
-        ? item.name === "白凝冰" ? "avatar-bao" : "avatar-dai"
+        ? getAssistantAvatarClass(item.name || selectedCharacter.name)
         : "user-avatar",
       versions: item.versions,
       sources: item.sources,
@@ -3942,7 +3955,7 @@ async function retryMessage(historyIndex) {
     name: speaker,
     text: "",
     historyIndex: conversationHistory.length,
-    avatarClass: speaker === "白凝冰" ? "avatar-bao" : "avatar-dai",
+    avatarClass: getAssistantAvatarClass(speaker),
   });
   const reply = await generateAssistantReply(assistantMessage, character);
   const versions = Array.from(new Set([...previousVersions, reply].filter(Boolean)));
@@ -3976,7 +3989,7 @@ function selectCharacter(card) {
     tone: card.dataset.tone,
     details: card.dataset.details || "",
   };
-  conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+  conversationTitle.textContent = getConversationTitle();
   persistActiveProject();
   showToast(`已切换至 ${selectedCharacter.name}`);
 }
@@ -4066,7 +4079,7 @@ function saveCharacter(event) {
   }
   getActiveProject().characters = characters;
   renderCharacters();
-  conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+  conversationTitle.textContent = getConversationTitle();
   persistActiveProject();
   closeCharacterEditor();
   showToast(wasEditing ? `已更新角色 ${name}` : `已添加角色 ${name}`);
@@ -4084,7 +4097,7 @@ function deleteCharacter() {
   if (selectedCharacter.name === editingCharacterName) selectedCharacter = { ...remaining[0] };
   getActiveProject().characters = remaining;
   renderCharacters();
-  conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+  conversationTitle.textContent = getConversationTitle();
   persistActiveProject();
   closeCharacterEditor();
   showToast("角色已删除");
@@ -4188,14 +4201,14 @@ function addLibraryCharacter(characterId) {
       project.characters = characters;
       selectedCharacter = { ...existing };
       renderCharacters();
-      conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+      conversationTitle.textContent = getConversationTitle();
       persistActiveProject();
       showToast(`已用角色库设定更新「${character.name}」`);
       return;
     }
     selectedCharacter = { ...existing };
     renderCharacters();
-    conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+    conversationTitle.textContent = getConversationTitle();
     persistActiveProject();
     showToast(`已切换到角色「${character.name}」`);
     return;
@@ -4204,7 +4217,7 @@ function addLibraryCharacter(characterId) {
   project.characters = characters;
   selectedCharacter = { ...character };
   renderCharacters();
-  conversationTitle.textContent = `与${selectedCharacter.name}对话`;
+  conversationTitle.textContent = getConversationTitle();
   persistActiveProject();
   showToast(`已加入角色「${character.name}」`);
 }
@@ -4605,20 +4618,21 @@ composer.addEventListener("submit", async (event) => {
   saveDraft();
   saveConversation();
   const character = { ...selectedCharacter };
+  const responseName = getAssistantDisplayName(character);
 
   const assistantMessage = addMessage({
     role: "assistant",
-    name: character.name,
+    name: responseName,
     text: "",
     historyIndex: conversationHistory.length,
-    avatarClass: character.name === "白凝冰" ? "avatar-bao" : "avatar-dai",
+    avatarClass: getAssistantAvatarClass(responseName),
   });
   const reply = await generateAssistantReply(assistantMessage, character);
 
   const source = assistantMessage.bubble.dataset.source === "demo" ? "demo" : "";
   conversationHistory.push({
     role: "assistant",
-    name: character.name,
+    name: responseName,
     content: reply,
     ...(source ? { source } : {}),
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
