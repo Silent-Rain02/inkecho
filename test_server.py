@@ -348,6 +348,18 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(results[0]["title"], "第一卷 · 第一节：开局")
         self.assertNotIn("第二卷 · 第一节：转折", [item["title"] for item in results])
 
+    def test_source_search_normalizes_arabic_and_chinese_chapter_numbers(self) -> None:
+        with patch(
+            "server.source_chunks",
+            return_value=[
+                {"title": "第一卷 · 第十九节：春秋蝉", "text": "春秋蝉的风险。"},
+                {"title": "第一卷 · 第二十节：学堂", "text": "学堂中的新局面。"},
+            ],
+        ):
+            results = source_search("第19节 春秋蝉", limit=1)
+        self.assertEqual(results[0]["title"], "第一卷 · 第十九节：春秋蝉")
+        self.assertIn(("第19节", 6.0), source_query_terms("第19节"))
+
     def test_qa_retrieval_does_not_add_adjacent_chapter(self) -> None:
         with patch(
             "server.source_search",
