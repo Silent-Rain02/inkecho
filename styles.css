@@ -257,6 +257,7 @@ textarea { resize: vertical; }
 .message-mode-badge { padding: 2px 5px; border: 1px solid #d7dfd2; color: #71806d; background: #f3f6ef; font: 8px var(--mono); letter-spacing: 0.02em; }
 .message-truncated-badge { padding: 2px 5px; border: 1px solid #d8b8a7; color: #9b604b; background: #fff4ef; font: 8px var(--mono); letter-spacing: 0.02em; }
 .message-citation-warning-badge { padding: 2px 5px; border: 1px solid #d9c58f; color: #8a6d2f; background: #fff9e8; font: 8px var(--mono); letter-spacing: 0.02em; }
+.message-citation-verified-badge { padding: 2px 5px; border: 1px solid #c8d9c3; color: #66805f; background: #f1f7ee; font: 8px var(--mono); letter-spacing: 0.02em; }
 .source-reference-line { margin-top: 6px; color: #81917d; font: 9px var(--mono); line-height: 1.5; overflow-wrap: anywhere; }
 .source-reference-line[hidden] { display: none; }
 .source-reference-item { color: #9a806a; }
