@@ -426,14 +426,44 @@ def source_snippet(text: str, weighted_terms: list[tuple[str, float]], limit: in
     return snippet
 
 
-def source_references(query: str, limit: int = 4) -> list[str]:
-    """Return safe section titles for UI attribution without exposing source text."""
+def source_evidence_quality(query: str, matches: list[dict[str, str]]) -> str:
+    """Describe retrieval strength, not the truthfulness of the model's answer."""
+    if not matches:
+        return "none"
+    normalized_query = str(query or "").lower()
+    named_terms = [
+        term.lower()
+        for term in SOURCE_KNOWN_TERMS
+        if len(term) >= 3 and term.lower() in normalized_query
+    ]
+    top_text = str(matches[0].get("text") or "").lower()
+    named_hits = sum(term in top_text for term in named_terms)
+    if named_terms and named_hits == len(named_terms):
+        return "strong"
+    if len(matches) >= 3 or named_hits >= 1:
+        return "partial"
+    return "limited"
+
+
+def source_evidence_metadata(query: str, limit: int = 4) -> dict[str, Any]:
+    """Return bounded source attribution and retrieval quality for client display."""
+    matches = source_search(query, limit=limit)
     references: list[str] = []
-    for match in source_search(query, limit=limit):
+    for match in matches:
         title = str(match.get("title") or "").strip()
         if title and title not in references:
             references.append(title[:120])
-    return references[:max(1, min(limit, 8))]
+    bounded_limit = max(1, min(limit, 8))
+    return {
+        "source_references": references[:bounded_limit],
+        "source_quality": source_evidence_quality(query, matches),
+        "source_match_count": len(matches),
+    }
+
+
+def source_references(query: str, limit: int = 4) -> list[str]:
+    """Return safe section titles for UI attribution without exposing source text."""
+    return source_evidence_metadata(query, limit=limit)["source_references"]
 
 
 def source_context_for_payload(payload: dict[str, Any]) -> str:
@@ -900,7 +930,15 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             payload = self.read_payload()
             if path == "/api/source/search":
                 query = str(payload.get("query") or "").strip()[:600]
-                self.send_json({"ok": True, "source": source_status(), "query": query, "results": source_search(query, limit=8)})
+                results = source_search(query, limit=8)
+                self.send_json({
+                    "ok": True,
+                    "source": source_status(),
+                    "query": query,
+                    "results": results,
+                    "source_quality": source_evidence_quality(query, results),
+                    "source_match_count": len(results),
+                })
             elif path == "/api/probe":
                 settings = probe_provider(payload)
                 self.send_json({"ok": True, "provider": settings.provider, "model": settings.model})
@@ -912,6 +950,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             else:
                 text, settings, truncated = complete_chat(payload)
                 source_query = source_query_from_payload(payload)
+                evidence = source_evidence_metadata(source_query)
                 self.send_json({
                     "ok": True,
                     "text": text,
@@ -919,7 +958,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
                     "model": settings.model,
                     "truncated": truncated,
                     "source_query": source_query,
-                    "source_references": source_references(source_query),
+                    **evidence,
                 })
         except Exception as exc:  # noqa: BLE001
             print(f"[InkEcho] request failed: {type(exc).__name__}")
@@ -938,6 +977,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
     def stream_response(self, payload: dict[str, Any]) -> None:
         settings, deltas = stream_chat(payload)
         source_query = source_query_from_payload(payload)
+        evidence = source_evidence_metadata(source_query)
         self._response_started = True
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -951,7 +991,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             "provider": settings.provider,
             "model": settings.model,
             "source_query": source_query,
-            "source_references": source_references(source_query),
+            **evidence,
         })
         try:
             for delta in deltas:
