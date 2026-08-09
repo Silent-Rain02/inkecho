@@ -98,6 +98,8 @@ const projectBackupFile = document.querySelector("#projectBackupFile");
 const storageStatus = document.querySelector("#storageStatus");
 const deleteProjectButton = document.querySelector("#deleteProject");
 const sourceStatus = document.querySelector("#sourceStatus");
+const sourceChapterOptions = document.querySelector("#sourceChapterOptions");
+const sourceOutlineHint = document.querySelector("#sourceOutlineHint");
 const workChapter = document.querySelector("#workChapter");
 const workReference = document.querySelector("#workReference");
 const workSummary = document.querySelector("#workSummary");
@@ -420,6 +422,8 @@ let summaryEditPending = false;
 let streamController = null;
 let providerHealthRequestId = 0;
 let providerMissingKeys = [];
+let sourceOutlineRequestId = 0;
+let sourceOutlineLoadedKey = "";
 let serverHistoryBudget = 48000;
 let serverRequestTimeout = 120000;
 let editingCharacterName = null;
@@ -3464,6 +3468,41 @@ function renderSourceStatus(status) {
   }
 }
 
+async function loadSourceOutline(status) {
+  if (!sourceChapterOptions || !sourceOutlineHint) return;
+  if (!status?.available) {
+    sourceOutlineLoadedKey = "";
+    sourceChapterOptions.replaceChildren();
+    sourceOutlineHint.textContent = status?.configured
+      ? "原作章节建议暂不可用，可以手动填写当前章节。"
+      : "配置原作知识库后，可在当前章节输入框选择卷 / 节。";
+    return;
+  }
+  const sourceKey = `${status.name || "蛊真人"}:${Number(status.chunks || 0)}`;
+  if (sourceOutlineLoadedKey === sourceKey && sourceChapterOptions.options.length) return;
+  const requestId = ++sourceOutlineRequestId;
+  sourceOutlineHint.textContent = "原作章节建议读取中……";
+  try {
+    const response = await fetchWithTimeout("/api/source/outline?limit=3000", {}, 15000);
+    const payload = await response.json();
+    if (requestId !== sourceOutlineRequestId) return;
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "章节建议读取失败");
+    const titles = Array.isArray(payload.titles) ? payload.titles.filter(Boolean) : [];
+    sourceChapterOptions.replaceChildren(...titles.map((title) => {
+      const option = document.createElement("option");
+      option.value = title;
+      return option;
+    }));
+    sourceOutlineLoadedKey = sourceKey;
+    sourceOutlineHint.textContent = titles.length
+      ? `原作章节建议已加载 · ${titles.length.toLocaleString("zh-CN")} 个卷 / 节，可输入关键词筛选`
+      : "没有读取到章节标题，可以手动填写当前章节。";
+  } catch {
+    if (requestId !== sourceOutlineRequestId) return;
+    sourceOutlineHint.textContent = "原作章节建议暂不可用，可以手动填写当前章节。";
+  }
+}
+
 let sourceEvidenceText = "";
 let sourceEvidenceRequestId = 0;
 
@@ -3663,6 +3702,7 @@ async function checkProviderHealth(provider = providerSelect.value) {
       serverRequestTimeout = Math.max(5000, Math.min(Number(payload.request_timeout) * 1000, 120000));
     }
     renderSourceStatus(payload.source);
+    loadSourceOutline(payload.source);
     const configured = Boolean(payload.providers && payload.providers[provider]);
     const missing = payload.provider_details?.[provider]?.missing;
     const missingKeys = payload.provider_details?.[provider]?.missing_keys;
@@ -3678,6 +3718,7 @@ async function checkProviderHealth(provider = providerSelect.value) {
   } catch (error) {
     if (requestId !== providerHealthRequestId) return;
     renderSourceStatus(null);
+    loadSourceOutline(null);
     providerDescription.textContent = providerDescriptions[provider];
     setProviderBadge(error?.name === "AbortError" ? "连接超时" : "离线演示", "#a26b46");
   }
