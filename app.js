@@ -3296,6 +3296,7 @@ function syncModeControls() {
   creativitySelect.disabled = factualMode;
   creativitySelect.title = factualMode ? "问答模式固定为事实优先" : "";
   creativityValue.textContent = getEffectiveCreativityLabel();
+  conversationTitle.textContent = getConversationTitle();
 }
 
 function setProviderBadge(label, color) {
