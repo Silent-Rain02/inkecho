@@ -158,13 +158,15 @@ def env(name: str, default: str = "") -> str:
 
 def is_placeholder(value: str) -> bool:
     normalized = value.strip().lower()
+    unwrapped = normalized[2:-1].strip() if normalized.startswith("${") and normalized.endswith("}") else normalized
     return (
         not normalized
         or normalized in PLACEHOLDER_VALUES
-        or normalized.startswith("your-")
-        or normalized.startswith("your_")
-        or normalized.startswith("replace_with_")
-        or "your-resource" in normalized
+        or unwrapped in PLACEHOLDER_VALUES
+        or unwrapped.startswith("your-")
+        or unwrapped.startswith("your_")
+        or unwrapped.startswith("replace_with_")
+        or "your-resource" in unwrapped
     )
 
 
@@ -811,7 +813,7 @@ def list_provider_models(provider: str) -> list[str]:
 
 def optional_logid_header(name: str) -> dict[str, str]:
     logid = env(name)
-    return {"X-TT-LOGID": logid} if logid else {}
+    return {"X-TT-LOGID": logid} if logid and not is_placeholder(logid) else {}
 
 
 def static_asset_path(request_path: str) -> Path | None:
