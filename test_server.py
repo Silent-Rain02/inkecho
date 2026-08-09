@@ -275,6 +275,16 @@ class ServerConfigTests(unittest.TestCase):
             results = source_search("第十九节 春秋蝉是什么", limit=2)
         self.assertEqual(results[0]["title"], "第十九节：六转本命春秋蝉！")
 
+    def test_source_search_reuses_identical_query_cache(self) -> None:
+        chunks = [{"title": "第一节：青茅山", "text": "方源回到青茅山。"}]
+        with patch("server._source_search_cache", {}), patch(
+            "server.source_chunks", return_value=chunks
+        ), patch("server.source_query_terms", wraps=source_query_terms) as terms:
+            first = source_search("方源 青茅山", limit=2)
+            second = source_search("方源 青茅山", limit=2)
+        self.assertEqual(first, second)
+        self.assertEqual(terms.call_count, 1)
+
     def test_source_search_centers_evidence_on_the_matched_term(self) -> None:
         prefix = "无关铺垫。" * 220
         suffix = "后续内容。" * 80
