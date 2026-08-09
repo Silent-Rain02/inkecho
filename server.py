@@ -38,6 +38,10 @@ SOURCE_KNOWN_TERMS = (
     "月光蛊", "青茅山", "方源", "方正", "白家寨", "熊家寨", "花酒", "酒虫", "元石", "蛊师",
     "蛊虫", "蛊仙", "真元", "仙窍", "炼蛊", "重生", "影宗", "天庭", "长生",
 )
+LOW_INFORMATION_SOURCE_QUERIES = {
+    "继续", "继续写", "继续写下去", "接着写", "往下写", "下一段", "然后呢", "具体呢",
+    "为什么", "还有吗", "展开说说", "再说说", "再来一点",
+}
 _source_cache_lock = Lock()
 _source_cache: dict[str, Any] = {"path": "", "mtime_ns": -1, "chunks": []}
 SECURITY_HEADERS = {
@@ -260,16 +264,33 @@ def source_status() -> dict[str, Any]:
     }
 
 
+def is_low_information_source_query(query: str) -> bool:
+    normalized = re.sub(r"[^\w\u4e00-\u9fff]", "", str(query or "").strip().lower())
+    return not normalized or normalized in LOW_INFORMATION_SOURCE_QUERIES
+
+
 def source_query_from_payload(payload: dict[str, Any]) -> str:
     explicit = str(payload.get("source_query") or "").strip()
     if explicit:
         return explicit[:600]
     context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
     query_parts = []
+    user_queries: list[str] = []
     for item in reversed(payload.get("messages") or []):
         if isinstance(item, dict) and item.get("role") == "user" and isinstance(item.get("content"), str):
-            query_parts.append(item["content"].strip())
+            content = item["content"].strip()
+            if not content:
+                continue
+            if not user_queries:
+                user_queries.append(content)
+                if not is_low_information_source_query(content):
+                    break
+                continue
+            if is_low_information_source_query(content):
+                continue
+            user_queries.append(content)
             break
+    query_parts.extend(user_queries)
     query_parts.extend([
         str(context.get("chapter") or "").strip(),
         str(context.get("sceneGoal") or "").strip(),
