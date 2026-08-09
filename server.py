@@ -554,6 +554,15 @@ def generation_budget(settings: ProviderSettings, requested: int) -> int:
     return max(requested, MIN_REASONING_MODEL_TOKENS) if reasoning_model else requested
 
 
+def completion_was_truncated(response: Any) -> bool:
+    """Detect provider-neutral length stops without exposing SDK objects."""
+    for choice in getattr(response, "choices", []) or []:
+        reason = str(getattr(choice, "finish_reason", "") or "").lower()
+        if reason == "length":
+            return True
+    return False
+
+
 def configured_provider_settings(payload: dict[str, Any]) -> ProviderSettings:
     """Validate client-selected provider settings before contacting an upstream service."""
     settings = provider_settings(payload.get("provider"), payload.get("model"))
@@ -743,7 +752,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     return normalized
 
 
-def complete_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
+def complete_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings, bool]:
     settings = configured_provider_settings(payload)
     client = build_client(settings)
     max_tokens, _ = response_length_settings(payload)
@@ -757,7 +766,34 @@ def complete_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
     content = extract_text_content(response.choices[0].message.content if response.choices else "")
     if not content.strip():
         raise RuntimeError("模型没有返回可显示的文本")
-    return content.strip(), settings
+    return content.strip(), settings, completion_was_truncated(response)
+
+
+class ResponseDeltaIterator:
+    """Normalize streamed text while retaining the final provider stop reason."""
+
+    def __init__(self, response: Any) -> None:
+        self._response = iter(response)
+        self.finish_reason = ""
+        self.truncated = False
+
+    def __iter__(self) -> "ResponseDeltaIterator":
+        return self
+
+    def __next__(self) -> str:
+        while True:
+            chunk = next(self._response)
+            if not getattr(chunk, "choices", None):
+                continue
+            choice = chunk.choices[0]
+            reason = str(getattr(choice, "finish_reason", "") or "").lower()
+            if reason:
+                self.finish_reason = reason
+                self.truncated = reason == "length"
+            delta_object = getattr(choice, "delta", None)
+            delta = extract_text_content(getattr(delta_object, "content", None))
+            if delta:
+                return delta
 
 
 def stream_chat(payload: dict[str, Any]) -> tuple[ProviderSettings, Iterator[str]]:
@@ -772,15 +808,7 @@ def stream_chat(payload: dict[str, Any]) -> tuple[ProviderSettings, Iterator[str
         stream=True,
     )
 
-    def deltas() -> Iterator[str]:
-        for chunk in response:
-            if not chunk.choices:
-                continue
-            delta = extract_text_content(chunk.choices[0].delta.content)
-            if delta:
-                yield delta
-
-    return settings, deltas()
+    return settings, ResponseDeltaIterator(response)
 
 
 def probe_provider(payload: dict[str, Any]) -> ProviderSettings:
@@ -882,13 +910,14 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             elif path == "/api/chat/stream":
                 self.stream_response(payload)
             else:
-                text, settings = complete_chat(payload)
+                text, settings, truncated = complete_chat(payload)
                 source_query = source_query_from_payload(payload)
                 self.send_json({
                     "ok": True,
                     "text": text,
                     "provider": settings.provider,
                     "model": settings.model,
+                    "truncated": truncated,
                     "source_query": source_query,
                     "source_references": source_references(source_query),
                 })
@@ -927,7 +956,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
         try:
             for delta in deltas:
                 self.send_event({"type": "delta", "delta": delta})
-            self.send_event({"type": "done"})
+            self.send_event({"type": "done", "truncated": bool(getattr(deltas, "truncated", False))})
         except Exception as exc:  # noqa: BLE001
             print(f"[InkEcho] stream failed: {type(exc).__name__}")
             self.send_event({"type": "error", "error": "模型流式响应中断"})
