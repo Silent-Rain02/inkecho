@@ -92,7 +92,7 @@
           <label class="field-label" for="workTitle">作品名称</label>
           <div class="field-input has-icon">
             <span>▤</span>
-            <input id="workTitle" type="text" maxlength="120" value="红楼梦" />
+            <input id="workTitle" type="text" maxlength="120" value="蛊真人" />
           </div>
 
           <div class="field-label-row">
@@ -113,11 +113,11 @@
           <label class="field-label" for="workEra">时代 / 氛围</label>
           <div class="field-input has-icon">
             <span>◷</span>
-            <input id="workEra" type="text" maxlength="120" value="清代 · 金陵" />
+            <input id="workEra" type="text" maxlength="120" value="蛊界 · 青茅山" />
           </div>
 
           <label class="field-label" for="workWorld">世界观备注</label>
-          <textarea id="workWorld" rows="3" maxlength="800">大观园里的春日将尽，人物在礼法与真心之间周旋。</textarea>
+          <textarea id="workWorld" rows="3" maxlength="800">以《蛊真人》原作为本地知识库，围绕方源、蛊道体系和原作剧情进行续写与内容问答。</textarea>
 
           <label class="field-label" for="workReference">参考片段</label>
           <textarea id="workReference" rows="4" placeholder="粘贴原文、人物关系或本章要点……"></textarea>
@@ -125,6 +125,7 @@
             <span id="referenceCount">0 / 4000 字</span>
             <button class="text-button" id="importReference" type="button">导入 .txt / .md</button>
           </div>
+          <div class="source-status" id="sourceStatus" aria-live="polite">原作知识库：检查中……</div>
           <input id="referenceFile" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" hidden />
 
           <div class="field-label-row">
@@ -149,14 +150,14 @@
               </span>
           </div>
           <div class="character-list" id="characterList">
-            <button class="character-card active" type="button" data-character="林黛玉" data-tone="清冷、敏锐，却藏着很深的真心。">
-              <span class="character-avatar avatar-dai">黛</span>
-              <span><strong>林黛玉</strong><small>清冷 · 诗意 · 敏锐</small></span>
+            <button class="character-card active" type="button" data-character="方源" data-tone="冷静、决绝、善于权衡利弊，不被表面道德束缚。">
+              <span class="character-avatar avatar-dai">方</span>
+              <span><strong>方源</strong><small>冷静 · 果断 · 深谋</small></span>
               <span class="selected-mark">✓</span>
             </button>
-            <button class="character-card" type="button" data-character="贾宝玉" data-tone="真挚、叛逆，对世俗规矩总有自己的看法。">
-              <span class="character-avatar avatar-bao">宝</span>
-              <span><strong>贾宝玉</strong><small>真挚 · 叛逆 · 多情</small></span>
+            <button class="character-card" type="button" data-character="白凝冰" data-tone="锋利、骄傲、追求极致，常以强硬掩饰真实情绪。">
+              <span class="character-avatar avatar-bao">白</span>
+              <span><strong>白凝冰</strong><small>锋利 · 骄傲 · 极致</small></span>
               <span class="selected-mark">✓</span>
             </button>
           </div>
@@ -224,7 +225,7 @@
               <span class="live-pulse"></span>
               <div>
                 <span class="section-kicker">02 / CONVERSATION</span>
-                <h2 id="conversationTitle">与林黛玉对话</h2>
+                <h2 id="conversationTitle">与方源对话</h2>
                 <span class="conversation-context" id="conversationContext">未选择场景</span>
               </div>
             </div>
@@ -257,6 +258,7 @@
 
           <div class="mode-tabs" role="tablist" aria-label="创作模式">
             <button class="mode-tab active" type="button" data-mode="续写" role="tab" aria-selected="true">续写 <span>↗</span></button>
+            <button class="mode-tab" type="button" data-mode="问答" role="tab" aria-selected="false">内容问答 <span>?</span></button>
             <button class="mode-tab" type="button" data-mode="改写" role="tab" aria-selected="false">改写 <span>↗</span></button>
             <button class="mode-tab" type="button" data-mode="独白" role="tab" aria-selected="false">角色独白 <span>↗</span></button>
           </div>
@@ -265,22 +267,22 @@
             <div class="message-row assistant">
               <span class="message-avatar avatar-dai">黛</span>
               <div class="message-content">
-                <div class="message-meta"><strong>林黛玉</strong><time>刚刚</time></div>
-                <div class="bubble">今日的风倒像有几分春意，只是花落得太早了些。你来找我，可是有什么话要说？</div>
+                <div class="message-meta"><strong>方源</strong><time>刚刚</time></div>
+                <div class="bubble">原作知识库已经准备好。你可以让我承接某一幕继续写，也可以直接询问人物、蛊虫、势力和剧情。</div>
               </div>
             </div>
             <div class="message-row user">
               <div class="message-content">
                 <div class="message-meta"><strong>我</strong><time>刚刚</time></div>
-                <div class="bubble">如果这一回不写离别，你想把故事带到哪里去？</div>
+                <div class="bubble">方源第一次重生回到青茅山后，最优先要解决什么问题？</div>
               </div>
               <span class="message-avatar user-avatar">I</span>
             </div>
             <div class="message-row assistant">
               <span class="message-avatar avatar-dai">黛</span>
               <div class="message-content">
-                <div class="message-meta"><strong>林黛玉</strong><time>刚刚</time></div>
-                <div class="bubble">那便去看一场没有结局的雨吧。雨停之前，谁也不必急着把心事说完。</div>
+                <div class="message-meta"><strong>方源</strong><time>刚刚</time></div>
+                <div class="bubble">切换到“内容问答”即可查考原作；切换到“续写”并补充承接位置，就能沿着当前剧情继续创作。</div>
               </div>
             </div>
           </div>
@@ -288,7 +290,7 @@
           <form class="composer" id="composer">
             <div class="composer-tools">
               <button type="button" aria-label="添加参考内容" title="添加参考内容">⊕</button>
-              <span class="composer-hint" id="composerHint">续写这一段故事……</span>
+              <span class="composer-hint" id="composerHint">续写《蛊真人》的这一段故事……</span>
             </div>
             <textarea id="messageInput" rows="2" placeholder="写下你想说的话……" aria-label="输入消息"></textarea>
             <div class="composer-bottom">
