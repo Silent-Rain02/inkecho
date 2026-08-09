@@ -28,6 +28,7 @@ SOURCE_CHUNK_CHARS = 1800
 MAX_SOURCE_CHUNKS = 20_000
 SOURCE_HEADING_RE = re.compile(r"^\s*(第[一二三四五六七八九十百千万0-9]+(?:卷|章|节)[：:]?.*|序(?:[：:].*)?)\s*$")
 SOURCE_HEADING_FOCUS_RE = re.compile(r"第[一二三四五六七八九十百千万0-9]+(?:卷|章|节)")
+SOURCE_CITATION_RE = re.compile(r"(?:依据|参考)[：:]\s*([^)\]）\]\n，。；;]+)")
 SOURCE_STOP_TERMS = {
     "什么", "如何", "为什么", "怎么", "是否", "可以", "能够", "以及", "以及", "哪些", "哪个",
     "这个", "那个", "之后", "以前", "现在", "然后", "因为", "所以", "以及", "原作", "小说",
@@ -479,6 +480,33 @@ def source_evidence_metadata(query: str, limit: int = 4) -> dict[str, Any]:
         "source_references": references[:bounded_limit],
         "source_quality": source_evidence_quality(query, matches),
         "source_match_count": len(matches),
+    }
+
+
+def source_citation_metadata(answer: str, references: list[str]) -> dict[str, Any]:
+    """Audit model chapter citations against the sections retrieved for this answer."""
+    raw_citations = SOURCE_CITATION_RE.findall(str(answer or ""))
+    citations: list[str] = []
+    for raw in raw_citations:
+        for value in re.split(r"[、,，/及和与]+", raw):
+            citation = re.sub(r"\s+", "", value).strip(" .。:：")[:120]
+            if citation and citation not in citations:
+                citations.append(citation)
+    normalized_references = [re.sub(r"\s+", "", str(reference or "")).lower() for reference in references]
+    unverified = [
+        citation for citation in citations
+        if not any(citation.lower() in reference for reference in normalized_references)
+    ]
+    if unverified:
+        status = "unverified"
+    elif citations:
+        status = "verified"
+    else:
+        status = "none"
+    return {
+        "source_citation_status": status,
+        "source_citations": citations[:8],
+        "source_citations_unverified": unverified[:8],
     }
 
 
@@ -980,6 +1008,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
                 text, settings, truncated = complete_chat(payload)
                 source_query = source_query_from_payload(payload)
                 evidence = source_evidence_metadata(source_query)
+                citation = source_citation_metadata(text, evidence["source_references"]) if payload.get("mode") == "问答" else {}
                 self.send_json({
                     "ok": True,
                     "text": text,
@@ -988,6 +1017,7 @@ class InkEchoHandler(BaseHTTPRequestHandler):
                     "truncated": truncated,
                     "source_query": source_query,
                     **evidence,
+                    **citation,
                 })
         except Exception as exc:  # noqa: BLE001
             print(f"[InkEcho] request failed: {type(exc).__name__}")
@@ -1023,9 +1053,20 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             **evidence,
         })
         try:
+            answer_parts: list[str] = []
             for delta in deltas:
+                answer_parts.append(delta)
                 self.send_event({"type": "delta", "delta": delta})
-            self.send_event({"type": "done", "truncated": bool(getattr(deltas, "truncated", False))})
+            citation = (
+                source_citation_metadata("".join(answer_parts), evidence["source_references"])
+                if payload.get("mode") == "问答"
+                else {}
+            )
+            self.send_event({
+                "type": "done",
+                "truncated": bool(getattr(deltas, "truncated", False)),
+                **citation,
+            })
         except Exception as exc:  # noqa: BLE001
             print(f"[InkEcho] stream failed: {type(exc).__name__}")
             self.send_event({"type": "error", "error": "模型流式响应中断"})
