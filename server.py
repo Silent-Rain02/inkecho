@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import mimetypes
 import os
 import re
@@ -28,6 +29,8 @@ SOURCE_HEADING_RE = re.compile(r"^\s*(第[一二三四五六七八九十百千�
 SOURCE_STOP_TERMS = {
     "什么", "如何", "为什么", "怎么", "是否", "可以", "能够", "以及", "以及", "哪些", "哪个",
     "这个", "那个", "之后", "以前", "现在", "然后", "因为", "所以", "以及", "原作", "小说",
+    "后", "前", "最优先", "优先", "要", "确认", "事情", "选择", "之间", "什么", "回到",
+    "的", "和", "是", "有", "在", "对", "与", "了", "吗", "呢",
 }
 _source_cache_lock = Lock()
 _source_cache: dict[str, Any] = {"path": "", "mtime_ns": -1, "chunks": []}
@@ -268,28 +271,53 @@ def source_query_from_payload(payload: dict[str, Any]) -> str:
     return " ".join(part for part in query_parts if part)[:600]
 
 
+def source_query_terms(query: str) -> list[tuple[str, float]]:
+    """Build phrase-aware terms while reducing noisy short Chinese overlaps."""
+    weighted_terms: list[tuple[str, float]] = []
+    stop_pattern = "|".join(sorted(SOURCE_STOP_TERMS, key=len, reverse=True))
+    query_without_stops = re.sub(stop_pattern, " ", query) if stop_pattern else query
+    for token in re.findall(r"[a-z0-9_]{2,}|[\u4e00-\u9fff]{2,}", query_without_stops):
+        if token in SOURCE_STOP_TERMS:
+            continue
+        if re.fullmatch(r"[a-z0-9_]+", token):
+            weighted_terms.append((token, 3.0))
+            continue
+        if len(token) <= 3:
+            weighted_terms.append((token, 4.0 if len(token) == 3 else 1.5))
+        for size, weight in ((4, 0.5), (3, 1.4), (2, 1.0)):
+            if len(token) < size:
+                continue
+            for index in range(len(token) - size + 1):
+                phrase = token[index:index + size]
+                if phrase in SOURCE_STOP_TERMS:
+                    continue
+                weighted_terms.append((phrase, weight))
+    deduplicated: list[tuple[str, float]] = []
+    seen: set[str] = set()
+    for term, weight in weighted_terms:
+        if term in seen:
+            continue
+        seen.add(term)
+        deduplicated.append((term, weight))
+    return deduplicated[:80]
+
+
 def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
     """Find source passages with a small, dependency-free lexical scorer."""
     query = re.sub(r"\s+", " ", str(query or "").strip().lower())
     if not query:
         return []
-    weighted_terms: list[tuple[str, float]] = []
-    for token in re.findall(r"[a-z0-9_]{2,}|[\u4e00-\u9fff]{2,}", query):
-        if token in SOURCE_STOP_TERMS:
-            continue
-        if not any(existing == token for existing, _ in weighted_terms):
-            weighted_terms.append((token, 3.0 if len(token) >= 3 else 2.0))
-        if len(token) >= 4:
-            for index in range(len(token) - 1):
-                pair = token[index:index + 2]
-                if pair in SOURCE_STOP_TERMS or any(existing == pair for existing, _ in weighted_terms):
-                    continue
-                weighted_terms.append((pair, 0.8))
-    weighted_terms = weighted_terms[:40]
+    chunks = source_chunks()
+    weighted_terms = source_query_terms(query)
     if not weighted_terms:
         return []
+    document_count = max(1, len(chunks))
+    document_frequency = {
+        term: sum(term in f"{chunk['title']}\n{chunk['text']}".lower() for chunk in chunks)
+        for term, _ in weighted_terms
+    }
     scored: list[tuple[float, dict[str, str]]] = []
-    for chunk in source_chunks():
+    for chunk in chunks:
         title = chunk["title"].lower()
         haystack = f"{title}\n{chunk['text'].lower()}"
         score = 0.0
@@ -298,9 +326,10 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
         for term, weight in weighted_terms:
             occurrences = haystack.count(term)
             if occurrences:
-                score += min(occurrences, 3) * weight * (1.0 + min(len(term), 8) / 4)
-                if term in title:
-                    score += 5.0
+                idf = math.log((document_count + 1) / (document_frequency[term] + 1)) + 1.0
+                score += min(occurrences, 3) * weight * idf * (1.0 + min(len(term), 8) / 4)
+                if len(term) >= 3 and term in title:
+                    score += 12.0 * weight * idf
         if score:
             scored.append((score, chunk))
     scored.sort(key=lambda item: item[0], reverse=True)
