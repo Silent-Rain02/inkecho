@@ -18,6 +18,7 @@ from server import (
     provider_health_snapshot,
     provider_settings,
     probe_provider,
+    optional_logid_header,
     stream_chat,
     summarize_chat,
     public_error,
@@ -82,6 +83,15 @@ class ServerConfigTests(unittest.TestCase):
             "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
         }, clear=True):
             self.assertFalse(provider_settings("custom_azure", "office-model").configured)
+
+    def test_wrapped_logid_placeholder_is_not_forwarded(self) -> None:
+        with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_LOGID": "${your_logid}"}, clear=True):
+            self.assertEqual(optional_logid_header("INK_ECHO_CUSTOM_AZURE_LOGID"), {})
+        with patch.dict(os.environ, {"INK_ECHO_CUSTOM_AZURE_LOGID": "office-logid-123"}, clear=True):
+            self.assertEqual(
+                optional_logid_header("INK_ECHO_CUSTOM_AZURE_LOGID"),
+                {"X-TT-LOGID": "office-logid-123"},
+            )
 
     def test_health_snapshot_uses_model_selected_in_ui(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
