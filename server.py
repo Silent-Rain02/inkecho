@@ -55,7 +55,7 @@ LOW_INFORMATION_SOURCE_QUERIES = {
     "为什么", "还有吗", "展开说说", "再说说", "再来一点",
 }
 _source_cache_lock = Lock()
-_source_cache: dict[str, Any] = {"path": "", "mtime_ns": -1, "chunks": []}
+_source_cache: dict[str, Any] = {"path": "", "mtime_ns": -1, "chunks": [], "encoding": ""}
 _source_search_cache: dict[tuple[int, str, int, bool], list[dict[str, str]]] = {}
 SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'self'; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
@@ -274,19 +274,22 @@ def source_chunks() -> list[dict[str, str]]:
         try:
             raw = path.read_bytes()
             text = ""
+            detected_encoding = ""
             for encoding in ("utf-8-sig", "utf-16", "gb18030"):
                 try:
                     text = raw.decode(encoding)
+                    detected_encoding = encoding
                     break
                 except UnicodeDecodeError:
                     continue
             if not text:
                 text = raw.decode("utf-8", errors="ignore")
+                detected_encoding = "utf-8-ignore"
         except OSError:
             _source_search_cache.clear()
             return []
         chunks = build_source_chunks(text)
-        _source_cache.update({"path": cache_key, "mtime_ns": mtime_ns, "chunks": chunks})
+        _source_cache.update({"path": cache_key, "mtime_ns": mtime_ns, "chunks": chunks, "encoding": detected_encoding})
         _source_search_cache.clear()
         return chunks
 
@@ -302,6 +305,7 @@ def source_status() -> dict[str, Any]:
         "configured": configured,
         "available": available,
         "chunks": len(chunks),
+        "encoding": _source_cache.get("encoding", "") if available else "",
         "missing_key": "INK_ECHO_SOURCE_FILE" if not configured else "",
         "error": "原文文件不存在或无法读取" if configured and not available else "",
     }
