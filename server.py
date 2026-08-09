@@ -288,6 +288,25 @@ def source_status() -> dict[str, Any]:
     }
 
 
+def source_outline(query: str = "", limit: int = 2000) -> list[str]:
+    """Return safe, unique chapter labels for local source navigation."""
+    normalized_query = re.sub(r"\s+", " ", str(query or "").strip().lower())
+    bounded_limit = max(1, min(int(limit), 3000))
+    titles: list[str] = []
+    seen: set[str] = set()
+    for chunk in source_chunks():
+        title = str(chunk.get("title") or "").strip()
+        if not title or title in seen:
+            continue
+        if normalized_query and normalized_query not in title.lower():
+            continue
+        seen.add(title)
+        titles.append(title[:120])
+        if len(titles) >= bounded_limit:
+            break
+    return titles
+
+
 def is_low_information_source_query(query: str) -> bool:
     normalized = re.sub(r"[^\w\u4e00-\u9fff]", "", str(query or "").strip().lower())
     return not normalized or normalized in LOW_INFORMATION_SOURCE_QUERIES
@@ -1041,6 +1060,22 @@ class InkEchoHandler(BaseHTTPRequestHandler):
                 print(f"[InkEcho] model listing failed: {type(exc).__name__}")
                 message = public_error(exc) if isinstance(exc, ValueError) else "无法读取模型列表"
                 self.send_json({"ok": False, "provider": provider, "models": [], "error": message}, status=error_status(exc))
+            return
+        if parsed.path == "/api/source/outline":
+            query = parse_qs(parsed.query).get("query", [""])[0][:120]
+            raw_limit = parse_qs(parsed.query).get("limit", ["2000"])[0]
+            try:
+                limit = max(1, min(int(raw_limit), 3000))
+            except ValueError:
+                limit = 2000
+            titles = source_outline(query, limit=limit)
+            self.send_json({
+                "ok": True,
+                "source": source_status(),
+                "query": query,
+                "titles": titles,
+                "total": len(titles),
+            })
             return
         self.serve_static(unquote(parsed.path))
 
