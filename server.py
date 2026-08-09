@@ -272,7 +272,16 @@ def source_chunks() -> list[dict[str, str]]:
         if _source_cache["path"] == cache_key and _source_cache["mtime_ns"] == mtime_ns:
             return _source_cache["chunks"]
         try:
-            text = path.read_text(encoding="utf-8-sig", errors="ignore")
+            raw = path.read_bytes()
+            text = ""
+            for encoding in ("utf-8-sig", "utf-16", "gb18030"):
+                try:
+                    text = raw.decode(encoding)
+                    break
+                except UnicodeDecodeError:
+                    continue
+            if not text:
+                text = raw.decode("utf-8", errors="ignore")
         except OSError:
             _source_search_cache.clear()
             return []
