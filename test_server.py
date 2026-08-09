@@ -275,6 +275,46 @@ class ServerConfigTests(unittest.TestCase):
             results = source_search("第十九节 春秋蝉是什么", limit=2)
         self.assertEqual(results[0]["title"], "第十九节：六转本命春秋蝉！")
 
+    def test_source_search_adds_next_chapter_for_continuation_anchor(self) -> None:
+        with patch(
+            "server.source_chunks",
+            return_value=[
+                {"title": "第一节：青茅山", "text": "方源回到青茅山，重新观察局势。"},
+                {"title": "第二节：开窍大典", "text": "开窍大典即将开始，少年们聚集起来。"},
+                {"title": "第三节：月光蛊", "text": "学堂发下月光蛊，方源开始炼化。"},
+            ],
+        ):
+            results = source_search("第一节 方源接下来怎么写", limit=2, include_adjacent=True)
+        self.assertEqual(
+            [item["title"] for item in results],
+            ["第一节：青茅山", "第二节：开窍大典"],
+        )
+
+    def test_source_search_requires_all_explicit_volume_and_section_focus(self) -> None:
+        with patch(
+            "server.source_chunks",
+            return_value=[
+                {"title": "第一卷 · 第一节：开局", "text": "方源回到青茅山。"},
+                {"title": "第一卷 · 第二节：开窍", "text": "开窍大典即将开始。"},
+                {"title": "第二卷 · 第一节：转折", "text": "方源进入新的局面。"},
+            ],
+        ):
+            results = source_search("第一卷 第一节 方源", limit=2)
+        self.assertEqual(results[0]["title"], "第一卷 · 第一节：开局")
+        self.assertNotIn("第二卷 · 第一节：转折", [item["title"] for item in results])
+
+    def test_qa_retrieval_does_not_add_adjacent_chapter(self) -> None:
+        with patch(
+            "server.source_search",
+            return_value=[{"title": "第一节：青茅山", "text": "直接证据。"}],
+        ) as search:
+            build_messages({
+                "mode": "问答",
+                "context": {"chapter": "第一节"},
+                "messages": [{"role": "user", "content": "原作发生了什么？"}],
+            })
+        self.assertEqual(search.call_args.kwargs["include_adjacent"], False)
+
     def test_source_search_reuses_identical_query_cache(self) -> None:
         chunks = [{"title": "第一节：青茅山", "text": "方源回到青茅山。"}]
         with patch("server._source_search_cache", {}), patch(
@@ -345,7 +385,16 @@ class ServerConfigTests(unittest.TestCase):
         self.assertGreaterEqual(len(chunks), 2)
         self.assertEqual(chunks[0]["title"], "第一卷")
         self.assertLessEqual(len(chunks[0]["text"]), 1800)
-        self.assertIn("第二节：重生", {chunk["title"] for chunk in chunks})
+        self.assertIn("第一卷 · 第二节：重生", {chunk["title"] for chunk in chunks})
+
+    def test_source_chunks_keep_volume_context_for_repeated_section_titles(self) -> None:
+        chunks = build_source_chunks(
+            "第一卷\n第一节：开局\n方源回到青茅山。\n"
+            "第二卷\n第一节：转折\n方源进入新的局面。"
+        )
+        titles = [chunk["title"] for chunk in chunks]
+        self.assertIn("第一卷 · 第一节：开局", titles)
+        self.assertIn("第二卷 · 第一节：转折", titles)
 
     def test_source_search_reads_only_configured_local_file(self) -> None:
         with tempfile.NamedTemporaryFile("w", suffix=".txt", encoding="utf-8", delete=False) as handle:
