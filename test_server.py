@@ -73,6 +73,21 @@ class ServerConfigTests(unittest.TestCase):
         self.assertIn("第一卷 · 第十九节", query)
         self.assertNotIn("下一幕", query)
 
+    def test_qa_source_query_does_not_use_creative_scene_goal(self) -> None:
+        query = source_query_from_payload(
+            {
+                "mode": "问答",
+                "messages": [{"role": "user", "content": "方源和白凝冰是什么关系？", "mode": "问答"}],
+                "context": {
+                    "chapter": "第一卷 · 第十九节",
+                    "sceneGoal": "让方源在下一幕与白凝冰结盟并共同逃亡",
+                },
+            }
+        )
+        self.assertIn("方源和白凝冰是什么关系？", query)
+        self.assertIn("第一卷 · 第十九节", query)
+        self.assertNotIn("共同逃亡", query)
+
     def test_qa_prompt_excludes_known_non_qa_assistant_history(self) -> None:
         messages = build_messages(
             {
@@ -448,6 +463,17 @@ class ServerConfigTests(unittest.TestCase):
         ):
             results = source_search("古月山寨和白家寨是什么关系", limit=2)
         self.assertEqual(results[0]["title"], "势力交汇章节")
+
+    def test_source_search_rewards_two_character_named_entity_cooccurrence(self) -> None:
+        with patch(
+            "server.source_chunks",
+            return_value=[
+                {"title": "方源旧事", "text": "方源独自判断局势。"},
+                {"title": "冰火交锋", "text": "方源与白凝冰在青茅山共同应对危局。"},
+            ],
+        ):
+            results = source_search("方源和白凝冰是什么关系", limit=2)
+        self.assertEqual(results[0]["title"], "冰火交锋")
 
     def test_source_search_prefers_opening_arc_for_reincarnation_question(self) -> None:
         chunks = [
