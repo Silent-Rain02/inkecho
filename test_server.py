@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import tempfile
 import unittest
 from types import SimpleNamespace
 from urllib.parse import urlencode
@@ -8,6 +9,7 @@ from unittest.mock import patch
 
 from server import (
     build_messages,
+    build_source_chunks,
     complete_chat,
     error_status,
     InkEchoHandler,
@@ -23,6 +25,8 @@ from server import (
     SECURITY_HEADERS,
     STATIC_FILES,
     history_budget_chars,
+    source_search,
+    source_status,
     static_asset_path,
 )
 
@@ -56,6 +60,7 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(snapshot["provider"], "ollama")
         self.assertEqual(snapshot["provider_details"]["ollama"]["missing"], [])
         self.assertIn("模型名", snapshot["provider_details"]["custom_azure"]["missing"])
+        self.assertIn("source", snapshot)
 
     def test_health_snapshot_exposes_missing_env_keys_without_values(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
@@ -128,8 +133,50 @@ class ServerConfigTests(unittest.TestCase):
     def test_modes_have_distinct_writing_guidance(self) -> None:
         rewrite_prompt = build_messages({"mode": "改写"})[0]["content"]
         monologue_prompt = build_messages({"mode": "独白"})[0]["content"]
+        qa_prompt = build_messages({"mode": "问答"})[0]["content"]
         self.assertIn("不只给建议", rewrite_prompt)
         self.assertIn("第一人称内心独白", monologue_prompt)
+        self.assertIn("原作知识库", qa_prompt)
+
+    def test_source_chunks_keep_section_titles_and_bound_length(self) -> None:
+        chunks = build_source_chunks("第一卷\n" + "甲" * 2100 + "\n第二节：重生\n" + "乙" * 3)
+        self.assertGreaterEqual(len(chunks), 2)
+        self.assertEqual(chunks[0]["title"], "第一卷")
+        self.assertLessEqual(len(chunks[0]["text"]), 1800)
+        self.assertIn("第二节：重生", {chunk["title"] for chunk in chunks})
+
+    def test_source_search_reads_only_configured_local_file(self) -> None:
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", encoding="utf-8", delete=False) as handle:
+            handle.write("第一节：青茅山\n方源回到青茅山，重新审视开窍大典。\n")
+            source_path = handle.name
+        try:
+            with patch.dict(
+                os.environ,
+                {"INK_ECHO_SOURCE_FILE": source_path, "INK_ECHO_SOURCE_NAME": "蛊真人"},
+                clear=True,
+            ):
+                status = source_status()
+                results = source_search("方源 青茅山")
+            self.assertTrue(status["available"])
+            self.assertEqual(status["name"], "蛊真人")
+            self.assertTrue(results)
+            self.assertEqual(results[0]["title"], "第一节：青茅山")
+        finally:
+            os.unlink(source_path)
+
+    def test_prompt_includes_retrieved_source_context(self) -> None:
+        with patch(
+            "server.source_search",
+            return_value=[{"title": "第一节：青茅山", "text": "方源重新审视眼前局势。"}],
+        ):
+            prompt = build_messages(
+                {
+                    "mode": "问答",
+                    "messages": [{"role": "user", "content": "方源重生后做了什么？"}],
+                }
+            )[0]["content"]
+        self.assertIn("原作知识库检索片段", prompt)
+        self.assertIn("方源重新审视眼前局势", prompt)
 
     def test_complete_chat_passes_selected_length_to_provider(self) -> None:
         class FakeCompletions:
