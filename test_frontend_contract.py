@@ -114,6 +114,8 @@ class FrontendContractTests(unittest.TestCase):
             "commandPaletteList",
             "commandPaletteHint",
             "sourceStatus",
+            "sourceChapterOptions",
+            "sourceOutlineHint",
             "previewSource",
         }
         self.assertTrue(required.issubset(ids))
@@ -183,6 +185,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("formatMessageMode(item)", self.javascript)
         self.assertIn("const evidenceMode = normalizeMessageMode", self.javascript)
         self.assertIn("body: JSON.stringify({ query, mode: evidenceMode })", self.javascript)
+        self.assertIn("async function loadSourceOutline", self.javascript)
+        self.assertIn("/api/source/outline?limit=3000", self.javascript)
+        self.assertIn("sourceChapterOptions.replaceChildren", self.javascript)
         self.assertIn("function getEffectiveCreativityLabel", self.javascript)
         self.assertIn("function syncModeControls", self.javascript)
         self.assertIn('document.querySelectorAll(".mode-tab, .character-card")', self.javascript)
