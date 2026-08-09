@@ -980,6 +980,8 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         item_mode = str(item.get("mode") or "")[:20]
         if mode == "问答" and role == "assistant" and item_mode and item_mode != "问答":
             continue
+        if mode == "问答" and role == "user" and item_mode and item_mode != "问答":
+            continue
         if role in {"user", "assistant"} and isinstance(content, str) and content.strip():
             bounded_content = content[:4000]
             if history_chars + len(bounded_content) > budget:
