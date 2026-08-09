@@ -197,6 +197,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("conversationTitle.textContent = getConversationTitle()", self.javascript)
         self.assertIn("原作参考：${references.join", self.javascript)
         self.assertIn("依据查询：${query}", self.javascript)
+        self.assertIn('const citationVerified = citationStatus === "verified"', self.javascript)
+        self.assertIn("> 引用核验：已核对", self.javascript)
         self.assertIn("const sourceAttribution = formatSourceAttribution(item)", self.javascript)
         self.assertIn("演示回复 · 模型服务未返回，本地模板生成", self.javascript)
         self.assertIn("appendDemoSourceBadge", self.javascript)
