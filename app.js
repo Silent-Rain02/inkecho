@@ -374,7 +374,7 @@ const replyTemplates = {
     "人总以为自己在等待一个答案，其实等到最后，才发现想要的不过是有人理解这份沉默。",
   ],
   问答: [
-    "当前模型服务或原作知识库暂时不可用，无法可靠回答这个原作问题。请先检查本地知识库配置。",
+    "模型服务暂时不可用，当前没有生成可靠的原作结论。请点击下方“查看依据”核对本机检索结果，或检查模型服务配置。",
   ],
 };
 
@@ -1713,10 +1713,15 @@ function appendDemoSourceBadge(meta) {
 function renderSourceReferences(line, references, historyIndex = null, sourceQuery = "") {
   const safeReferences = normalizeSourceReferences(references);
   line.replaceChildren();
-  line.hidden = !safeReferences.length;
-  if (!safeReferences.length) return;
+  line.hidden = !safeReferences.length && !sourceQuery;
+  if (!safeReferences.length && !sourceQuery) return;
   const label = document.createElement("span");
-  label.textContent = "原作参考";
+  if (!safeReferences.length) {
+    label.className = "source-reference-missing";
+    label.textContent = "原作参考未标注";
+  } else {
+    label.textContent = "原作参考";
+  }
   line.appendChild(label);
   safeReferences.forEach((reference, index) => {
     const item = document.createElement("span");
@@ -1858,7 +1863,7 @@ function addMessage({ role, name, text, avatarClass, historyIndex, versions, sou
     bubble,
     meta,
     sourceReferenceLine,
-    renderSourceReferences: (references) => renderSourceReferences(sourceReferenceLine, references, historyIndex, sourceQuery),
+    renderSourceReferences: (references, query = sourceQuery) => renderSourceReferences(sourceReferenceLine, references, historyIndex, query),
   };
 }
 
@@ -3827,7 +3832,7 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
     }, character, (metadata) => {
       const references = normalizeSourceReferences(metadata?.source_references);
       assistantMessage.sourceRefs = references;
-      assistantMessage.renderSourceReferences(references);
+      assistantMessage.renderSourceReferences(references, sourceQuery);
     }, sourceQuery);
   } catch (error) {
     const timedOut = error?.name === "StreamTimeoutError";
@@ -3838,6 +3843,7 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
       reply = fallbackReply();
       assistantMessage.bubble.dataset.source = "demo";
       appendDemoSourceBadge(assistantMessage.meta);
+      assistantMessage.renderSourceReferences([], sourceQuery);
       setAssistantBubbleText(assistantMessage.bubble, reply);
       showToast(`${error?.userMessage || "模型服务暂不可用"}，当前使用演示回复`);
     } else if (!stopped && reply) {
