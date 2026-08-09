@@ -272,6 +272,7 @@ const maxLibraryPrompts = 36;
 const maxConversationMessages = 120;
 const maxArchivedMessages = 360;
 const maxStoredConversationMessages = maxConversationMessages + maxArchivedMessages;
+const continuityBridgeMessageCount = 4;
 const maxPrompts = 12;
 const maxHighlights = 30;
 const maxCheckpoints = 12;
@@ -1620,11 +1621,15 @@ function isSummaryContextMode() {
 }
 
 function getModelMessages({ fullHistory = false } = {}) {
+  const project = getActiveProject();
+  const continuityBridge = !fullHistory && !isSummaryContextMode() && Array.isArray(project?.conversationArchive)
+    ? project.conversationArchive.slice(-continuityBridgeMessageCount)
+    : [];
   const source = fullHistory
     ? getConversationForDisplay()
     : isSummaryContextMode()
       ? conversationHistory.slice(-4)
-      : conversationHistory.slice(-20);
+      : [...continuityBridge, ...conversationHistory.slice(-(20 - continuityBridge.length))];
   const selected = [];
   let historyChars = 0;
   for (const item of [...source].reverse()) {
@@ -1646,6 +1651,9 @@ function updateContextModeUI() {
   toggleContextModeButton.setAttribute("aria-pressed", String(compact));
   toggleContextModeButton.title = [
     compact ? "模型请求只带剧情摘要和最近两轮对话，完整历史仍保存在本地" : "模型请求会带上当前保留的完整对话",
+    !compact && getActiveProject()?.conversationArchive?.length
+      ? `其中保留最近 ${continuityBridgeMessageCount} 条归档消息作为连续性桥接`
+      : "",
     health.staleOutcomes ? `有 ${health.staleOutcomes} 个场景结果待更新` : "",
   ].filter(Boolean).join(" · ");
 }
@@ -1720,7 +1728,7 @@ function getContextPreviewText() {
     `模式：${selectedMode}`,
     `创作倾向：${getEffectiveCreativityLabel()}`,
     `回复长度：${responseLengthLabels[responseLengthSelect.value] || "标准"}`,
-    `上下文策略：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : "完整对话"}`,
+    `上下文策略：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : `最近对话 + 最近 ${continuityBridgeMessageCount} 条归档桥接`}`,
     `项目状态：${formatProjectHealth(project)}`,
     `新鲜度提醒：${formatContextFreshnessNotices(project)}`,
     "",
