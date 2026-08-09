@@ -1838,14 +1838,17 @@ function formatSourceAttribution(item) {
   const references = normalizeSourceReferences(item?.sourceRefs);
   const query = safeText(item?.sourceQuery, "", 600).replace(/\s+/g, " ");
   const quality = sourceQualityLabel(item?.sourceQuality);
-  const citationWarning = normalizeCitationStatus(item?.sourceCitationStatus) === "unverified"
+  const citationStatus = normalizeCitationStatus(item?.sourceCitationStatus);
+  const citationWarning = citationStatus === "unverified"
     ? `> ⚠️ 引用待核对：${(Array.isArray(item?.sourceCitationsUnverified) ? item.sourceCitationsUnverified : []).join("、") || "模型引用不在本次检索结果中"}`
     : "";
-  if (!references.length && !query && !quality && !citationWarning) return "";
+  const citationVerified = citationStatus === "verified" ? "> 引用核验：已核对" : "";
+  if (!references.length && !query && !quality && !citationWarning && !citationVerified) return "";
   return [
     references.length ? `> 原作参考：${references.join(" · ")}` : "",
     quality ? `> 依据命中：${quality}` : "",
     query ? `> 依据查询：${query}` : "",
+    citationVerified,
     citationWarning,
   ].filter(Boolean).join("\n");
 }
