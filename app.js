@@ -1885,6 +1885,15 @@ function appendCitationWarningBadge(meta, citations = []) {
   meta.appendChild(badge);
 }
 
+function appendCitationVerifiedBadge(meta) {
+  if (!meta || meta.querySelector(".message-citation-verified-badge")) return;
+  const badge = document.createElement("span");
+  badge.className = "message-citation-verified-badge";
+  badge.textContent = "引用已核对";
+  badge.title = "模型标注的章节与本次原作检索结果相符";
+  meta.appendChild(badge);
+}
+
 function appendExpandedRetryAction(actions, historyIndex) {
   if (!actions || !Number.isInteger(historyIndex) || actions.querySelector(".message-expand-retry")) return;
   const expandRetryButton = document.createElement("button");
@@ -1964,6 +1973,9 @@ function addMessage({ role, name, text, avatarClass, historyIndex, mode, version
   if (role === "assistant" && currentTruncated) appendTruncatedBadge(meta);
   if (role === "assistant" && sourceCitationStatus === "unverified") {
     appendCitationWarningBadge(meta, sourceCitationsUnverified);
+  }
+  if (role === "assistant" && sourceCitationStatus === "verified") {
+    appendCitationVerifiedBadge(meta);
   }
   const bubble = document.createElement("div");
   bubble.className = "bubble";
@@ -4169,6 +4181,9 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
           : [];
         if (assistantMessage.sourceCitationStatus === "unverified") {
           appendCitationWarningBadge(assistantMessage.meta, assistantMessage.sourceCitationsUnverified);
+        }
+        if (assistantMessage.sourceCitationStatus === "verified") {
+          appendCitationVerifiedBadge(assistantMessage.meta);
         }
       }
     }, responseLengthOverride, modeOverride);
