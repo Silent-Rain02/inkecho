@@ -271,6 +271,31 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(text, "一段展开的回复。")
         self.assertEqual(fake_completions.kwargs["max_tokens"], 1200)
 
+    def test_complete_chat_accepts_structured_text_content(self) -> None:
+        fake_client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(
+                    create=lambda **kwargs: SimpleNamespace(
+                        choices=[SimpleNamespace(message=SimpleNamespace(content=[
+                            {"type": "text", "text": "结构化"},
+                            {"type": "text", "text": "回复"},
+                        ]))]
+                    )
+                )
+            )
+        )
+        environment = {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "test-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
+        }
+        with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
+            text, _ = complete_chat({
+                "provider": "custom_azure",
+                "model": "office-model",
+                "messages": [{"role": "user", "content": "回答"}],
+            })
+        self.assertEqual(text, "结构化回复")
+
     def test_stream_chat_yields_incremental_content_with_selected_model(self) -> None:
         class FakeCompletions:
             def __init__(self) -> None:
@@ -303,6 +328,29 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(completions.kwargs["model"], "office-model")
         self.assertEqual(completions.kwargs["max_tokens"], 1200)
         self.assertTrue(completions.kwargs["stream"])
+
+    def test_stream_chat_accepts_structured_text_deltas(self) -> None:
+        fake_client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(
+                    create=lambda **kwargs: iter([
+                        SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=[{"text": "结"}]))]),
+                        SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=[{"text": "果"}]))]),
+                    ])
+                )
+            )
+        )
+        environment = {
+            "INK_ECHO_CUSTOM_AZURE_API_KEY": "test-key",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://example.test/v1",
+        }
+        with patch.dict(os.environ, environment, clear=True), patch("server.build_client", return_value=fake_client):
+            _, deltas = stream_chat({
+                "provider": "custom_azure",
+                "model": "office-model",
+                "messages": [{"role": "user", "content": "继续"}],
+            })
+        self.assertEqual(list(deltas), ["结", "果"])
 
     def test_probe_provider_makes_a_minimal_request_with_selected_model(self) -> None:
         class FakeCompletions:
