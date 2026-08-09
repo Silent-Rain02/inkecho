@@ -373,6 +373,20 @@ def public_error(exc: Exception) -> str:
     return "模型服务请求失败，请检查服务配置或连接"
 
 
+def extract_text_content(content: Any) -> str:
+    """Normalize string or structured OpenAI-compatible text content."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            value = item.get("text") if isinstance(item, dict) else getattr(item, "text", None)
+            if isinstance(value, str):
+                parts.append(value)
+        return "".join(parts)
+    return ""
+
+
 def error_status(exc: Exception) -> HTTPStatus:
     """Classify malformed client input separately from upstream failures."""
     if isinstance(exc, ValueError):
@@ -652,8 +666,8 @@ def complete_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
         max_tokens=max_tokens,
         stream=False,
     )
-    content = response.choices[0].message.content if response.choices else ""
-    if not isinstance(content, str) or not content.strip():
+    content = extract_text_content(response.choices[0].message.content if response.choices else "")
+    if not content.strip():
         raise RuntimeError("模型没有返回可显示的文本")
     return content.strip(), settings
 
@@ -673,8 +687,8 @@ def stream_chat(payload: dict[str, Any]) -> tuple[ProviderSettings, Iterator[str
         for chunk in response:
             if not chunk.choices:
                 continue
-            delta = chunk.choices[0].delta.content
-            if isinstance(delta, str) and delta:
+            delta = extract_text_content(chunk.choices[0].delta.content)
+            if delta:
                 yield delta
 
     return settings, deltas()
@@ -719,8 +733,8 @@ def summarize_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
         max_tokens=max_tokens,
         stream=False,
     )
-    content = response.choices[0].message.content if response.choices else ""
-    if not isinstance(content, str) or not content.strip():
+    content = extract_text_content(response.choices[0].message.content if response.choices else "")
+    if not content.strip():
         raise RuntimeError("模型没有返回可用的剧情摘要")
     return content.strip()[:limit], settings
 
