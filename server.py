@@ -46,6 +46,7 @@ LOW_INFORMATION_SOURCE_QUERIES = {
 }
 _source_cache_lock = Lock()
 _source_cache: dict[str, Any] = {"path": "", "mtime_ns": -1, "chunks": []}
+_source_search_cache: dict[tuple[int, str, int], list[dict[str, str]]] = {}
 SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'self'; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
@@ -238,10 +239,14 @@ def source_chunks() -> list[dict[str, str]]:
     """Load and cache the local source file, rebuilding only after it changes."""
     path = source_file_path()
     if path is None or not path.is_file():
+        with _source_cache_lock:
+            _source_search_cache.clear()
         return []
     try:
         mtime_ns = path.stat().st_mtime_ns
     except OSError:
+        with _source_cache_lock:
+            _source_search_cache.clear()
         return []
     cache_key = str(path)
     with _source_cache_lock:
@@ -250,9 +255,11 @@ def source_chunks() -> list[dict[str, str]]:
         try:
             text = path.read_text(encoding="utf-8-sig", errors="ignore")
         except OSError:
+            _source_search_cache.clear()
             return []
         chunks = build_source_chunks(text)
         _source_cache.update({"path": cache_key, "mtime_ns": mtime_ns, "chunks": chunks})
+        _source_search_cache.clear()
         return chunks
 
 
@@ -349,6 +356,11 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
     if not query:
         return []
     chunks = source_chunks()
+    cache_key = (id(chunks), query, max(1, min(limit, 8)))
+    with _source_cache_lock:
+        cached = _source_search_cache.get(cache_key)
+    if cached is not None:
+        return [dict(item) for item in cached]
     weighted_terms = source_query_terms(query)
     if not weighted_terms:
         return []
@@ -412,6 +424,10 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
         results.append({"title": title, "text": source_snippet(chunk["text"], weighted_terms)})
         if len(results) >= max(1, min(limit, 8)):
             break
+    with _source_cache_lock:
+        if len(_source_search_cache) >= 64:
+            _source_search_cache.pop(next(iter(_source_search_cache)))
+        _source_search_cache[cache_key] = [dict(item) for item in results]
     return results
 
 
