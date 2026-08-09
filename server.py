@@ -311,10 +311,39 @@ def source_search(query: str, limit: int = 4) -> list[dict[str, str]]:
         if title in seen_titles:
             continue
         seen_titles.add(title)
-        results.append({"title": title, "text": chunk["text"][:1000]})
+        results.append({"title": title, "text": source_snippet(chunk["text"], weighted_terms)})
         if len(results) >= max(1, min(limit, 8)):
             break
     return results
+
+
+def source_snippet(text: str, weighted_terms: list[tuple[str, float]], limit: int = 1000) -> str:
+    """Return a bounded evidence window around the strongest matched term."""
+    raw = str(text or "").strip()
+    if len(raw) <= limit:
+        return raw
+    lowered = raw.lower()
+    anchor = -1
+    # Prefer longer, higher-weight terms so a snippet is centered on a useful
+    # phrase rather than an incidental two-character overlap.
+    candidates = sorted(weighted_terms, key=lambda item: (item[1], len(item[0])), reverse=True)
+    for term, _ in candidates:
+        if len(term) < 2:
+            continue
+        position = lowered.find(term)
+        if position >= 0:
+            anchor = position
+            break
+    if anchor < 0:
+        return raw[:limit].rstrip() + "…"
+    start = max(0, min(anchor - 360, len(raw) - limit))
+    end = start + limit
+    snippet = raw[start:end].strip()
+    if start > 0:
+        snippet = "…" + snippet
+    if end < len(raw):
+        snippet = snippet.rstrip() + "…"
+    return snippet
 
 
 def source_references(query: str, limit: int = 4) -> list[str]:
