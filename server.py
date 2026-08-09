@@ -908,6 +908,7 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     character_name = str(character.get("name") or "角色")[:80]
     character_tone = str(character.get("tone") or "")[:240]
     character_details = str(character.get("details") or "")[:500]
+    summary_target = str(payload.get("summary_target") or "").lower()[:20]
     if mode == "问答":
         # Creative notes can contain user-authored continuations or speculative
         # canon. Keep only work/chapter navigation in QA prompts; retrieval
@@ -988,12 +989,16 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
         role = item.get("role")
         content = item.get("content")
         item_mode = str(item.get("mode") or "")[:20]
+        if summary_target == "scene" and item_mode == "问答":
+            continue
         if mode == "问答" and role == "assistant" and item_mode and item_mode != "问答":
             continue
         if mode == "问答" and role == "user" and item_mode and item_mode != "问答":
             continue
         if role in {"user", "assistant"} and isinstance(content, str) and content.strip():
             bounded_content = content[:4000]
+            if summary_target == "story" and item_mode == "问答":
+                bounded_content = f"【原作问答参考，不是剧情事件】\n{bounded_content}"
             if history_chars + len(bounded_content) > budget:
                 break
             selected_history.append({"role": role, "content": bounded_content})
@@ -1085,6 +1090,7 @@ def summarize_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
         messages[0]["content"] += (
             "\n\n当前任务是整理当前场景的结果，不是续写或角色对话。请根据当前场景目标、"
             "已发生的对话和留下的线索，提炼这一幕已经发生的关键动作、人物变化、信息揭示和待承接线索。"
+            "忽略历史中标记为“问答”的消息，不要把原作资料查询或资料回答当作本幕发生的事件。"
             "只输出一段简洁的中文记录，最多 600 字，不要解释过程，不要添加标题，不要虚构对话中没有出现的事实。"
         )
         max_tokens = 240
@@ -1093,6 +1099,7 @@ def summarize_chat(payload: dict[str, Any]) -> tuple[str, ProviderSettings]:
         messages[0]["content"] += (
             "\n\n当前任务是整理剧情摘要，不是续写或角色对话。请根据已有设定和最近对话，"
             "提炼已经发生的关键事件、人物关系变化、未解决的悬念与下一步方向。"
+            "历史中标记为“问答”的消息仅作为原作事实参考，不是剧情事件；不要把问答提问或回答写成角色已经发生的行动。"
             "只输出一段简洁的中文摘要，不要解释过程，不要添加标题，不要虚构对话中没有出现的事实。"
         )
         max_tokens = 500
