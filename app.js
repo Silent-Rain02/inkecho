@@ -3720,6 +3720,28 @@ async function openSourceEvidence(historyIndex, savedQuery = "") {
   }
 }
 
+async function fetchSourceMetadataForFallback(query, mode) {
+  if (!String(query || "").trim()) return { references: [], quality: "none" };
+  try {
+    const response = await fetchWithTimeout("/api/source/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, mode }),
+    }, 5000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "原作依据读取失败");
+    const references = normalizeSourceReferences(
+      (Array.isArray(payload.results) ? payload.results : []).map((item) => item?.title),
+    );
+    return {
+      references,
+      quality: normalizeSourceQuality(payload.source_quality) || (references.length ? "limited" : "none"),
+    };
+  } catch {
+    return { references: [], quality: "none" };
+  }
+}
+
 async function fetchWithTimeout(url, options = {}, timeout = providerRequestTimeout) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
@@ -4335,10 +4357,12 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
     if (!reply && !stopped) {
       reply = fallbackReply(effectiveMode);
       assistantMessage.bubble.dataset.source = "demo";
-      assistantMessage.sourceQuality = "none";
       appendDemoSourceBadge(assistantMessage.meta);
-      assistantMessage.renderSourceReferences([], sourceQuery, "none");
       setAssistantBubbleText(assistantMessage.bubble, reply);
+      const fallbackSource = await fetchSourceMetadataForFallback(sourceQuery, effectiveMode);
+      assistantMessage.sourceQuality = fallbackSource.quality;
+      assistantMessage.sourceRefs = fallbackSource.references;
+      assistantMessage.renderSourceReferences(fallbackSource.references, sourceQuery, fallbackSource.quality);
       showToast(`${error?.userMessage || "模型服务暂不可用"}，当前使用演示回复`);
     } else if (!stopped && reply) {
       showToast(`${error?.userMessage || "模型流式响应中断"}，已保留当前内容`);
