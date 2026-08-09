@@ -43,6 +43,11 @@ SOURCE_KNOWN_TERMS = (
     "月光蛊", "青茅山", "方源", "方正", "白家寨", "熊家寨", "花酒", "酒虫", "元石", "蛊师",
     "蛊虫", "蛊仙", "真元", "仙窍", "炼蛊", "重生", "影宗", "天庭", "长生",
 )
+SOURCE_ENTITY_TERMS = (
+    "至尊仙胎蛊", "三大山寨", "古月山寨", "古月一族", "北冥冰魄", "白凝冰", "春秋蝉",
+    "月光蛊", "方源", "方正", "白家寨", "熊家寨", "花酒", "酒虫", "蛊师", "蛊仙",
+    "影宗", "天庭",
+)
 CHINESE_NUMERAL_DIGITS = {"零": 0, "〇": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
 CHINESE_NUMERAL_UNITS = {"十": 10, "百": 100, "千": 1000, "万": 10000}
 LOW_INFORMATION_SOURCE_QUERIES = {
@@ -343,10 +348,11 @@ def source_query_from_payload(payload: dict[str, Any]) -> str:
             user_queries.append(content)
             break
     query_parts.extend(user_queries)
-    query_parts.extend([
-        str(context.get("chapter") or "").strip(),
-        str(context.get("sceneGoal") or "").strip(),
-    ])
+    query_parts.append(str(context.get("chapter") or "").strip())
+    # A scene goal belongs to the creative plan. In QA mode it can contain
+    # invented continuation details, so it must not influence canon retrieval.
+    if request_mode != "问答":
+        query_parts.append(str(context.get("sceneGoal") or "").strip())
     return " ".join(part for part in query_parts if part)[:600]
 
 
@@ -444,11 +450,7 @@ def source_search(query: str, limit: int = 4, include_adjacent: bool = False) ->
     heading_focus = list(dict.fromkeys(
         normalize_chapter_markers(match.group(0)) for match in SOURCE_HEADING_FOCUS_RE.finditer(query)
     ))
-    named_terms = [
-        term.lower()
-        for term in SOURCE_KNOWN_TERMS
-        if len(term) >= 3 and term.lower() in query
-    ]
+    named_terms = [term.lower() for term in SOURCE_ENTITY_TERMS if term.lower() in query]
     document_count = max(1, len(chunks))
     document_frequency = {
         term: sum(term in f"{chunk['title']}\n{chunk['text']}".lower() for chunk in chunks)
@@ -593,7 +595,7 @@ def source_evidence_quality(query: str, matches: list[dict[str, str]]) -> str:
     named_terms = [
         term.lower()
         for term in SOURCE_KNOWN_TERMS
-        if len(term) >= 3 and term.lower() in normalized_query
+        if len(term) >= 2 and term.lower() in normalized_query
     ]
     top_text = str(matches[0].get("text") or "").lower()
     named_hits = sum(term in top_text for term in named_terms)
