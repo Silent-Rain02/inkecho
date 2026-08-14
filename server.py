@@ -1483,6 +1483,28 @@ def _reviewed_memory_job_view(job: dict[str, Any], current_revision: str) -> dic
     output_tokens = max(0, int(raw_metrics.get("output_tokens") or 0))
     total_tokens = max(input_tokens + output_tokens, int(raw_metrics.get("total_tokens") or 0))
     estimated_total_tokens = max(total_tokens, int(raw_metrics.get("estimated_total_tokens") or 0))
+    raw_quality = job.get("quality") if isinstance(job.get("quality"), dict) else None
+    quality = None
+    if raw_quality:
+        raw_gates = raw_quality.get("gates") if isinstance(raw_quality.get("gates"), dict) else {}
+        quality = {
+            "raw_count": max(0, int(raw_quality.get("raw_count") or 0)),
+            "accepted_count": max(0, int(raw_quality.get("accepted_count") or 0)),
+            "rejected_count": max(0, int(raw_quality.get("rejected_count") or 0)),
+            "reviewed_count": max(0, int(raw_quality.get("reviewed_count") or 0)),
+            "review_pass_count": max(0, int(raw_quality.get("review_pass_count") or 0)),
+            "review_minor_count": max(0, int(raw_quality.get("review_minor_count") or 0)),
+            "review_fail_count": max(0, int(raw_quality.get("review_fail_count") or 0)),
+            "promoted_count": max(0, int(raw_quality.get("promoted_count") or 0)),
+            "review_pass_rate": round(float(raw_quality.get("review_pass_rate") or 0), 3),
+            "review_usable_rate": round(float(raw_quality.get("review_usable_rate") or 0), 3),
+            "grounding_failures": max(0, int(raw_quality.get("grounding_failures") or 0)),
+            "grounding_failure_rate": round(float(raw_quality.get("grounding_failure_rate") or 0), 3),
+            "category_failures": max(0, int(raw_quality.get("category_failures") or 0)),
+            "useful_failures": max(0, int(raw_quality.get("useful_failures") or 0)),
+            "passed": bool(raw_quality.get("passed")),
+            "gates": {str(key): bool(value) for key, value in raw_gates.items()},
+        }
     tokens_per_minute = total_tokens / elapsed_seconds * 60 if elapsed_seconds >= 1 and total_tokens else 0.0
     remaining_tokens = max(0, estimated_total_tokens - total_tokens)
     estimated_finish_at = now + remaining_tokens / tokens_per_minute * 60 if tokens_per_minute > 0 and remaining_tokens else 0.0
@@ -1504,6 +1526,7 @@ def _reviewed_memory_job_view(job: dict[str, Any], current_revision: str) -> dic
         "can_promote": status == "pilot_ready" and bool(job.get("memory_revision")),
         "product_ready": status == "production",
         "scope": "full" if job.get("scope") == "full" else "pilot",
+        "quality": quality,
         "updated_at": float(job.get("updated_at") or 0),
         "token_metrics": {
             "input_tokens": input_tokens,
@@ -1592,7 +1615,13 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
         except (OSError, TypeError, ValueError):
             raw_checkpoint = {}
         selected_titles = raw_checkpoint.get("selected_titles") if isinstance(raw_checkpoint, dict) else []
-        completed = read_checkpoint(checkpoint_path, normalized_space_id, revision, selected_titles)
+        completed = read_checkpoint(
+            checkpoint_path,
+            normalized_space_id,
+            revision,
+            selected_titles,
+            allow_older_prompt=True,
+        )
         for chapter in completed:
             chapter_title = str(chapter.get("chapter") or "未知章节")[:160]
             chunk_index = int(chapter.get("source_chunk_start") or 0)

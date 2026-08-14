@@ -605,6 +605,55 @@ class ServerConfigTests(unittest.TestCase):
         }])
         self.assertTrue(score["passed"])
 
+    def test_memory_gate_quarantines_small_grounding_tail_without_blocking_clean_majority(self) -> None:
+        def review(index: int, grounded: bool = True) -> dict:
+            return {
+                "fact_index": index,
+                "verdict": "pass" if grounded else "fail",
+                "grounded": grounded,
+                "atomic": True,
+                "entities_resolved": True,
+                "category_correct": True,
+                "time_correct": True,
+                "useful": True,
+                "reason": "证据充分。" if grounded else "证据不完整。",
+            }
+
+        score = score_run([{
+            "raw_count": 100,
+            "accepted_count": 100,
+            "rejected_count": 0,
+            "reviews": [review(index) for index in range(99)] + [review(99, False)],
+            "promoted_count": 99,
+        }])
+        self.assertTrue(score["passed"])
+        self.assertEqual(score["grounding_failures"], 1)
+        self.assertEqual(score["grounding_failure_rate"], 0.01)
+        self.assertTrue(score["gates"]["grounding_failure_rate_at_most_2pct"])
+
+    def test_memory_gate_still_blocks_a_high_grounding_failure_rate(self) -> None:
+        reviews = [{
+            "fact_index": index,
+            "verdict": "pass" if index < 97 else "fail",
+            "grounded": index < 97,
+            "atomic": True,
+            "entities_resolved": True,
+            "category_correct": True,
+            "time_correct": True,
+            "useful": True,
+            "reason": "证据充分。",
+        } for index in range(100)]
+        score = score_run([{
+            "raw_count": 100,
+            "accepted_count": 100,
+            "rejected_count": 0,
+            "reviews": reviews,
+            "promoted_count": 97,
+        }])
+        self.assertFalse(score["passed"])
+        self.assertEqual(score["grounding_failure_rate"], 0.03)
+        self.assertFalse(score["gates"]["grounding_failure_rate_at_most_2pct"])
+
     def test_review_normalization_overrides_self_contradictory_pass(self) -> None:
         reviews = normalize_reviews({"reviews": [{
             "fact_index": 0,

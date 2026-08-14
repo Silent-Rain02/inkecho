@@ -36,6 +36,16 @@ class MemoryExtractionHarnessTests(unittest.TestCase):
         self.assertTrue(is_meta_narrative_chapter(payload["chapter"], source))
         self.assertIn("故事世界边界", extraction_messages(payload["chapter"], source, "v10-diegetic-only")[0]["content"])
 
+    def test_v11_requires_conditions_and_self_contained_subjects(self) -> None:
+        prompt = extraction_messages(
+            "第一章",
+            "只有二转蛊师才有资格放弃任务。",
+            "v11-self-contained-conditions",
+        )[0]["content"]
+        self.assertIn("证据窗口中没有完整主体姓名时，直接丢弃", prompt)
+        self.assertIn("必须保留对应条件、范围和认识状态", prompt)
+        self.assertIn("年龄、数量、排名、时间、因果、施事者和结果", prompt)
+
     def test_second_pass_audit_flattens_evidence_and_only_keeps_clean_passes(self) -> None:
         fact = flat_fact({
             "id": "claim-1",

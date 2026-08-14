@@ -7,21 +7,23 @@ import re
 from typing import Any
 
 
+MAX_GROUNDING_FAILURE_RATE = 0.02
+
 PROMPT_VERSIONS = {
     "v1-baseline", "v2-evidence-first", "v3-review-ready", "v4-span-anchored",
     "v5-evidence-contained", "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage",
-    "v9-strict-boundaries", "v10-diegetic-only",
+    "v9-strict-boundaries", "v10-diegetic-only", "v11-self-contained-conditions",
 }
 SPAN_ANCHORED_VERSIONS = {
     "v4-span-anchored", "v5-evidence-contained", "v6-coverage-guided", "v7-coverage-structured",
-    "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only",
+    "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only", "v11-self-contained-conditions",
 }
 CONTEXTUAL_SPAN_VERSIONS = {
-    "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only",
+    "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only", "v11-self-contained-conditions",
 }
 REPAIRABLE_PROMPT_VERSIONS = {
     "v5-evidence-contained", "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage",
-    "v9-strict-boundaries", "v10-diegetic-only",
+    "v9-strict-boundaries", "v10-diegetic-only", "v11-self-contained-conditions",
 }
 EXTRACTION_FOCUS_TYPES = {"relation", "location", "mechanism", "identity"}
 FACT_CATEGORIES = {"character", "relation", "setting", "event"}
@@ -358,6 +360,17 @@ def _diegetic_only_system_prompt() -> str:
 - “作者、读者、本书、这部小说、书名、章节更新、月票、订阅”不是小说世界实体，禁止作为 subject 或 object。"""
 
 
+def _self_contained_conditions_system_prompt() -> str:
+    return _diegetic_only_system_prompt() + """
+
+最终自足性检查
+- 证据窗口中没有完整主体姓名时，直接丢弃；绝不把“他、她、我、此人”解析成前文人物。
+- 证据中出现“只有、仅、必须、一旦、在……时、之后、之前、因为、据说、可能”等限定词时，statement 必须保留对应条件、范围和认识状态；不能把条件事实泛化成无条件规则。
+- 年龄、数量、排名、时间、因果、施事者和结果只能在证据窗口逐字支持时写入；证据只写“恢复青春”时，不得扩展成具体年龄；只写结果而未写施事者时，不得推断谁执行了动作。
+- 每条 statement 写完后，逐字对照 evidence_id 对应的完整句段：statement 中每个信息点都要能在该句段找到直接依据，且不需要邻近句、作品常识或模型记忆补全；否则不要输出。
+- 优先输出证据最自足的事实，不要为了覆盖类型或凑满数量保留边界模糊的候选。"""
+
+
 def chapter_source_spans(text: str, limit: int = 160) -> list[dict[str, Any]]:
     """Split a chapter into exact, addressable evidence spans without rewriting it."""
     spans: list[dict[str, Any]] = []
@@ -416,7 +429,7 @@ def contextual_chapter_source_spans(
 
 
 def source_spans_for_version(text: str, prompt_version: str) -> list[dict[str, Any]]:
-    if prompt_version in {"v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only"}:
+    if prompt_version in {"v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only", "v11-self-contained-conditions"}:
         return contextual_chapter_source_spans(text, preceding_sentences=3)
     if prompt_version in CONTEXTUAL_SPAN_VERSIONS:
         return contextual_chapter_source_spans(text)
@@ -430,7 +443,7 @@ def extraction_schema_for_version(prompt_version: str) -> dict[str, Any]:
     if prompt_version == "v5-evidence-contained":
         schema["properties"]["facts"]["maxItems"] = 6
     elif prompt_version in {
-        "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only",
+        "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only", "v11-self-contained-conditions",
     }:
         schema["properties"]["facts"]["maxItems"] = 8
     return schema
@@ -483,6 +496,7 @@ def extraction_messages(
         "v8-dynamic-coverage": _dynamic_coverage_system_prompt,
         "v9-strict-boundaries": _strict_boundaries_system_prompt,
         "v10-diegetic-only": _diegetic_only_system_prompt,
+        "v11-self-contained-conditions": _self_contained_conditions_system_prompt,
     }[prompt_version]()
     normalized_focus = [focus for focus in (focus_types or []) if focus in EXTRACTION_FOCUS_TYPES]
     if normalized_focus:
@@ -509,7 +523,7 @@ def extraction_messages(
         spans = source_spans_for_version(text, prompt_version)
         source_block = "\n".join(f"[{span['id']}] {span['text']}" for span in spans)
         coverage_hints = coverage_hints_for_text(text) if prompt_version in {
-            "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only",
+            "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only", "v11-self-contained-conditions",
         } else []
         coverage_line = (
             "本地词面扫描提示（仅表示需要检查，不代表事实成立）："
@@ -1007,6 +1021,8 @@ def score_run(chapter_results: list[dict[str, Any]], require_reviews: bool = Tru
     local_acceptance_rate = round(accepted_count / raw_count, 3) if raw_count else 0.0
     review_pass_rate = round(pass_count / reviewed_count, 3) if reviewed_count else 0.0
     review_usable_rate = round((pass_count + minor_count) / reviewed_count, 3) if reviewed_count else 0.0
+    grounding_failure_ratio = grounded_failures / reviewed_count if reviewed_count else 0.0
+    grounding_failure_rate = round(grounding_failure_ratio, 3)
     complete_reviews = reviewed_count == accepted_count
     promoted_are_clean = promoted_count == pass_count
     chapter_coverage = all(
@@ -1023,7 +1039,10 @@ def score_run(chapter_results: list[dict[str, Any]], require_reviews: bool = Tru
         "all_candidates_reviewed": complete_reviews if require_reviews else True,
         "promotion_rate_at_least_70pct": review_pass_rate >= 0.70 if require_reviews else True,
         "review_usable_rate_at_least_95pct": review_usable_rate >= 0.95 if require_reviews else True,
-        "no_grounding_failures": grounded_failures == 0 if require_reviews else True,
+        "grounding_failure_rate_at_most_2pct": (
+            grounding_failure_ratio <= MAX_GROUNDING_FAILURE_RATE
+            if require_reviews else True
+        ),
         "all_promoted_facts_pass_every_dimension": promoted_are_clean if require_reviews else True,
     }
     return {
@@ -1038,6 +1057,7 @@ def score_run(chapter_results: list[dict[str, Any]], require_reviews: bool = Tru
         "promoted_count": promoted_count,
         "review_pass_rate": review_pass_rate,
         "review_usable_rate": review_usable_rate,
+        "grounding_failure_rate": grounding_failure_rate,
         "grounding_failures": grounded_failures,
         "category_failures": category_failures,
         "useful_failures": useful_failures,

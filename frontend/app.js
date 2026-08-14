@@ -2264,6 +2264,7 @@ async function loadSourceKnowledge(spaceId = getCurrentNovelSpaceId(), { force =
 function normalizeReviewedMemoryBuild(payload, spaceId) {
   const source = payload && typeof payload === "object" ? payload : {};
   const rawMetrics = source.token_metrics && typeof source.token_metrics === "object" ? source.token_metrics : {};
+  const rawQuality = source.quality && typeof source.quality === "object" ? source.quality : null;
   return {
     spaceId,
     status: safeText(source.status, "idle", 30),
@@ -2285,6 +2286,24 @@ function normalizeReviewedMemoryBuild(payload, spaceId) {
     },
     memoryRevision: safeText(source.memory_revision, "", 80),
     error: safeText(source.error, "", 180),
+    quality: rawQuality ? {
+      rawCount: Math.max(0, Number(rawQuality.raw_count) || 0),
+      acceptedCount: Math.max(0, Number(rawQuality.accepted_count) || 0),
+      rejectedCount: Math.max(0, Number(rawQuality.rejected_count) || 0),
+      reviewedCount: Math.max(0, Number(rawQuality.reviewed_count) || 0),
+      reviewPassCount: Math.max(0, Number(rawQuality.review_pass_count) || 0),
+      reviewMinorCount: Math.max(0, Number(rawQuality.review_minor_count) || 0),
+      reviewFailCount: Math.max(0, Number(rawQuality.review_fail_count) || 0),
+      promotedCount: Math.max(0, Number(rawQuality.promoted_count) || 0),
+      reviewPassRate: Math.max(0, Number(rawQuality.review_pass_rate) || 0),
+      reviewUsableRate: Math.max(0, Number(rawQuality.review_usable_rate) || 0),
+      groundingFailures: Math.max(0, Number(rawQuality.grounding_failures) || 0),
+      groundingFailureRate: Math.max(0, Number(rawQuality.grounding_failure_rate) || 0),
+      categoryFailures: Math.max(0, Number(rawQuality.category_failures) || 0),
+      usefulFailures: Math.max(0, Number(rawQuality.useful_failures) || 0),
+      passed: rawQuality.passed === true,
+      gates: rawQuality.gates && typeof rawQuality.gates === "object" ? rawQuality.gates : {},
+    } : null,
     canStart: source.can_start === true,
     canCancel: source.can_cancel === true,
     canPromote: source.can_promote === true,
@@ -2321,6 +2340,25 @@ function formatMemoryFinish(epochSeconds) {
   return sameDay ? time : `${date.getMonth() + 1}月${date.getDate()}日 ${time}`;
 }
 
+function describeReviewedMemoryQuality(quality) {
+  if (!quality || !quality.reviewedCount) return "有些事实的证据不够可靠，本次不会用于问答。可以重新构建。";
+  const percent = Math.round((quality.reviewPassRate || 0) * 100);
+  const groundedPercent = Math.round((quality.groundingFailureRate || 0) * 1000) / 10;
+  const blockedGates = Object.entries(quality.gates || {})
+    .filter(([, passed]) => passed === false)
+    .map(([key]) => ({
+      grounding_failure_rate_at_most_2pct: "证据支持率",
+      all_candidates_reviewed: "审查完整性",
+      every_sampled_chapter_has_a_promoted_fact: "章节覆盖",
+      local_acceptance_rate_at_least_85pct: "抽取通过率",
+      promotion_rate_at_least_70pct: "记忆通过率",
+      review_usable_rate_at_least_95pct: "可用率",
+    }[key] || key))
+    .join("、");
+  const gateHint = blockedGates ? `未通过：${blockedGates}。` : "所有质量门均已通过。";
+  return `已核对 ${quality.reviewedCount.toLocaleString("zh-CN")} 条候选，${quality.promotedCount.toLocaleString("zh-CN")} 条可进入记忆；审查通过率 ${percent}%，证据不足 ${groundedPercent}%。${gateHint}失败事实仍会被隔离，不会进入问答。`;
+}
+
 function renderReviewedMemoryBuild() {
   if (!reviewedMemoryBuild) return;
   const state = reviewedMemoryBuildState.spaceId === getCurrentNovelSpaceId()
@@ -2338,7 +2376,7 @@ function renderReviewedMemoryBuild() {
     cancelled: ["构建已暂停", "已完成的章节会保留，下次可以继续。"],
     interrupted: ["上次构建被中断", "已完成的章节仍在，可以继续构建。"],
     error: ["构建没有完成", state.error || "可以检查模型服务后重试。"],
-    needs_review: ["本次结果未通过审查", "有些事实的证据不够可靠，本次不会用于问答。可以重新构建。"],
+    needs_review: ["本次结果需要复核", describeReviewedMemoryQuality(state.quality)],
     pilot_ready: ["深度记忆已审查", "启用后，问答会优先使用这些有原文依据的人物关系与世界设定。"],
     production: ["深度记忆已启用", "复杂关系与世界规则会优先使用已审查的原作知识。"],
     stale: ["原文已经更新", "旧记忆不会继续使用，请基于新版本重新构建。"],
