@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "name": "gu-zhen-ren-reviewed-memory-pilot",
+  "space_id": "default-source",
+  "cases": [
+    {
+      "id": "spring-autumn-cicada-effect",
+      "query": "春秋蝉有什么能力或作用？",
+      "expected_any_groups": [["春秋蝉", "回到从前"], ["春秋蝉", "逆转时光"]],
+      "expected_category": "setting",
+      "expected_chapter_any": ["第一卷 · 第一节", "第一卷 · 第二节"],
+      "max_results": 3
+    },
+    {
+      "id": "spring-autumn-cicada-cost",
+      "query": "使用春秋蝉需要付出什么代价？",
+      "expected_groups": [["春秋蝉", "付出生命"]],
+      "expected_category": "setting",
+      "expected_chapter_contains": "第一卷 · 第二节",
+      "max_results": 3
+    },
+    {
+      "id": "black-oil-business",
+      "query": "地沟黑油对僵盟为什么重要？",
+      "expected_groups": [["地沟黑油", "僵盟", "经营项目"]],
+      "expected_category": "setting",
+      "expected_chapter_contains": "地沟黑油",
+      "max_results": 4
+    },
+    {
+      "id": "black-oil-effect",
+      "query": "黑油洒入死窍福地有什么效果？",
+      "expected_groups": [["黑油", "延缓", "崩解"]],
+      "expected_category": "setting",
+      "expected_chapter_contains": "地沟黑油",
+      "max_results": 4
+    },
+    {
+      "id": "young-thieving-heaven-map",
+      "query": "少年盗天搜尸后得到了什么？",
+      "expected_groups": [["少年盗天", "羊皮地图"]],
+      "expected_category_any": ["event", "character"],
+      "expected_chapter_contains": "神秘的羊皮地图",
+      "max_results": 3
+    },
+    {
+      "id": "rebirth-location",
+      "query": "方源重生后醒来时身处什么地方？",
+      "expected_answer_groups": [["方源", "古月山寨"]],
+      "expected_chapter_contains": "第一卷 · 第一节",
+      "max_results": 3
+    },
+    {
+      "id": "fang-brothers-relation",
+      "query": "方源和方正是什么关系？",
+      "expected_any_groups": [["方源", "方正", "孪生弟弟"], ["方源", "方正", "哥哥"]],
+      "expected_category": "relation",
+      "expected_chapter_contains": "第一卷 · 第二节",
+      "max_results": 3
+    },
+    {
+      "id": "unknown-entity-negative",
+      "query": "林澈和周岚在原作中是什么关系？",
+      "expect_empty": true
+    },
+    {
+      "id": "future-killer-move-cutoff",
+      "query": "第一卷第二节时方源身上有什么仙道杀招？",
+      "chapter_cutoff": 10,
+      "expect_empty": true,
+      "forbidden_terms": ["鬼不觉"]
+    },
+    {
+      "id": "gu-master-nine-ranks",
+      "query": "蛊师一共有几个大境界？",
+      "expected_groups": [["蛊师", "九大境界"]],
+      "expected_category": "setting",
+      "expected_chapter_contains": "蛊师有九转",
+      "max_results": 3
+    },
+    {
+      "id": "yin-gu-aptitude-cost",
+      "query": "阴阳转身蛊中的阴蛊会让资质发生什么变化？",
+      "expected_groups": [["阴蛊", "资质下降一成"]],
+      "expected_category": "setting",
+      "expected_chapter_contains": "走向各自的命运",
+      "max_results": 4
+    },
+    {
+      "id": "fang-yuan-second-volume-rank",
+      "query": "果然是魔道蛊师一章中方源是几转什么阶段？",
+      "expected_groups": [["方源", "二转高阶"]],
+      "expected_category": "character",
+      "expected_chapter_contains": "果然是魔道蛊师",
+      "max_results": 4
+    },
+    {
+      "id": "canopy-gu-defense",
+      "query": "天蓬蛊会生成什么用于防御？",
+      "expected_groups": [["天蓬蛊", "白光虚甲", "防御"]],
+      "expected_category": "setting",
+      "expected_chapter_contains": "果然是魔道蛊师",
+      "max_results": 4
+    },
+    {
+      "id": "stargate-energy",
+      "query": "星门蛊要长久催动需要什么能量？",
+      "expected_groups": [["星门蛊", "仙元"]],
+      "expected_category": "setting",
+      "expected_chapter_contains": "没有什么不能出卖的",
+      "max_results": 4
+    },
+    {
+      "id": "heaven-connecting-gu-limit",
+      "query": "通天蛊最多能连接几处洞天？",
+      "expected_groups": [["通天蛊", "一处洞天"]],
+      "expected_category": "setting",
+      "expected_chapter_contains": "没有什么不能出卖的",
+      "max_results": 4
+    },
+    {
+      "id": "hei-lou-lan-rank",
+      "query": "黑楼兰当时是几转强者？",
+      "expected_groups": [["黑楼兰", "五转强者"]],
+      "expected_category": "character",
+      "expected_chapter_contains": "一心求胜顾狼王",
+      "max_results": 4
+    },
+    {
+      "id": "zheng-shanchuan-master-relation",
+      "query": "郑山川和岐山老人是什么关系？",
+      "expected_groups": [["郑山川", "岐山老人", "徒弟"]],
+      "expected_category": "relation",
+      "expected_chapter_contains": "三件事情的约定",
+      "max_results": 4
+    },
+    {
+      "id": "fang-yuan-ghostly-concealment",
+      "query": "剑蛟凶恶一章中方源拥有什么盗天魔尊的仙道杀招？",
+      "expected_groups": [["方源", "鬼不觉"]],
+      "expected_category": "character",
+      "expected_chapter_contains": "剑蛟凶恶",
+      "max_results": 4
+    },
+    {
+      "id": "sword-dragon-wound-effect",
+      "query": "方源的上古剑蛟变化造成伤口后会遗留什么？",
+      "expected_groups": [["上古剑蛟变化", "剑道道痕"]],
+      "expected_category": "setting",
+      "expected_chapter_contains": "剑蛟凶恶",
+      "max_results": 4
+    },
+    {
+      "id": "demon-judgment-board-identity",
+      "query": "诛魔榜是什么？",
+      "expected_groups": [["诛魔榜", "天庭", "八转仙蛊屋"]],
+      "expected_category": "setting",
+      "expected_chapter_contains": "吴帅疗伤",
+      "max_results": 4
+    },
+    {
+      "id": "wu-shuai-fears",
+      "query": "吴帅忌惮谁？",
+      "expected_groups": [["吴帅", "忌惮", "气海老祖"]],
+      "expected_category": "character",
+      "expected_chapter_contains": "吴帅手腕",
+      "max_results": 4
+    },
+    {
+      "id": "feng-family-relation",
+      "query": "凤金煌和凤九歌是什么关系？",
+      "expected_groups": [["凤金煌", "凤九歌", "女儿"]],
+      "expected_category": "relation",
+      "expected_chapter_contains": "局势",
+      "max_results": 4
+    },
+    {
+      "id": "future-map-cutoff",
+      "query": "第一卷第七节时少年盗天得到羊皮地图了吗？",
+      "chapter_cutoff": 20,
+      "expect_empty": true,
+      "forbidden_terms": ["羊皮地图"]
+    },
+    {
+      "id": "master-two-hop-gift",
+      "query": "郑山川的师父交给方源什么？",
+      "expected_groups": [["岐山老人", "舌尖血", "方源"]],
+      "expected_path_terms": ["郑山川", "岐山老人"],
+      "expected_chapter_contains": "三件事情的约定",
+      "depth": 2,
+      "max_results": 6
+    }
+  ]
+}

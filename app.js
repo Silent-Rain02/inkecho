@@ -4,8 +4,18 @@ const messageInput = document.querySelector("#messageInput");
 const messageCount = document.querySelector("#messageCount");
 const conversationTitle = document.querySelector("#conversationTitle");
 const conversationContext = document.querySelector("#conversationContext");
+const toggleContextPanelButton = document.querySelector("#toggleContextPanel");
+const sourceReadinessButton = document.querySelector("#sourceReadinessButton");
+const sourceReadinessText = document.querySelector("#sourceReadinessText");
+const modelReadinessButton = document.querySelector("#modelReadinessButton");
+const modelReadinessText = document.querySelector("#modelReadinessText");
 const conversationMenuButton = document.querySelector("#conversationMenuButton");
 const conversationMenu = document.querySelector("#conversationMenu");
+const toggleConversationHistoryButton = document.querySelector("#toggleConversationHistory");
+const conversationHistoryPanel = document.querySelector("#conversationHistoryPanel");
+const conversationHistoryCount = document.querySelector("#conversationHistoryCount");
+const conversationHistoryList = document.querySelector("#conversationHistoryList");
+const openArchiveFromHistoryButton = document.querySelector("#openArchiveFromHistory");
 const copyConversationButton = document.querySelector("#copyConversation");
 const exportFromMenuButton = document.querySelector("#exportFromMenu");
 const exportProjectJsonButton = document.querySelector("#exportProjectJson");
@@ -25,6 +35,8 @@ const conversationSearchInput = document.querySelector("#conversationSearchInput
 const conversationSearchCount = document.querySelector("#conversationSearchCount");
 const searchArchivedMessagesButton = document.querySelector("#searchArchivedMessages");
 const clearConversationSearchButton = document.querySelector("#clearConversationSearch");
+const taskStarters = document.querySelector("#taskStarters");
+const taskStarterList = document.querySelector("#taskStarterList");
 const composerHint = document.querySelector("#composerHint");
 const toast = document.querySelector("#toast");
 const contextUsage = document.querySelector("#contextUsage");
@@ -36,11 +48,13 @@ const sceneOutcomePreviewDialog = document.querySelector("#sceneOutcomePreviewDi
 const sceneOutcomePreviewStats = document.querySelector("#sceneOutcomePreviewStats");
 const currentSceneOutcomePreview = document.querySelector("#currentSceneOutcomePreview");
 const nextSceneOutcomePreview = document.querySelector("#nextSceneOutcomePreview");
+const saveSceneOutcomeToMemoryButton = document.querySelector("#saveSceneOutcomeToMemory");
 const applySceneOutcomePreviewButton = document.querySelector("#applySceneOutcomePreview");
 const summaryPreviewDialog = document.querySelector("#summaryPreviewDialog");
 const summaryPreviewStats = document.querySelector("#summaryPreviewStats");
 const currentSummaryPreview = document.querySelector("#currentSummaryPreview");
 const nextSummaryPreview = document.querySelector("#nextSummaryPreview");
+const saveSummaryToMemoryButton = document.querySelector("#saveSummaryToMemory");
 const applySummaryPreviewButton = document.querySelector("#applySummaryPreview");
 const characterList = document.querySelector("#characterList");
 const manageCharacterButton = document.querySelector("#manageCharacter");
@@ -62,19 +76,46 @@ const providerSelect = document.querySelector("#providerSelect");
 const modelName = document.querySelector("#modelName");
 const providerBadge = document.querySelector("#providerBadge");
 const providerDescription = document.querySelector("#providerDescription");
+const providerSetupHint = document.querySelector("#providerSetupHint");
+const providerDataBoundary = document.querySelector("#providerDataBoundary");
 const refreshModelsButton = document.querySelector("#refreshModels");
 const testProviderButton = document.querySelector("#testProvider");
 const modelOptions = document.querySelector("#modelOptions");
 const openProviderDiagnosticsButton = document.querySelector("#openProviderDiagnostics");
 const copyProviderConfigKeysButton = document.querySelector("#copyProviderConfigKeys");
+const copyProviderConfigTemplateButton = document.querySelector("#copyProviderConfigTemplate");
 const providerDiagnosticsDialog = document.querySelector("#providerDiagnosticsDialog");
 const providerDiagnosticsStats = document.querySelector("#providerDiagnosticsStats");
 const providerDiagnosticsText = document.querySelector("#providerDiagnosticsText");
 const copyProviderDiagnosticsButton = document.querySelector("#copyProviderDiagnostics");
+const providerDataConsentDialog = document.querySelector("#providerDataConsentDialog");
+const providerDataConsentDescription = document.querySelector("#providerDataConsentDescription");
+const providerDataConsentService = document.querySelector("#providerDataConsentService");
+const providerDataConsentDetail = document.querySelector("#providerDataConsentDetail");
+const cancelProviderDataConsentButton = document.querySelector("#cancelProviderDataConsent");
+const confirmProviderDataConsentButton = document.querySelector("#confirmProviderDataConsent");
 const sourceEvidenceDialog = document.querySelector("#sourceEvidenceDialog");
 const sourceEvidenceStats = document.querySelector("#sourceEvidenceStats");
+const sourceEvidenceRecovery = document.querySelector("#sourceEvidenceRecovery");
 const sourceEvidenceList = document.querySelector("#sourceEvidenceList");
 const copySourceEvidenceButton = document.querySelector("#copySourceEvidence");
+const continuationQualityDialog = document.querySelector("#continuationQualityDialog");
+const continuationQualitySummary = document.querySelector("#continuationQualitySummary");
+const continuationQualityList = document.querySelector("#continuationQualityList");
+const continuationQualityRetryButton = document.querySelector("#continuationQualityRetry");
+const sourceChapterReaderDialog = document.querySelector("#sourceChapterReaderDialog");
+const sourceChapterReaderTitle = document.querySelector("#sourceChapterReaderTitle");
+const sourceChapterReaderStats = document.querySelector("#sourceChapterReaderStats");
+const sourceChapterReaderText = document.querySelector("#sourceChapterReaderText");
+const sourceChapterPreviousButton = document.querySelector("#sourceChapterPrevious");
+const sourceChapterNextButton = document.querySelector("#sourceChapterNext");
+const sourceChapterAskButton = document.querySelector("#sourceChapterAsk");
+const copySourceChapterButton = document.querySelector("#copySourceChapter");
+const sourceChapterDigest = document.querySelector("#sourceChapterDigest");
+const sourceChapterDigestStatus = document.querySelector("#sourceChapterDigestStatus");
+const sourceChapterDigestText = document.querySelector("#sourceChapterDigestText");
+const generateSourceChapterDigestButton = document.querySelector("#generateSourceChapterDigest");
+const saveSourceChapterDigestButton = document.querySelector("#saveSourceChapterDigest");
 const creativitySelect = document.querySelector("#creativitySelect");
 const creativityValue = document.querySelector("#creativityValue");
 const responseLengthSelect = document.querySelector("#responseLengthSelect");
@@ -101,6 +142,8 @@ const sourceStatus = document.querySelector("#sourceStatus");
 const sourceChapterOptions = document.querySelector("#sourceChapterOptions");
 const sourceOutlineHint = document.querySelector("#sourceOutlineHint");
 const workChapter = document.querySelector("#workChapter");
+const contextMore = document.querySelector("#contextMore");
+const modelSettings = document.querySelector("#modelSettings");
 const workReference = document.querySelector("#workReference");
 const workSummary = document.querySelector("#workSummary");
 const summaryFreshness = document.querySelector("#summaryFreshness");
@@ -173,6 +216,123 @@ const archiveCount = document.querySelector("#archiveCount");
 const archiveList = document.querySelector("#archiveList");
 const closeArchiveButton = document.querySelector("#closeArchive");
 const clearArchiveButton = document.querySelector("#clearArchive");
+const workspaceNavItems = Array.from(document.querySelectorAll(".workspace-nav-item"));
+const workspaceNavMore = document.querySelector("#workspaceNavMore");
+const workspacePageWorkbench = document.querySelector("#workspacePageWorkbench");
+const workspaceGuideKicker = document.querySelector("#workspaceGuideKicker");
+const workspaceNovelName = document.querySelector("#workspaceNovelName");
+const workspaceGuideTitle = document.querySelector("#workspaceGuideTitle");
+const workspaceGuideDescription = document.querySelector("#workspaceGuideDescription");
+const workspaceGuideAction = document.querySelector("#workspaceGuideAction");
+const workspaceGuideStatusSummary = document.querySelector("#workspaceGuideStatusSummary");
+const workspaceGuideProgress = document.querySelector("#workspaceGuideProgress");
+const workspaceGuideAskAction = document.querySelector("#workspaceGuideAskAction");
+const workspaceGuideWriteAction = document.querySelector("#workspaceGuideWriteAction");
+const workspaceGuideSourceAction = document.querySelector("#workspaceGuideSourceAction");
+const atlasHomeNovelName = document.querySelector("#atlasHomeNovelName");
+const atlasHomeSourceStatus = document.querySelector("#atlasHomeSourceStatus");
+const atlasHomeSourceStats = document.querySelector("#atlasHomeSourceStats");
+const atlasMotionToggle = document.querySelector("#atlasMotionToggle");
+const modeGuideIcon = document.querySelector("#modeGuideIcon");
+const modeGuideKicker = document.querySelector("#modeGuideKicker");
+const modeGuideTitle = document.querySelector("#modeGuideTitle");
+const modeGuideDescription = document.querySelector("#modeGuideDescription");
+const modeGuideAction = document.querySelector("#modeGuideAction");
+const advancedModeDisclosure = document.querySelector("#advancedModeDisclosure");
+const sourcePageStatus = document.querySelector("#sourcePageStatus");
+const sourcePageDiagnostics = document.querySelector("#sourcePageDiagnostics");
+const sourcePageChapter = document.querySelector("#sourcePageChapter");
+const sourceChapterSelection = document.querySelector("#sourceChapterSelection");
+const sourceEvidenceQueryInput = document.querySelector("#sourceEvidenceQuery");
+const workspaceNovelSelect = document.querySelector("#workspaceNovelSelect");
+const sourceOutlineSearchInput = document.querySelector("#sourceOutlineSearch");
+const sourceOutlineVolumeFilter = document.querySelector("#sourceOutlineVolumeFilter");
+const sourceOutlineBrowserStatus = document.querySelector("#sourceOutlineBrowserStatus");
+const sourceOutlineClearButton = document.querySelector("#sourceOutlineClear");
+const sourceOutlineList = document.querySelector("#sourceOutlineList");
+const retrievalStrategySelect = document.querySelector("#retrievalStrategy");
+const sourcePagePreviewButton = document.querySelector("#sourcePagePreview");
+const sourcePageReadButton = document.querySelector("#sourcePageRead");
+const sourcePageAskButton = document.querySelector("#sourcePageAsk");
+const memoryGuideSourceButton = document.querySelector("#memoryGuideSource");
+const storyPageBeatCount = document.querySelector("#storyPageBeatCount");
+const storyPageBeatsButton = document.querySelector("#storyPageBeats");
+const storyPageCharactersButton = document.querySelector("#storyPageCharacters");
+const storyPageSummaryButton = document.querySelector("#storyPageSummary");
+const storyPageCheckpointsButton = document.querySelector("#storyPageCheckpoints");
+const storyContextSlot = document.querySelector("#storyContextSlot");
+const characterSectionHeading = document.querySelector("#characterSectionHeading");
+const settingsPageSlot = document.querySelector("#settingsPageSlot");
+const sidebarFooter = document.querySelector(".sidebar-footer");
+const novelSpaceList = document.querySelector("#novelSpaceList");
+const novelLibraryCount = document.querySelector("#novelLibraryCount");
+const novelLibraryStatusSummary = document.querySelector("#novelLibraryStatusSummary");
+const novelLibraryEmpty = document.querySelector("#novelLibraryEmpty");
+const novelLibraryNoResults = document.querySelector("#novelLibraryNoResults");
+const novelLibrarySearchInput = document.querySelector("#novelLibrarySearch");
+const novelLibraryStatusFilter = document.querySelector("#novelLibraryStatus");
+const clearNovelLibraryFiltersButton = document.querySelector("#clearNovelLibraryFilters");
+const spaceRecoveryNotice = document.querySelector("#spaceRecoveryNotice");
+const spaceRecoveryTitle = document.querySelector("#spaceRecoveryTitle");
+const spaceRecoveryDescription = document.querySelector("#spaceRecoveryDescription");
+const spaceRecoveryTargetField = document.querySelector("#spaceRecoveryTargetField");
+const spaceRecoveryTargetSelect = document.querySelector("#spaceRecoveryTarget");
+const dismissSpaceRecoveryButton = document.querySelector("#dismissSpaceRecovery");
+const novelUploadInput = document.querySelector("#novelUploadInput");
+const novelUploadNameInput = document.querySelector("#novelUploadName");
+const refreshNovelLibraryButton = document.querySelector("#refreshNovelLibrary");
+const exportNovelSpaceConfigButton = document.querySelector("#exportNovelSpaceConfig");
+const novelSpaceConfigInput = document.querySelector("#novelSpaceConfigInput");
+const novelUploadFeedback = document.querySelector("#novelUploadFeedback");
+const novelUploadFeedbackText = document.querySelector("#novelUploadFeedbackText");
+const novelUploadCancelButton = document.querySelector("#novelUploadCancel");
+const novelUploadRetryButton = document.querySelector("#novelUploadRetry");
+const novelMemoryTitleInput = document.querySelector("#novelMemoryTitle");
+const novelMemoryContentInput = document.querySelector("#novelMemoryContent");
+const novelMemoryContentCount = document.querySelector("#novelMemoryContentCount");
+const novelMemoryComposer = document.querySelector("#novelMemoryComposer");
+const novelMemoryComposerTitle = document.querySelector("#novelMemoryComposerTitle");
+const openNovelMemoryComposerButton = document.querySelector("#openNovelMemoryComposer");
+const closeNovelMemoryComposerButton = document.querySelector("#closeNovelMemoryComposer");
+const saveNovelMemoryButton = document.querySelector("#saveNovelMemory");
+const cancelNovelMemoryEditButton = document.querySelector("#cancelNovelMemoryEdit");
+const novelMemorySpaceName = document.querySelector("#novelMemorySpaceName");
+const novelMemoryCount = document.querySelector("#novelMemoryCount");
+const refreshNovelMemoryButton = document.querySelector("#refreshNovelMemory");
+const removeStaleNovelMemoryButton = document.querySelector("#removeStaleNovelMemory");
+const novelMemorySearchInput = document.querySelector("#novelMemorySearch");
+const novelMemoryKindFilter = document.querySelector("#novelMemoryKindFilter");
+const clearNovelMemoryFiltersButton = document.querySelector("#clearNovelMemoryFilters");
+const novelMemorySummary = document.querySelector("#novelMemorySummary");
+const novelMemoryContextHint = document.querySelector("#novelMemoryContextHint");
+const novelMemoryList = document.querySelector("#novelMemoryList");
+const previewNovelMemoryButton = document.querySelector("#previewNovelMemory");
+const novelMemoryPreview = document.querySelector("#novelMemoryPreview");
+const novelMemoryPreviewTitle = document.querySelector("#novelMemoryPreviewTitle");
+const novelMemoryPreviewStatus = document.querySelector("#novelMemoryPreviewStatus");
+const novelMemoryPreviewList = document.querySelector("#novelMemoryPreviewList");
+const memoryLayerTabs = Array.from(document.querySelectorAll("[data-memory-layer]"));
+const sourceKnowledgePanel = document.querySelector("#sourceKnowledgePanel");
+const creativeMemoryPanel = document.querySelector("#creativeMemoryPanel");
+const sourceKnowledgeSearchInput = document.querySelector("#sourceKnowledgeSearch");
+const sourceKnowledgeCount = document.querySelector("#sourceKnowledgeCount");
+const sourceKnowledgeSummary = document.querySelector("#sourceKnowledgeSummary");
+const sourceKnowledgeHint = document.querySelector("#sourceKnowledgeHint");
+const sourceKnowledgeList = document.querySelector("#sourceKnowledgeList");
+const reviewedMemoryBuild = document.querySelector("#reviewedMemoryBuild");
+const reviewedMemoryBuildTitle = document.querySelector("#reviewedMemoryBuildTitle");
+const reviewedMemoryBuildDescription = document.querySelector("#reviewedMemoryBuildDescription");
+const reviewedMemoryProgress = document.querySelector("#reviewedMemoryProgress");
+const reviewedMemoryProgressBar = document.querySelector("#reviewedMemoryProgressBar");
+const startReviewedMemoryBuildButton = document.querySelector("#startReviewedMemoryBuild");
+const promoteReviewedMemoryBuildButton = document.querySelector("#promoteReviewedMemoryBuild");
+const cancelReviewedMemoryBuildButton = document.querySelector("#cancelReviewedMemoryBuild");
+
+const novelMemoryQuickTemplates = {
+  人物关系: "人物 / 势力：\n关系变化：\n已确认依据：\n创作时需要保持：",
+  世界规则: "规则名称：\n作用与限制：\n代价 / 例外：\n创作时需要保持：",
+  二创约定: "本项目约定：\n必须保留：\n禁止改变：\n允许探索：",
+};
 const conversationStorageKey = "inkecho.conversation.v1";
 const workspaceStorageKey = "inkecho.workspace.v1";
 const serviceStorageKey = "inkecho.service.v1";
@@ -182,6 +342,17 @@ const characterLibraryStorageKey = "inkecho.character-library.v1";
 const promptLibraryStorageKey = "inkecho.prompt-library.v1";
 const activeProjectStorageKey = "inkecho.active-project.v1";
 const focusModeStorageKey = "inkecho.focus-mode.v1";
+const novelSpacesStorageKey = "inkecho.novel-spaces.v1";
+const activeNovelSpaceStorageKey = "inkecho.active-novel-space.v1";
+const spaceRecoveryStorageKey = "inkecho.space-recovery.v1";
+const novelUploadJobStorageKey = "inkecho.novel-upload-job.v1";
+const retrievalStrategyStorageKey = "inkecho.retrieval-strategy.v1";
+const retrievalStrategyBySpaceStorageKey = "inkecho.retrieval-strategy-by-space.v1";
+const activeWorkspaceViewStorageKey = "inkecho.active-workspace-view.v2";
+const contextPanelOpenStorageKey = "inkecho.context-panel-open.v1";
+const providerDataConsentStorageKey = "inkecho.provider-data-consent.v1";
+const novelSpaceConfigVersion = 1;
+const defaultNovelSpaceId = "default-source";
 const defaultCharacters = [
   { name: "方源", tone: "冷静、决绝、善于权衡利弊，不被表面道德束缚。", details: "拥有漫长人生经验和明确目标，擅长在资源、风险与人心之间做取舍；不轻易被情绪改变判断。" },
   { name: "白凝冰", tone: "锋利、骄傲、追求极致，常以强硬掩饰真实情绪。", details: "天资出众、意志强烈，习惯以竞争和行动证明自己；对力量与自由有近乎极端的追求。" },
@@ -193,6 +364,410 @@ const modeHints = {
   改写: "告诉我想改写的情节……",
   独白: "让角色说出心里话……",
 };
+
+const retrievalStrategyLabels = {
+  balanced: "综合查找",
+  chapter_first: "优先按章节",
+  entity_first: "优先按人物与设定",
+  broad: "扩大查找范围",
+};
+const supportedNovelFileExtensions = new Set(["", "txt", "md", "markdown", "html", "htm", "docx", "epub", "fb2", "pdf"]);
+
+function normalizeRetrievalStrategy(value) {
+  const strategy = String(value || "balanced").trim().toLowerCase();
+  return Object.prototype.hasOwnProperty.call(retrievalStrategyLabels, strategy) ? strategy : "balanced";
+}
+
+function normalizeChapterLocator(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return /^\[object\s+(?:Mouse|Pointer)?Event\]$/i.test(text) ? "" : text;
+}
+
+function retrievalStrategySpaceId(spaceId = "") {
+  if (spaceId) return String(spaceId);
+  try {
+    return localStorage.getItem(activeNovelSpaceStorageKey) || activeNovelSpaceId || defaultNovelSpaceId;
+  } catch {
+    return activeNovelSpaceId || defaultNovelSpaceId;
+  }
+}
+
+function loadRetrievalStrategy(spaceId = "") {
+  try {
+    const savedBySpace = JSON.parse(localStorage.getItem(retrievalStrategyBySpaceStorageKey) || "null");
+    const scoped = savedBySpace && typeof savedBySpace === "object"
+      ? savedBySpace[retrievalStrategySpaceId(spaceId)]
+      : "";
+    if (scoped) return normalizeRetrievalStrategy(scoped);
+    // Migrate the early global preference into the currently selected space.
+    return normalizeRetrievalStrategy(localStorage.getItem(retrievalStrategyStorageKey));
+  } catch {
+    notifyStorageIssue();
+    return "balanced";
+  }
+}
+
+function persistRetrievalStrategy() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(retrievalStrategyBySpaceStorageKey) || "{}");
+    const next = saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {};
+    next[retrievalStrategySpaceId()] = getRetrievalStrategy();
+    localStorage.setItem(retrievalStrategyBySpaceStorageKey, JSON.stringify(next));
+    updateStorageStatus();
+  } catch {
+    notifyStorageIssue();
+  }
+}
+
+function getRetrievalStrategy() {
+  return normalizeRetrievalStrategy(retrievalStrategy);
+}
+
+function syncRetrievalStrategy() {
+  if (retrievalStrategySelect) retrievalStrategySelect.value = getRetrievalStrategy();
+}
+
+const modeGuides = {
+  续写: {
+    icon: "↗",
+    kicker: "续写流程 · 01",
+    title: "先确定承接位置，再写下一幕",
+    description: "选择章节或场景，补充你希望故事如何继续；角色卡和场景计划会帮助保持连续。",
+    action: "设置承接位置",
+  },
+  问答: {
+    icon: "?",
+    kicker: "问答流程 · 01",
+    title: "先提问，再核对原作依据",
+    description: "问题会优先检索本地《蛊真人》资料库，回答会区分原作事实、合理推断与无法确认。",
+    action: "查看原作依据",
+  },
+  改写: {
+    icon: "↗",
+    kicker: "改写流程 · 01",
+    title: "保留人物心性，明确想改变的部分",
+    description: "可以直接粘贴片段，或说明想调整的语气、节奏和剧情结果。",
+    action: "添加参考片段",
+  },
+  独白: {
+    icon: "✦",
+    kicker: "独白流程 · 01",
+    title: "选择角色，让他面对一个问题",
+    description: "角色卡会决定说话方式；输入一个秘密、困境或无法承认的选择即可开始。",
+    action: "选择角色",
+  },
+};
+
+const workspaceGuides = {
+  home: {
+    kicker: "当前工作区 · STORY ATLAS",
+    title: "从此刻最想完成的任务开始",
+    description: "续写、问答、原作与记忆共享同一个小说知识空间。",
+    action: "返回故事星图",
+  },
+  library: {
+    kicker: "当前工作区 · NOVEL LIBRARY",
+    title: "先选择一本小说，再开始创作",
+    description: "每本小说都有独立的知识空间、原作记忆和创作项目。",
+    action: "查看当前小说 →",
+  },
+  workbench: {
+    kicker: "当前工作区 · WORKBENCH",
+    title: "从一个问题或下一幕开始",
+    description: "续写与内容问答是 InkEcho 的两条主线，其他设置会在需要时出现。",
+    action: "进入创作 →",
+  },
+  source: {
+    kicker: "当前工作区 · SOURCE LIBRARY",
+    title: "先查清原作，再决定如何继续",
+    description: "章节定位、原文检索和引用依据集中在这里，结果不会写入项目记录。",
+    action: "定位原作资料",
+  },
+  memory: {
+    kicker: "当前工作区 · KNOWLEDGE MEMORY",
+    title: "把小说整理成可持续使用的知识",
+    description: "维护当前小说的长期备忘；原作依据、连续性笔记和二创约定会分开管理。",
+    action: "维护空间记忆",
+  },
+  story: {
+    kicker: "当前工作区 · STORY MANAGER",
+    title: "把灵感变成可推进的场景",
+    description: "用场景卡、角色和摘要管理二创内容，让长篇创作保持连续。",
+    action: "打开场景计划",
+  },
+  settings: {
+    kicker: "当前工作区 · MODEL & DATA",
+    title: "模型与本地资料只需设置一次",
+    description: "配置 Ollama、OpenAI、Azure 或兼容服务；原作文件始终留在本机。",
+    action: "打开模型设置",
+  },
+};
+
+function readWorkspaceHashState() {
+  try {
+    const parts = decodeURIComponent(window.location.hash.replace(/^#/, "")).trim().split("/");
+    return {
+      view: String(parts.shift() || "").toLocaleLowerCase(),
+      spaceId: parts.join("/").trim(),
+    };
+  } catch {
+    return { view: "", spaceId: "" };
+  }
+}
+
+function workspaceHashForView(view, spaceId = getCurrentNovelSpaceId()) {
+  const normalizedSpaceId = String(spaceId || "").trim();
+  return normalizedSpaceId && normalizedSpaceId !== defaultNovelSpaceId
+    ? `#${view}/${encodeURIComponent(normalizedSpaceId)}`
+    : `#${view}`;
+}
+
+function loadWorkspaceView() {
+  const hashView = readWorkspaceHashState().view;
+  if (hashView && workspaceGuides[hashView]) return hashView;
+  try {
+    const saved = sessionStorage.getItem(activeWorkspaceViewStorageKey);
+    return saved && workspaceGuides[saved] ? saved : "home";
+  } catch {
+    return "home";
+  }
+}
+
+function persistWorkspaceView(view) {
+  try {
+    sessionStorage.setItem(activeWorkspaceViewStorageKey, view);
+  } catch {
+    // 页面导航不应因浏览器禁用会话存储而中断。
+  }
+  try {
+    const nextHash = workspaceHashForView(view);
+    if (window.location.hash !== nextHash) {
+      if (window.history?.pushState) window.history.pushState({ inkechoView: view }, "", nextHash);
+      else {
+        const link = document.createElement("a");
+        link.href = nextHash;
+        link.hidden = true;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+    }
+  } catch {
+    // URL 同步失败时仍保留页面内导航和会话恢复。
+  }
+}
+
+function loadContextPanelOpen() {
+  try {
+    return sessionStorage.getItem(contextPanelOpenStorageKey) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function setContextPanelOpen(open, { focus = false } = {}) {
+  const nextOpen = Boolean(open);
+  document.body.classList.toggle("context-panel-open", nextOpen);
+  if (toggleContextPanelButton) {
+    toggleContextPanelButton.setAttribute("aria-expanded", String(nextOpen));
+    toggleContextPanelButton.textContent = nextOpen ? "收起上下文" : "上下文";
+  }
+  try {
+    sessionStorage.setItem(contextPanelOpenStorageKey, String(nextOpen));
+  } catch {
+    // 上下文面板仍可在当前页面使用。
+  }
+  if (focus && nextOpen) workChapter?.focus();
+}
+
+function getNovelSpaceReadiness(space) {
+  const source = space?.source || {};
+  if (!source.available) {
+    return {
+      filter: "unavailable",
+      label: source.configured ? "原文待恢复" : "等待原文文件",
+      capability: "续写可继续 · 内容问答需要恢复原文",
+      canQuery: false,
+    };
+  }
+  if (source.parseStatus === "empty" || Number(source.chunks || 0) <= 0 || Number(source.characters || 0) <= 0) {
+    return {
+      filter: "empty",
+      label: "没有可检索正文",
+      capability: "续写可继续 · 内容问答暂不可用",
+      canQuery: false,
+    };
+  }
+  if (source.parseStatus === "partial" || source.parseDiagnostics?.warnings?.length) {
+    return {
+      filter: "partial",
+      label: "知识空间可用 · 解析提醒",
+      capability: "续写与内容问答可用 · 建议先查看依据",
+      canQuery: true,
+    };
+  }
+  return {
+    filter: "ready",
+    label: "知识空间可用",
+    capability: "续写与内容问答均可用",
+    canQuery: true,
+  };
+}
+
+function getWorkspaceGuideState(view = activeWorkspaceView) {
+  const guide = workspaceGuides[view] || workspaceGuides.workbench;
+  if (view === "library") {
+    const space = novelSpaceForProject();
+    const readiness = getNovelSpaceReadiness(space);
+    if (space && readiness.canQuery) {
+      return {
+        ...guide,
+        kicker: "当前小说已就绪 · READY TO CREATE",
+        title: `继续「${getCurrentNovelDisplayName()}」`,
+        description: "原文已经可检索。现在只需要选择一个任务：用内容问答核对原作，或用续写进入下一幕。",
+        action: "查看当前小说 →",
+      };
+    }
+    if (space && readiness.filter !== "empty") {
+      return {
+        ...guide,
+        kicker: "当前小说待恢复 · KNOWLEDGE SPACE",
+        title: `先恢复「${getCurrentNovelDisplayName()}」的原文`,
+        description: "空间仍然保留，续写可以继续；恢复原文后，内容问答和章节依据也会重新可用。",
+        action: "查看恢复状态 →",
+      };
+    }
+  }
+  if (view !== "workbench") return guide;
+  const space = novelSpaceForProject();
+  const readiness = getNovelSpaceReadiness(space);
+  if (!readiness.canQuery && readiness.filter === "empty") {
+    return {
+      ...guide,
+      kicker: "原文内容为空 · SOURCE CHECK",
+      title: "当前原文没有可检索正文",
+      description: "文件已找到，但没有提取到正文内容。续写仍可继续；内容问答需要重新上传可读取的文本文件。",
+      action: "查看解析状态 →",
+      actionView: "source",
+    };
+  }
+  if (!readiness.canQuery) {
+    return {
+      ...guide,
+      kicker: "知识空间待恢复 · KNOWLEDGE SPACE",
+      title: "先让当前小说可检索",
+      description: "当前原文暂不可用。续写仍可继续；内容问答需要先回到小说库恢复这部小说。",
+      action: "去小说库恢复 →",
+      actionView: "library",
+    };
+  }
+  if (space.source.parseStatus === "partial" || space.source.parseDiagnostics?.warnings?.length) {
+    return {
+      ...guide,
+      kicker: "解析提醒 · SOURCE CHECK",
+      title: "原作已加载，先确认解析状态",
+      description: "当前空间可以继续使用，但章节识别存在提醒；建议先在原作资料页确认检索范围，再进行内容问答。",
+      action: "查看解析状态 →",
+      actionView: "source",
+    };
+  }
+  return guide;
+}
+
+function syncWorkspaceGuide() {
+  const guide = getWorkspaceGuideState(activeWorkspaceView);
+  if (workspaceGuideKicker) workspaceGuideKicker.textContent = guide.kicker;
+  if (workspaceGuideTitle) workspaceGuideTitle.textContent = guide.title;
+  if (workspaceGuideDescription) workspaceGuideDescription.textContent = guide.description;
+  if (workspaceGuideAction) workspaceGuideAction.textContent = guide.action;
+  const space = novelSpaceForProject();
+  const readiness = getNovelSpaceReadiness(space);
+  const showTaskActions = Boolean(space && activeWorkspaceView === "library");
+  if (workspaceGuideAction) workspaceGuideAction.hidden = showTaskActions && readiness.canQuery;
+  if (workspaceGuideAskAction) {
+    workspaceGuideAskAction.hidden = !showTaskActions;
+    workspaceGuideAskAction.disabled = !readiness.canQuery;
+    workspaceGuideAskAction.title = readiness.canQuery ? "使用当前小说知识空间回答原作问题" : "原文尚未就绪，先恢复当前小说原文";
+  }
+  if (workspaceGuideWriteAction) {
+    workspaceGuideWriteAction.hidden = !showTaskActions;
+    workspaceGuideWriteAction.title = "进入当前小说的续写工作台";
+  }
+  if (workspaceGuideSourceAction) {
+    workspaceGuideSourceAction.hidden = !showTaskActions;
+    workspaceGuideSourceAction.title = "定位章节、阅读原文和查看检索依据";
+  }
+  if (workspaceGuideStatusSummary) {
+    const source = space?.source || {};
+    const sectionCount = Number(source.sections || 0).toLocaleString("zh-CN");
+    workspaceGuideStatusSummary.textContent = !space
+      ? "尚未选择小说"
+      : readiness.canQuery
+        ? `原文可检索 · ${sectionCount} 个章节单元`
+        : readiness.label;
+  }
+  syncWorkspaceGuideProgress();
+}
+
+function getNovelSpaceProgress(space = novelSpaceForProject()) {
+  const source = space?.source || {};
+  const sourceReady = Boolean(source.available);
+  const sourceHasText = sourceReady && source.parseStatus !== "empty"
+    && Number(source.chunks || 0) > 0 && Number(source.characters || 0) > 0;
+  const parseNeedsAttention = sourceHasText
+    && (source.parseStatus === "partial" || source.parseDiagnostics?.warnings?.length);
+  const spaceMemoryCount = Number(space?.memory?.count) || 0;
+  const linkedProjects = projects.filter((project) => project.novelSpaceId === space?.id);
+  return [
+    {
+      key: "source",
+      status: sourceReady ? "done" : "current",
+      detail: sourceReady ? "已就绪" : "待上传",
+    },
+    {
+      key: "parse",
+      status: !sourceReady ? "locked" : parseNeedsAttention ? "attention" : sourceHasText ? "done" : "current",
+      detail: !sourceReady ? "等待原文" : parseNeedsAttention ? "需确认" : sourceHasText ? "可检索" : "待检查",
+    },
+    {
+      key: "memory",
+      status: !sourceReady ? "locked" : spaceMemoryCount ? "done" : "next",
+      detail: !sourceReady ? "等待解析" : spaceMemoryCount ? `${spaceMemoryCount} 条` : "可选",
+    },
+    {
+      key: "create",
+      status: linkedProjects.length ? "done" : sourceReady ? "next" : "locked",
+      detail: linkedProjects.length ? `${linkedProjects.length} 个项目` : sourceReady ? "准备开始" : "等待原文",
+    },
+  ];
+}
+
+function syncWorkspaceGuideProgress() {
+  if (!workspaceGuideProgress) return;
+  const progress = getNovelSpaceProgress();
+  progress.forEach((item) => {
+    const node = workspaceGuideProgress.querySelector(`[data-progress-key="${item.key}"]`);
+    if (!node) return;
+    node.dataset.status = item.status;
+    const detail = node.querySelector("small");
+    if (detail) detail.textContent = item.detail;
+    node.setAttribute("aria-label", `${node.querySelector("strong")?.textContent || item.key}：${item.detail}`);
+    node.title = `打开${node.querySelector("strong")?.textContent || item.key}处理页`;
+  });
+}
+
+function openWorkspaceProgressStep(key) {
+  const sourceReady = Boolean(novelSpaceForProject()?.source?.available);
+  if (key === "source" || key === "parse") {
+    setWorkspaceView(sourceReady ? "source" : "library", { announce: true, focus: true });
+    return;
+  }
+  if (key === "memory") {
+    setWorkspaceView("memory", { announce: true, focus: true });
+    return;
+  }
+  setWorkspaceView("workbench", { announce: true, focus: true });
+}
 
 const modePromptSets = {
   续写: [
@@ -217,6 +792,29 @@ const modePromptSets = {
   ],
 };
 
+const genericModePromptSets = {
+  续写: [
+    { title: "承接下一幕", subtitle: "从当前章节留下的线索继续。", prompt: "请基于当前小说知识空间、章节位置和场景计划，续写下一幕；保持人物动机连续，并留下一个可继续发展的线索。" },
+    { title: "一个小动作", subtitle: "让细节推动人物做出选择。", prompt: "请在当前小说的世界规则内，写一个看似微小却会改变后续走向的动作，并自然推进剧情。" },
+    { title: "新的悬念", subtitle: "让这一幕结束时仍有问题。", prompt: "请续写当前场景，在完成一个具体事件的同时留下一个来自原作设定或当前剧情的新悬念。" },
+  ],
+  问答: [
+    { title: "人物处境", subtitle: "梳理角色当前的目标与限制。", prompt: "请根据当前小说知识空间，说明这个人物当前最重要的目标、限制和可用资源，并区分原作依据、合理推断与不确定内容。" },
+    { title: "设定辨析", subtitle: "核对世界规则与关键概念。", prompt: "请解释当前小说中的一个关键设定：它的作用、限制、代价和已知依据分别是什么？" },
+    { title: "关系脉络", subtitle: "看清人物、组织或势力之间的关系。", prompt: "请梳理当前小说中两个重要实体之间的关系、变化和关键节点，并明确区分原作依据与推断。" },
+  ],
+  改写: [
+    { title: "换一种选择", subtitle: "保留人物核心，改变一个后果。", prompt: "保留人物的核心动机和当前小说世界规则，只改写这一幕中最关键的一个选择，并说明它带来的后果。" },
+    { title: "收紧对白", subtitle: "让潜台词比解释更有力量。", prompt: "把当前片段改得更克制，让人物通过动作、停顿和潜台词表达真实意图。" },
+    { title: "另一种结果", subtitle: "从一个细节分岔出新线索。", prompt: "如果当前场景的结果相反，基于小说已有设定，后续最合理的变化会是什么？请写出关键转折。" },
+  ],
+  独白: [
+    { title: "不肯承认的事", subtitle: "让角色面对最隐秘的动机。", prompt: "让当前角色说出一件最不愿承认、却一直影响自己选择的事情。" },
+    { title: "力量与代价", subtitle: "把取舍写成一段内心拉扯。", prompt: "让当前角色独白：为了目标愿意付出什么，又绝不愿失去什么？" },
+    { title: "回望选择", subtitle: "从记忆深处重新审视一条路。", prompt: "让当前角色回望一次改变命运的决定，用第一人称写出当时没有说出口的话。" },
+  ],
+};
+
 const projectStatusLabels = {
   all: "全部项目",
   attention: "需要处理",
@@ -226,6 +824,12 @@ const projectStatusLabels = {
 };
 
 const commandPaletteCommands = [
+  { id: "task-write", label: "开始续写", hint: "接着当前小说写下一幕", keywords: "续写 创作 下一幕 故事", run: () => openWorkspaceTask("续写") },
+  { id: "task-ask", label: "内容问答", hint: "查人物、设定和剧情依据", keywords: "问答 原作 人物 设定 剧情", run: () => openWorkspaceTask("问答") },
+  { id: "task-source", label: "查找原作", hint: "定位章节并阅读原文", keywords: "原作 资料 章节 阅读 检索", run: () => setWorkspaceView("source", { announce: true, focus: true }) },
+  { id: "manage-memory", label: "维护空间记忆", hint: "记录人物关系、规则和二创约定", keywords: "记忆 笔记 设定 规则", run: () => setWorkspaceView("memory", { announce: true, focus: true }) },
+  { id: "manage-story", label: "管理场景与角色", hint: "推进场景卡、角色和剧情摘要", keywords: "故事 场景 角色 摘要", run: () => setWorkspaceView("story", { announce: true, focus: true }) },
+  { id: "configure-model", label: "配置模型服务", hint: "设置 Ollama、Azure 或兼容接口", keywords: "模型 服务 Ollama Azure 设置", run: () => setWorkspaceView("settings", { announce: true, focus: true }) },
   { id: "new-project", label: "新建创作项目", hint: "开始一条新的叙事线", keywords: "项目 新建 创作", run: () => createNewProject() },
   { id: "save-checkpoint", label: "快速保存检查点", hint: "保存当前对话、设定和草稿", keywords: "检查点 保存 快照", run: () => saveCheckpoint({ quick: true }) },
   { id: "open-scene-plan", label: "打开场景计划", hint: "查看、编辑和推进场景卡", keywords: "场景 计划 幕", run: () => openScenePlanner() },
@@ -254,7 +858,78 @@ const providerDescriptions = {
   ollama: "连接本机 Ollama，可运行 Qwen3、Llama、Gemma 等模型。",
   openai: "使用 OpenAI 官方 Chat Completions 接口。",
   azure: "使用标准 Azure OpenAI 部署名和端点。",
-  compatible: "适用于 vLLM、LM Studio、LocalAI 等兼容服务。",
+  compatible: "适用于 vLLM、LM Studio、LocalAI 等兼容服务；本地服务通常只需填写地址。",
+};
+const providerSetupHints = {
+  custom_azure: "修复步骤：① 点击“复制配置模板” ② 把办公网端点、密钥和日志标识填入项目配置文件 .env ③ 重启 InkEcho，再点击“测试连接”。密钥只保存在本机。",
+  ollama: "修复步骤：① 启动本机 Ollama ② 准备一个模型（例如 qwen3:8b）③ 点击“刷新模型”或“测试连接”。默认连接本机 11434 端口。",
+  openai: "修复步骤：① 准备 OpenAI API 密钥 ② 点击“复制配置模板”，把密钥填入项目配置文件 .env ③ 重启 InkEcho，再点击“测试连接”。",
+  azure: "修复步骤：① 准备 Azure 端点、密钥、API 版本和部署名 ② 点击“复制配置模板”并填入项目配置文件 .env ③ 重启 InkEcho，再点击“测试连接”。",
+  compatible: "修复步骤：① 确认兼容服务已经启动 ② 点击“复制配置模板”，填写服务地址和模型名 ③ 重启 InkEcho，再点击“测试连接”。",
+};
+const providerDataBoundaries = {
+  custom_azure: "数据去向：生成时，命中的有限原作片段和必要上下文会发送到办公网自定义 Azure 服务；原始小说文件不会发送。",
+  ollama: "数据去向：Ollama 默认在本机处理命中的有限原作片段和必要上下文；如果你把 Base URL 改为远程地址，则以该地址的数据策略为准。",
+  openai: "数据去向：生成时，命中的有限原作片段和必要上下文会发送到 OpenAI；原始小说文件不会发送。",
+  azure: "数据去向：生成时，命中的有限原作片段和必要上下文会发送到 Azure OpenAI；原始小说文件不会发送。",
+  compatible: "数据去向：命中的有限原作片段和必要上下文会发送到你配置的兼容服务；它是否留在本机取决于 Base URL。",
+};
+
+function hasProviderDataConsent(provider) {
+  try {
+    const acknowledged = JSON.parse(sessionStorage.getItem(providerDataConsentStorageKey) || "[]");
+    return Array.isArray(acknowledged) && acknowledged.includes(provider);
+  } catch {
+    return false;
+  }
+}
+
+function rememberProviderDataConsent(provider) {
+  try {
+    const acknowledged = JSON.parse(sessionStorage.getItem(providerDataConsentStorageKey) || "[]");
+    const next = Array.from(new Set([...(Array.isArray(acknowledged) ? acknowledged : []), provider]));
+    sessionStorage.setItem(providerDataConsentStorageKey, JSON.stringify(next));
+  } catch {
+    // A blocked session store should not hide the disclosure; the next remote
+    // request will simply ask again.
+  }
+}
+
+let providerDataConsentPending = null;
+
+function settleProviderDataConsent(confirmed) {
+  const pending = providerDataConsentPending;
+  if (!pending) return;
+  providerDataConsentPending = null;
+  if (confirmed) rememberProviderDataConsent(pending.provider);
+  if (providerDataConsentDialog?.open) providerDataConsentDialog.close();
+  pending.resolve(confirmed);
+  if (!confirmed) showToast("已取消发送，原作片段仍留在本机");
+}
+
+async function ensureProviderDataConsent(purpose = "生成内容", dataDescription = "") {
+  const provider = providerSelect.value;
+  if (provider === "ollama" || hasProviderDataConsent(provider)) return true;
+  if (!providerDataConsentDialog || providerDataConsentPending) return false;
+  const providerName = providerDisplayName(provider);
+  const novelName = getCurrentNovelDisplayName();
+  providerDataConsentService.textContent = providerName;
+  providerDataConsentDescription.textContent = dataDescription
+    || `${purpose}将把「${novelName}」命中的有限原作片段（章节摘要时为当前章节有限预览）和必要上下文发送给当前模型服务。原始小说文件和完整索引不会发送。`;
+  providerDataConsentDetail.textContent = providerDataBoundaries[provider] || "命中的有限原作片段和必要上下文会发送到当前模型服务。";
+  const decision = new Promise((resolve) => {
+    providerDataConsentPending = { provider, resolve };
+  });
+  providerDataConsentDialog.showModal();
+  cancelProviderDataConsentButton?.focus();
+  return decision;
+}
+const providerConfigTemplates = {
+  custom_azure: "# InkEcho · 办公网自定义 Azure\nINK_ECHO_PROVIDER=custom_azure\nINK_ECHO_CUSTOM_AZURE_API_KEY=replace_with_your_key\nINK_ECHO_CUSTOM_AZURE_ENDPOINT=https://your-office-endpoint.example/v1\nINK_ECHO_CUSTOM_AZURE_API_VERSION=2024-02-01\nINK_ECHO_CUSTOM_AZURE_MODEL=gpt-5-mini-2025-08-07\nINK_ECHO_CUSTOM_AZURE_LOGID=replace_with_your_logid",
+  ollama: "# InkEcho · Ollama\nINK_ECHO_PROVIDER=ollama\nINK_ECHO_OLLAMA_BASE_URL=http://127.0.0.1:11434/v1\nINK_ECHO_OLLAMA_MODEL=qwen3:8b",
+  openai: "# InkEcho · OpenAI\nINK_ECHO_PROVIDER=openai\nINK_ECHO_OPENAI_API_KEY=replace_with_your_key\nINK_ECHO_OPENAI_MODEL=gpt-5-mini",
+  azure: "# InkEcho · Azure OpenAI\nINK_ECHO_PROVIDER=azure\nINK_ECHO_AZURE_API_KEY=replace_with_your_key\nINK_ECHO_AZURE_ENDPOINT=https://your-resource.openai.azure.com/\nINK_ECHO_AZURE_API_VERSION=2024-02-01\nINK_ECHO_AZURE_MODEL=your-deployment-name\nINK_ECHO_AZURE_LOGID=",
+  compatible: "# InkEcho · OpenAI-compatible\nINK_ECHO_PROVIDER=compatible\nINK_ECHO_COMPATIBLE_API_KEY=local\nINK_ECHO_COMPATIBLE_BASE_URL=http://127.0.0.1:8000/v1\nINK_ECHO_COMPATIBLE_MODEL=qwen3-8b",
 };
 
 const creativityLabels = {
@@ -274,6 +949,8 @@ const maxLibraryPrompts = 36;
 const maxConversationMessages = 120;
 const maxArchivedMessages = 360;
 const maxStoredConversationMessages = maxConversationMessages + maxArchivedMessages;
+const maxConversationSessions = 24;
+const maxConversationSessionMessages = 80;
 const continuityBridgeMessageCount = 4;
 const maxPrompts = 12;
 const maxHighlights = 30;
@@ -387,30 +1064,13 @@ const providerRequestTimeout = 12000;
 const summaryRequestTimeout = 45000;
 const streamIdleTimeout = 90000;
 
-const replyTemplates = {
-  续写: [
-    "她把目光投向窗外，像是在等一场迟到的回答。既然故事还没有落幕，那就让我们从这一刻继续写下去。",
-    "风从廊下穿过，吹动了案上的纸页。也许真正重要的，并不是结局，而是此刻仍有人愿意把下一句写出来。",
-  ],
-  改写: [
-    "若把这一幕重新写过，我想保留人物的心性，却给他们一条更坦诚的路。很多遗憾不是不能改变，只是还没有被好好说出。",
-    "这一处可以换一种呼吸：不急着解释，也不急着告别，让人物先在沉默里看清自己真正想要的东西。",
-  ],
-  独白: [
-    "我并不是不想说，只是有些话一旦说出口，就再也不能假装没有发生。若你愿意听，我便从最不敢面对的那一刻讲起。",
-    "人总以为自己在等待一个答案，其实等到最后，才发现想要的不过是有人理解这份沉默。",
-  ],
-  问答: [
-    "模型服务暂时不可用，当前没有生成可靠的原作结论。请点击下方“查看依据”核对本机检索结果，或检查模型服务配置。",
-  ],
-};
-
 let selectedCharacter = {
   name: "方源",
   tone: "冷静、决绝、善于权衡利弊，不被表面道德束缚。",
   details: "拥有漫长人生经验和明确目标，擅长在资源、风险与人心之间做取舍；不轻易被情绪改变判断。",
 };
 let selectedMode = "续写";
+let activeWorkspaceView = "workbench";
 let toastTimer;
 let draftTimer;
 let projectPersistTimer;
@@ -418,12 +1078,22 @@ let isSending = false;
 let isSummarizing = false;
 let pendingSceneOutcomePreview = null;
 let pendingSummaryPreview = null;
+let pendingQualityRetry = null;
 let summaryEditPending = false;
 let streamController = null;
 let providerHealthRequestId = 0;
 let providerMissingKeys = [];
 let sourceOutlineRequestId = 0;
 let sourceOutlineLoadedKey = "";
+let sourceOutlineTitles = [];
+let sourceOutlineRemoteQuery = "";
+let sourceOutlineRemoteTitles = [];
+let sourceOutlineSearchRequestId = 0;
+let sourceOutlineSearchTimer = null;
+let sourceOutlineSearchPending = false;
+let sourceOutlineSearchError = false;
+const sourceOutlineDisplayLimit = 40;
+let sourceOutlineVisibleLimit = sourceOutlineDisplayLimit;
 let serverHistoryBudget = 48000;
 let serverRequestTimeout = 120000;
 let editingCharacterName = null;
@@ -440,6 +1110,140 @@ let customTemplates = loadCustomTemplates();
 let characterLibrary = loadCharacterLibrary();
 let promptLibrary = loadPromptLibrary();
 let activeProjectId = projects[0].id;
+let novelSpaces = loadNovelSpaces();
+let novelSpacesLoaded = false;
+let novelSpacesLoadError = false;
+let activeNovelSpaceId = defaultNovelSpaceId;
+let activeNovelMemory = { spaceId: defaultNovelSpaceId, notes: [], count: 0 };
+let editingNovelMemoryId = null;
+let activeMemoryLayer = "source";
+let activeSourceKnowledgeCategory = "all";
+let activeSourceKnowledge = { spaceId: "", count: 0, counts: {}, items: [] };
+let sourceKnowledgeRequestId = 0;
+let sourceKnowledgeSearchTimer = null;
+let reviewedMemoryBuildState = { spaceId: "", status: "idle", progress: 0, memoryRevision: "" };
+let reviewedMemoryStatusTimer = null;
+function normalizeSpaceRecovery(value) {
+  const source = value && typeof value === "object" ? value : {};
+  const normalizeNames = (items) => [...new Set((Array.isArray(items) ? items : [])
+    .map((item) => safeText(item, "", 80).trim())
+    .filter(Boolean))];
+  return {
+    sourceNames: normalizeNames(source.sourceNames),
+    uploadNames: normalizeNames(source.uploadNames),
+    projectBindings: (Array.isArray(source.projectBindings) ? source.projectBindings : [])
+      .map((item) => ({
+        projectId: safeText(item?.projectId, "", 100),
+        name: safeText(item?.name, "", 80).trim(),
+      }))
+      .filter((item) => item.projectId && item.name),
+  };
+}
+
+function loadSpaceRecovery() {
+  try {
+    return normalizeSpaceRecovery(JSON.parse(localStorage.getItem(spaceRecoveryStorageKey) || "null"));
+  } catch {
+    notifyStorageIssue();
+    return { sourceNames: [], uploadNames: [] };
+  }
+}
+
+function persistSpaceRecovery() {
+  try {
+    if (!pendingSpaceRecovery.sourceNames.length && !pendingSpaceRecovery.uploadNames.length) {
+      localStorage.removeItem(spaceRecoveryStorageKey);
+    } else {
+      localStorage.setItem(spaceRecoveryStorageKey, JSON.stringify(pendingSpaceRecovery));
+    }
+  } catch {
+    notifyStorageIssue();
+  }
+}
+
+function renderSpaceRecoveryNotice() {
+  if (!spaceRecoveryNotice) return;
+  const { sourceNames, uploadNames } = pendingSpaceRecovery;
+  const visible = sourceNames.length || uploadNames.length;
+  spaceRecoveryNotice.hidden = !visible;
+  if (spaceRecoveryTargetField) spaceRecoveryTargetField.hidden = !uploadNames.length;
+  if (spaceRecoveryTargetSelect) {
+    const previousTarget = spaceRecoveryTargetSelect.value;
+    spaceRecoveryTargetSelect.replaceChildren(...uploadNames.map((name) => {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      return option;
+    }));
+    if (uploadNames.includes(previousTarget)) spaceRecoveryTargetSelect.value = previousTarget;
+    else if (uploadNames[0]) spaceRecoveryTargetSelect.value = uploadNames[0];
+  }
+  if (!visible) return;
+  if (spaceRecoveryTitle) {
+    spaceRecoveryTitle.textContent = uploadNames.length
+      ? "项目已导入，但还有小说原文待恢复"
+      : "项目已导入，空间配置可以继续恢复";
+  }
+  const uploadHint = uploadNames.length
+    ? `请先上传：${uploadNames.join("、")}。上传完成后，这里的待恢复列表会自动更新。`
+    : "当前设备已找到对应原文。";
+  const configHint = sourceNames.length
+    ? `如需恢复空间记忆和检索策略，请进入对应小说卡片，单独导入空间配置。`
+    : "";
+  if (spaceRecoveryDescription) spaceRecoveryDescription.textContent = [uploadHint, configHint].filter(Boolean).join(" ");
+}
+
+function setSpaceRecovery(sourceNames = [], uploadNames = [], projectBindings = []) {
+  pendingSpaceRecovery = normalizeSpaceRecovery({ sourceNames, uploadNames, projectBindings });
+  persistSpaceRecovery();
+  renderSpaceRecoveryNotice();
+}
+
+function resolveSpaceRecoveryUpload(uploadedName) {
+  const normalizedName = safeText(uploadedName, "", 80).trim().toLocaleLowerCase();
+  if (!normalizedName || !pendingSpaceRecovery.uploadNames.length) return;
+  const remaining = pendingSpaceRecovery.uploadNames.filter((name) => name.toLocaleLowerCase() !== normalizedName);
+  const matchedBindings = pendingSpaceRecovery.projectBindings.filter((binding) => binding.name.toLocaleLowerCase() === normalizedName);
+  if (remaining.length === pendingSpaceRecovery.uploadNames.length && !matchedBindings.length) return;
+  let reboundCount = 0;
+  matchedBindings.forEach((binding) => {
+    const project = projects.find((item) => item.id === binding.projectId);
+    if (!project) return;
+    project.novelSpaceId = novelSpaces.find((space) => space.name.trim().toLocaleLowerCase() === normalizedName)?.id || project.novelSpaceId;
+    project.checkpoints = (project.checkpoints || []).map((checkpoint) => ({
+      ...checkpoint,
+      novelSpaceId: project.novelSpaceId,
+    }));
+    reboundCount += 1;
+  });
+  if (reboundCount) {
+    persistProjects();
+    showToast(`${reboundCount} 个项目已重新关联到「${uploadedName}」空间`);
+  }
+  const remainingBindings = pendingSpaceRecovery.projectBindings.filter((binding) => binding.name.toLocaleLowerCase() !== normalizedName);
+  setSpaceRecovery(pendingSpaceRecovery.sourceNames, remaining, remainingBindings);
+}
+
+let pendingSpaceRecovery = loadSpaceRecovery();
+const novelMemoryCache = {};
+const novelMemorySourceRevisions = {};
+const novelMemoryLoadErrors = {};
+const novelMemoryLoadInFlight = {};
+const novelMemoryRequestIds = {};
+let pendingNovelUploadFile = null;
+let novelUploadInFlight = false;
+let activeNovelUploadJobId = "";
+let novelUploadTargetSpaceId = "";
+let novelUploadRetrySpaceId = "";
+let novelUploadCancelInFlight = false;
+let novelUploadPollingTimedOut = false;
+let novelUploadResumeInFlight = false;
+let retrievalStrategy = loadRetrievalStrategy();
+try {
+  activeNovelSpaceId = localStorage.getItem(activeNovelSpaceStorageKey) || defaultNovelSpaceId;
+} catch {
+  notifyStorageIssue();
+}
 try {
   activeProjectId = localStorage.getItem(activeProjectStorageKey) || projects[0].id;
 } catch {
@@ -448,8 +1252,94 @@ try {
 if (!projects.some((project) => project.id === activeProjectId)) activeProjectId = projects[0].id;
 let conversationHistory = loadConversation();
 
+function getCurrentNovelDisplayName() {
+  const project = getActiveProject();
+  const fallback = project?.novelSpaceId === defaultNovelSpaceId ? "蛊真人" : project?.context?.title || "当前小说";
+  return safeText(novelSpaceForProject()?.name, fallback, 80);
+}
+
+function getModeHint(mode = selectedMode) {
+  const novelName = getCurrentNovelDisplayName();
+  if (getCurrentNovelSpaceId() === defaultNovelSpaceId) {
+    return mode === "续写"
+      ? "续写《蛊真人》的这一段故事……"
+      : mode === "问答"
+        ? "询问《蛊真人》的角色、蛊虫、势力或剧情……"
+        : modeHints[mode] || "写下你想继续探索的内容……";
+  }
+  return mode === "续写"
+    ? `续写「${novelName}」的这一段故事……`
+    : mode === "问答"
+      ? `询问「${novelName}」的角色、设定、势力或剧情……`
+      : modeHints[mode] || "写下你想继续探索的内容……";
+}
+
+function getCurrentNovelAssistantName() {
+  const name = getCurrentNovelDisplayName();
+  return getCurrentNovelSpaceId() === defaultNovelSpaceId ? "《蛊真人》" : name;
+}
+
+function getModePromptSet(mode = selectedMode) {
+  const spaceId = novelSpaceForProject()?.id || getActiveProject()?.novelSpaceId;
+  return spaceId === defaultNovelSpaceId
+    ? (modePromptSets[mode] || modePromptSets.续写)
+    : (genericModePromptSets[mode] || genericModePromptSets.续写);
+}
+
+function renderTaskStarters() {
+  if (!taskStarters || !taskStarterList) return;
+  const starterMode = ["续写", "问答"].includes(selectedMode);
+  const hasDraft = Boolean(messageInput?.value.trim());
+  const hasTaskInMode = conversationHistory.some((item) => {
+    if (item?.role !== "user" || !String(item.content || "").trim()) return false;
+    const itemMode = normalizeMessageMode(item.mode) || "续写";
+    return itemMode === selectedMode;
+  });
+  const visible = starterMode && !hasDraft && !hasTaskInMode;
+  taskStarters.hidden = !visible;
+  if (!visible) {
+    taskStarterList.replaceChildren();
+    return;
+  }
+  const buttons = getModePromptSet(selectedMode).slice(0, 3).map((prompt) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "task-starter";
+    button.setAttribute("aria-label", `${prompt.title}：${prompt.subtitle}`);
+    const title = document.createElement("strong");
+    title.textContent = prompt.title;
+    const subtitle = document.createElement("small");
+    subtitle.textContent = prompt.subtitle;
+    button.append(title, subtitle);
+    button.addEventListener("click", () => fillPrompt(prompt.prompt));
+    return button;
+  });
+  taskStarterList.replaceChildren(...buttons);
+}
+
+function getNovelCharacters(space = novelSpaceForProject()) {
+  const spaceId = space?.id || getActiveProject()?.novelSpaceId;
+  if (!spaceId || spaceId === defaultNovelSpaceId) return defaultCharacters.map((item) => ({ ...item }));
+  return [
+    { name: "主角", tone: "根据当前小说设定行动，保留人物已经建立的目标与性格。", details: "这是当前作品的主要叙事角色，可以在角色管理中替换为原作人物。" },
+    { name: "叙事助手", tone: "克制、清晰，帮助核对设定并推动故事向前。", details: "负责整理原作依据、当前场景和待解决的线索，不代替角色做决定。" },
+  ];
+}
+
+function getNovelOpeningConversation(space = novelSpaceForProject()) {
+  const spaceId = space?.id || getActiveProject()?.novelSpaceId;
+  if (!spaceId || spaceId === defaultNovelSpaceId) return defaultConversationHistory.map((item) => ({ ...item }));
+  return [{
+    role: "assistant",
+    name: "主角",
+    content: `「${space?.name || "当前小说"}」知识空间已经准备好。你可以指定章节或场景让我续写，也可以先提问原作内容。`,
+  }];
+}
+
 function getConversationTitle() {
-  return selectedMode === "问答" ? "《蛊真人》原作问答" : `与${selectedCharacter.name}对话`;
+  return selectedMode === "问答"
+    ? `${getCurrentNovelAssistantName()}原作问答`
+    : `与${selectedCharacter.name}对话`;
 }
 
 function getAssistantDisplayName(character = selectedCharacter) {
@@ -500,8 +1390,17 @@ function normalizeSourceQualitiesByVersion(value) {
   return value.map((quality) => normalizeSourceQuality(quality));
 }
 
+function normalizeSourceAnswerCoveragesByVersion(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((coverage) => normalizeSourceAnswerCoverage(coverage));
+}
+
 function normalizeSourceQuality(value) {
   return ["strong", "partial", "limited", "none"].includes(value) ? value : "";
+}
+
+function normalizeSourceAnswerCoverage(value) {
+  return ["answer", "direct", "related", "none"].includes(value) ? value : "";
 }
 
 function normalizeMessageMode(value) {
@@ -517,8 +1416,78 @@ function sourceQualityLabel(value) {
   }[normalizeSourceQuality(value)] || "";
 }
 
+function sourceAnswerCoverageLabel(value) {
+  return {
+    answer: "找到答案陈述",
+    direct: "找到直接相关片段",
+    related: "仅主题相关",
+    none: "未找到依据",
+  }[normalizeSourceAnswerCoverage(value)] || "";
+}
+
 function normalizeCitationStatus(value) {
   return ["verified", "unverified", "none"].includes(value) ? value : "";
+}
+
+const continuationQualityWarningCopy = {
+  outline_like: ["像提纲，不像正文", "检测到连续分点结构；续写通常应直接呈现场景、动作与人物反应。"],
+  meta_explanation: ["包含写作说明", "开头在解释如何续写，而不是直接进入小说正文。"],
+  scene_thin: ["场景感偏弱", "篇幅较长，但动作与对话很少、分析性表达较多。"],
+  future_possession: ["可能提前获得后续事物", "可能把后续章节信息写成当前已持有或可使用。"],
+};
+
+function normalizeQualityReview(value) {
+  if (!value || typeof value !== "object") return null;
+  const warnings = Array.isArray(value.warnings)
+    ? value.warnings.map((warning) => {
+      const code = safeText(warning?.code, "", 40);
+      if (!Object.prototype.hasOwnProperty.call(continuationQualityWarningCopy, code)) return null;
+      const fallback = continuationQualityWarningCopy[code];
+      return {
+        code,
+        label: safeText(warning?.label, fallback[0], 80),
+        detail: safeText(warning?.detail, fallback[1], 240),
+      };
+    }).filter(Boolean).slice(0, 4)
+    : [];
+  const status = value.status === "review" && warnings.length ? "review" : "pass";
+  return { status, warnings };
+}
+
+function normalizeQualityReviewsByVersion(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((review) => normalizeQualityReview(review));
+}
+
+function normalizeQualityRetryCodes(value) {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value
+    .map((code) => safeText(code, "", 40))
+    .filter((code) => Object.prototype.hasOwnProperty.call(continuationQualityWarningCopy, code))))
+    .slice(0, 4);
+}
+
+function normalizeQualityRetryCodesByVersion(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((codes) => normalizeQualityRetryCodes(codes));
+}
+
+function qualityOptimizationStatus(retryCodes, review) {
+  const targetedCodes = normalizeQualityRetryCodes(retryCodes);
+  if (!targetedCodes.length) return null;
+  const remainingCodes = qualityReviewCodes(review);
+  const resolvedCount = targetedCodes.filter((code) => !remainingCodes.includes(code)).length;
+  if (!remainingCodes.length) {
+    return { status: "passed", label: "质检已通过", detail: "定向优化后，本次检查未再发现风险。" };
+  }
+  if (resolvedCount > 0) {
+    return {
+      status: "improved",
+      label: "风险已减少",
+      detail: `已改善 ${resolvedCount} 项，仍有 ${remainingCodes.length} 项需要复核。`,
+    };
+  }
+  return { status: "review", label: "仍需复核", detail: `定向优化后仍有 ${remainingCodes.length} 项风险。` };
 }
 
 function formatBranchSource(project) {
@@ -546,9 +1515,11 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   const sourceRefs = normalizeSourceReferences(source.sourceRefs);
   const sourceQuery = safeText(source.sourceQuery, "", 600);
   const sourceQuality = normalizeSourceQuality(source.sourceQuality);
+  const sourceAnswerCoverage = normalizeSourceAnswerCoverage(source.sourceAnswerCoverage);
   const sourceRefsByVersion = normalizeSourceReferencesByVersion(source.sourceRefsByVersion);
   const sourceQueriesByVersion = normalizeSourceQueriesByVersion(source.sourceQueriesByVersion);
   const sourceQualitiesByVersion = normalizeSourceQualitiesByVersion(source.sourceQualitiesByVersion);
+  const sourceAnswerCoveragesByVersion = normalizeSourceAnswerCoveragesByVersion(source.sourceAnswerCoveragesByVersion);
   const currentSourceRefs = sourceRefsByVersion.length
     ? (sourceRefsByVersion[versionIndex] || [])
     : sourceRefs;
@@ -558,6 +1529,9 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   const currentSourceQuality = sourceQualitiesByVersion.length
     ? (sourceQualitiesByVersion[versionIndex] || "")
     : sourceQuality;
+  const currentSourceAnswerCoverage = sourceAnswerCoveragesByVersion.length
+    ? (sourceAnswerCoveragesByVersion[versionIndex] || "")
+    : sourceAnswerCoverage;
   const citationStatus = normalizeCitationStatus(source.sourceCitationStatus);
   const citationUnverified = Array.isArray(source.sourceCitationsUnverified)
     ? source.sourceCitationsUnverified.map((value) => safeText(value, "", 120)).filter(Boolean).slice(0, 8)
@@ -574,6 +1548,16 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   const currentCitationUnverified = citationUnverifiedByVersion.length
     ? (citationUnverifiedByVersion[versionIndex] || [])
     : citationUnverified;
+  const qualityReview = normalizeQualityReview(source.qualityReview);
+  const qualityReviewsByVersion = normalizeQualityReviewsByVersion(source.qualityReviewsByVersion);
+  const currentQualityReview = qualityReviewsByVersion.length
+    ? (qualityReviewsByVersion[versionIndex] || null)
+    : qualityReview;
+  const qualityRetryCodes = normalizeQualityRetryCodes(source.qualityRetryCodes);
+  const qualityRetryCodesByVersion = normalizeQualityRetryCodesByVersion(source.qualityRetryCodesByVersion);
+  const currentQualityRetryCodes = qualityRetryCodesByVersion.length
+    ? (qualityRetryCodesByVersion[versionIndex] || [])
+    : qualityRetryCodes;
   const messageMode = normalizeMessageMode(source.mode);
   const normalized = {
     role: source.role === "user" ? "user" : "assistant",
@@ -585,8 +1569,11 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
   if (normalized.role === "assistant" && currentSourceRefs.length) normalized.sourceRefs = currentSourceRefs;
   if (normalized.role === "assistant" && currentSourceQuery) normalized.sourceQuery = currentSourceQuery;
   if (normalized.role === "assistant" && currentSourceQuality) normalized.sourceQuality = currentSourceQuality;
+  if (normalized.role === "assistant" && currentSourceAnswerCoverage) normalized.sourceAnswerCoverage = currentSourceAnswerCoverage;
   if (normalized.role === "assistant" && currentCitationStatus) normalized.sourceCitationStatus = currentCitationStatus;
   if (normalized.role === "assistant" && currentCitationUnverified.length) normalized.sourceCitationsUnverified = currentCitationUnverified;
+  if (normalized.role === "assistant" && currentQualityReview) normalized.qualityReview = currentQualityReview;
+  if (normalized.role === "assistant" && currentQualityRetryCodes.length) normalized.qualityRetryCodes = currentQualityRetryCodes;
   if (normalized.role === "assistant" && versions.length > 1) {
     normalized.versions = versions;
     normalized.versionIndex = versionIndex;
@@ -603,9 +1590,16 @@ function normalizeConversationItem(item, fallbackAssistantName = "角色") {
     if (sourceQualitiesByVersion.length || currentSourceQuality) {
       normalized.sourceQualitiesByVersion = versions.map((_, index) => sourceQualitiesByVersion[index] || (index === versionIndex ? currentSourceQuality : ""));
     }
+    if (sourceAnswerCoveragesByVersion.length || currentSourceAnswerCoverage) {
+      normalized.sourceAnswerCoveragesByVersion = versions.map((_, index) => sourceAnswerCoveragesByVersion[index] || (index === versionIndex ? currentSourceAnswerCoverage : ""));
+    }
     if (citationStatuses.some(Boolean)) normalized.sourceCitationStatuses = citationStatuses;
     if (citationUnverifiedByVersion.some((values) => values.length)) {
       normalized.sourceCitationsUnverifiedByVersion = citationUnverifiedByVersion;
+    }
+    if (qualityReviewsByVersion.some(Boolean)) normalized.qualityReviewsByVersion = qualityReviewsByVersion;
+    if (qualityRetryCodesByVersion.some((codes) => codes.length)) {
+      normalized.qualityRetryCodesByVersion = qualityRetryCodesByVersion;
     }
   }
   return normalized;
@@ -750,6 +1744,2158 @@ function persistPromptLibrary() {
   }
 }
 
+function normalizeNovelSpace(item) {
+  const source = item && typeof item === "object" ? item : {};
+  const sourceStatus = source.source && typeof source.source === "object" ? source.source : {};
+  const memory = source.memory && typeof source.memory === "object" ? source.memory : {};
+  return {
+    id: safeText(source.id, defaultNovelSpaceId, 100),
+    name: safeText(source.name || sourceStatus.name, "未命名小说", 80),
+    filename: safeText(source.filename, "本地配置文件", 180),
+    kind: source.kind === "uploaded" ? "uploaded" : "configured",
+    source: {
+      ...sourceStatus,
+      id: safeText(sourceStatus.id || source.id, defaultNovelSpaceId, 100),
+      name: safeText(sourceStatus.name || source.name, "未命名小说", 80),
+      chunks: Number.isFinite(Number(sourceStatus.chunks)) ? Number(sourceStatus.chunks) : 0,
+      format: safeText(sourceStatus.format, "txt", 20),
+      parseStatus: safeText(sourceStatus.parse_status, "ready", 20),
+      parseMessage: safeText(sourceStatus.parse_message, "", 160),
+      sourceFiles: Array.isArray(sourceStatus.source_files)
+        ? sourceStatus.source_files.map((item) => safeText(item, "", 180)).filter(Boolean).slice(0, 32)
+        : [],
+      parseDiagnostics: {
+        quality: safeText(sourceStatus.parse_diagnostics?.quality || sourceStatus.parse_status, "ready", 20),
+        recognizedSections: Number(sourceStatus.parse_diagnostics?.recognized_sections) || 0,
+        averageChunkCharacters: Number(sourceStatus.parse_diagnostics?.average_chunk_characters) || 0,
+        headingCoverage: Number(sourceStatus.parse_diagnostics?.heading_coverage) || 0,
+        warnings: Array.isArray(sourceStatus.parse_diagnostics?.warnings)
+          ? sourceStatus.parse_diagnostics.warnings.map((item) => safeText(item, "", 180)).filter(Boolean).slice(0, 4)
+          : [],
+      },
+      available: Boolean(sourceStatus.available),
+      configured: Boolean(sourceStatus.configured),
+      encoding: safeText(sourceStatus.encoding, "", 30),
+      revision: safeText(sourceStatus.revision, "", 80),
+    },
+    memory: {
+      count: Number.isFinite(Number(memory.count)) ? Number(memory.count) : 0,
+      updated_at: Number(memory.updated_at) || 0,
+      staleCount: Math.max(0, Number(memory.stale_count || memory.staleCount) || 0),
+    },
+    created_at: Number(source.created_at) || 0,
+    updated_at: Number(source.updated_at) || 0,
+    lastAccessedAt: Number(source.last_accessed_at || source.lastAccessedAt) || 0,
+  };
+}
+
+function loadNovelSpaces() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(novelSpacesStorageKey) || "null");
+    if (Array.isArray(saved)) {
+      return saved.map((item) => normalizeNovelSpace(item))
+        .filter((item, index, list) => list.findIndex((candidate) => candidate.id === item.id) === index);
+    }
+  } catch {
+    // Server metadata remains the source of truth when browser storage is unavailable.
+  }
+  return [];
+}
+
+function persistNovelSpaces() {
+  try {
+    localStorage.setItem(novelSpacesStorageKey, JSON.stringify(novelSpaces));
+    localStorage.setItem(activeNovelSpaceStorageKey, activeNovelSpaceId);
+  } catch {
+    notifyStorageIssue();
+  }
+}
+
+function getActiveNovelSpace() {
+  return novelSpaces.find((space) => space.id === activeNovelSpaceId)
+    || novelSpaces.find((space) => space.id === defaultNovelSpaceId)
+    || novelSpaces[0]
+    || null;
+}
+
+function novelSpaceForProject(project = getActiveProject()) {
+  return novelSpaces.find((space) => space.id === project?.novelSpaceId) || getActiveNovelSpace();
+}
+
+function getCurrentNovelSpaceId() {
+  const projectSpaceId = getActiveProject()?.novelSpaceId;
+  if (projectSpaceId && novelSpaces.some((space) => space.id === projectSpaceId)) return projectSpaceId;
+  if (activeNovelSpaceId && novelSpaces.some((space) => space.id === activeNovelSpaceId)) return activeNovelSpaceId;
+  return defaultNovelSpaceId;
+}
+
+const novelMemoryKindLabels = {
+  manual: "手动记录",
+  summary: "剧情摘要",
+  scene_outcome: "本幕结果",
+  source_evidence: "原作依据",
+  source_summary: "原作章节摘要",
+};
+const maxNovelMemoryNotes = 100;
+
+function normalizeNovelMemory(memory, fallbackSpaceId = defaultNovelSpaceId) {
+  const source = memory && typeof memory === "object" ? memory : {};
+  const notes = Array.isArray(source.notes) ? source.notes : [];
+  return {
+    spaceId: safeText(source.space_id || source.spaceId, fallbackSpaceId, 100),
+    notes: notes.map((item) => ({
+      id: safeText(item?.id, `note-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 80),
+      title: safeText(item?.title, "空间笔记", 80),
+      content: safeText(item?.content, "", 4000),
+      kind: Object.prototype.hasOwnProperty.call(novelMemoryKindLabels, item?.kind) ? item.kind : "manual",
+      origin: safeText(item?.origin, "", 120),
+      sourceRevision: safeText(item?.source_revision || item?.sourceRevision, "", 80),
+      sourceChapter: safeText(item?.source_chapter || item?.sourceChapter, "", 160),
+      sourceChunkIndex: Math.max(0, Number(item?.source_chunk_index || item?.sourceChunkIndex) || 0),
+      sourceChunkCount: Math.max(0, Number(item?.source_chunk_count || item?.sourceChunkCount) || 0),
+      sourceStale: item?.source_stale === true || item?.sourceStale === true,
+      sourceStaleReason: safeText(item?.source_stale_reason || item?.sourceStaleReason, "", 20),
+      pinned: item?.pinned === true,
+      created_at: Number(item?.created_at) || 0,
+      updated_at: Number(item?.updated_at) || 0,
+    })).filter((item) => item.content).slice(0, maxNovelMemoryNotes),
+    count: Number.isFinite(Number(source.count)) ? Number(source.count) : notes.length,
+    updated_at: Number(source.updated_at) || 0,
+    staleCount: Math.max(0, Number(source.stale_count || source.staleCount) || 0),
+  };
+}
+
+function novelMemorySpaceSummary(memory) {
+  const notes = Array.isArray(memory?.notes) ? memory.notes : [];
+  return {
+    count: notes.length,
+    updated_at: Number(memory?.updated_at) || 0,
+    stale_count: notes.filter((note) => note.sourceStale).length,
+  };
+}
+
+function setMemoryLayer(layer, { focus = false } = {}) {
+  activeMemoryLayer = layer === "creative" ? "creative" : "source";
+  const sourceActive = activeMemoryLayer === "source";
+  if (sourceKnowledgePanel) sourceKnowledgePanel.hidden = !sourceActive;
+  if (creativeMemoryPanel) creativeMemoryPanel.hidden = sourceActive;
+  if (openNovelMemoryComposerButton) openNovelMemoryComposerButton.hidden = sourceActive;
+  memoryLayerTabs.forEach((button) => {
+    const active = button.dataset.memoryLayer === activeMemoryLayer;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+    button.tabIndex = active ? 0 : -1;
+  });
+  if (sourceActive) {
+    loadSourceKnowledge(getCurrentNovelSpaceId());
+    loadReviewedMemoryStatus(getCurrentNovelSpaceId());
+    if (focus) sourceKnowledgeSearchInput?.focus();
+  } else if (focus) {
+    novelMemorySearchInput?.focus();
+  }
+}
+
+function normalizeSourceKnowledge(payload, spaceId) {
+  const source = payload && typeof payload === "object" ? payload : {};
+  const counts = source.counts && typeof source.counts === "object" ? source.counts : {};
+  return {
+    spaceId,
+    count: Math.max(0, Number(source.count) || 0),
+    counts: {
+      character: Math.max(0, Number(counts.character) || 0),
+      relation: Math.max(0, Number(counts.relation) || 0),
+      setting: Math.max(0, Number(counts.setting) || 0),
+      event: Math.max(0, Number(counts.event) || 0),
+    },
+    items: (Array.isArray(source.items) ? source.items : []).map((item) => ({
+      id: safeText(item?.id, "", 80),
+      category: safeText(item?.category, "setting", 20),
+      categoryLabel: safeText(item?.category_label, "原作知识", 20),
+      title: safeText(item?.title, "原作知识", 80),
+      content: safeText(item?.content, "", 320),
+      chapter: safeText(item?.chapter, "作品开篇", 160),
+    })).filter((item) => item.content),
+  };
+}
+
+function renderSourceKnowledge() {
+  if (!sourceKnowledgeList) return;
+  const currentSpaceId = getCurrentNovelSpaceId();
+  const current = activeSourceKnowledge.spaceId === currentSpaceId
+    ? activeSourceKnowledge
+    : { count: 0, counts: {}, items: [] };
+  sourceKnowledgeSummary?.querySelectorAll("[data-source-knowledge-count]").forEach((counter) => {
+    const category = counter.dataset.sourceKnowledgeCount || "all";
+    counter.textContent = String(category === "all" ? current.count : Number(current.counts?.[category]) || 0);
+  });
+  sourceKnowledgeSummary?.querySelectorAll("[data-source-knowledge-category]").forEach((button) => {
+    const active = button.dataset.sourceKnowledgeCategory === activeSourceKnowledgeCategory;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  if (sourceKnowledgeCount) sourceKnowledgeCount.textContent = current.count ? `${current.count.toLocaleString("zh-CN")} 条原作知识` : "尚未整理";
+  sourceKnowledgeList.replaceChildren();
+  if (!current.items.length) {
+    const empty = document.createElement("p");
+    empty.className = "memory-empty source-knowledge-empty";
+    empty.textContent = sourceKnowledgeHint?.dataset.state === "loading"
+      ? "正在从原文中整理人物、关系和世界设定……"
+      : sourceKnowledgeSearchInput?.value.trim() || activeSourceKnowledgeCategory !== "all"
+        ? "没有找到符合当前条件的原作知识。"
+        : "当前原文还没有可展示的结构化知识。";
+    sourceKnowledgeList.appendChild(empty);
+    return;
+  }
+  current.items.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "source-knowledge-card";
+    const badge = document.createElement("span");
+    badge.className = `source-knowledge-badge is-${item.category}`;
+    badge.textContent = item.categoryLabel;
+    const content = document.createElement("p");
+    content.textContent = item.content;
+    const source = document.createElement("button");
+    source.type = "button";
+    source.className = "source-knowledge-source";
+    source.textContent = item.chapter;
+    source.title = "打开对应原文章节";
+    source.addEventListener("click", () => {
+      setWorkspaceView("source", { announce: true, focus: false });
+      openSourceChapterReader(item.chapter);
+    });
+    card.append(badge, content, source);
+    sourceKnowledgeList.appendChild(card);
+  });
+}
+
+async function loadSourceKnowledge(spaceId = getCurrentNovelSpaceId(), { force = false } = {}) {
+  if (!sourceKnowledgeList) return;
+  const normalizedSpaceId = safeText(spaceId, defaultNovelSpaceId, 100);
+  const requestId = ++sourceKnowledgeRequestId;
+  if (sourceKnowledgeHint) {
+    sourceKnowledgeHint.dataset.state = "loading";
+    sourceKnowledgeHint.textContent = force ? "正在重新整理原作知识……" : "正在读取原作知识……";
+  }
+  renderSourceKnowledge();
+  const query = sourceKnowledgeSearchInput?.value.trim() || "";
+  const body = {
+    novel_space_id: normalizedSpaceId,
+    query,
+    category: activeSourceKnowledgeCategory,
+    limit: 16,
+  };
+  try {
+    const url = force
+      ? "/api/novels/knowledge"
+      : `/api/novels/knowledge?${new URLSearchParams({
+        novel_space_id: normalizedSpaceId,
+        query,
+        category: activeSourceKnowledgeCategory,
+        limit: "16",
+      }).toString()}`;
+    const response = await fetchWithTimeout(url, force ? {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    } : {}, 30000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.knowledge) throw new Error(payload.error || "原作知识读取失败");
+    if (requestId !== sourceKnowledgeRequestId || getCurrentNovelSpaceId() !== normalizedSpaceId) return;
+    activeSourceKnowledge = normalizeSourceKnowledge(payload.knowledge, normalizedSpaceId);
+    if (sourceKnowledgeHint) {
+      sourceKnowledgeHint.dataset.state = "ready";
+      sourceKnowledgeHint.textContent = "直接来自原文并保留章节出处，已参与原作问答。";
+    }
+    renderSourceKnowledge();
+  } catch (error) {
+    if (requestId !== sourceKnowledgeRequestId) return;
+    activeSourceKnowledge = { spaceId: normalizedSpaceId, count: 0, counts: {}, items: [] };
+    if (sourceKnowledgeHint) {
+      sourceKnowledgeHint.dataset.state = "error";
+      sourceKnowledgeHint.textContent = error?.message || "原作知识暂时无法读取";
+    }
+    renderSourceKnowledge();
+  }
+}
+
+function normalizeReviewedMemoryBuild(payload, spaceId) {
+  const source = payload && typeof payload === "object" ? payload : {};
+  return {
+    spaceId,
+    status: safeText(source.status, "idle", 30),
+    stage: safeText(source.stage, "", 180),
+    progress: Math.max(0, Math.min(100, Number(source.progress) || 0)),
+    memoryRevision: safeText(source.memory_revision, "", 80),
+    error: safeText(source.error, "", 180),
+    canStart: source.can_start === true,
+    canCancel: source.can_cancel === true,
+    canPromote: source.can_promote === true,
+    productReady: source.product_ready === true,
+  };
+}
+
+function renderReviewedMemoryBuild() {
+  if (!reviewedMemoryBuild) return;
+  const state = reviewedMemoryBuildState.spaceId === getCurrentNovelSpaceId()
+    ? reviewedMemoryBuildState
+    : { status: "loading", progress: 0 };
+  const active = ["queued", "extracting", "reviewing", "building", "cancelling"].includes(state.status);
+  const content = {
+    loading: ["正在读取记忆状态", "请稍候。"],
+    idle: ["增强人物与设定理解", "原文问答已经可用。构建后，复杂关系与世界规则会更准确。"],
+    queued: ["深度记忆正在准备", state.stage || "正在选择代表章节。"],
+    extracting: ["正在理解原作", state.stage || "正在提取人物、关系与世界规则。"],
+    reviewing: ["正在核对每条记忆", state.stage || "每条知识都要通过原文证据审查。"],
+    building: ["正在建立知识关联", state.stage || "正在连接人物、地点和关键事件。"],
+    cancelling: ["正在暂停", "当前请求结束后会保留已完成的进度。"],
+    cancelled: ["构建已暂停", "已完成的章节会保留，下次可以继续。"],
+    interrupted: ["上次构建被中断", "已完成的章节仍在，可以继续构建。"],
+    error: ["构建没有完成", state.error || "可以检查模型服务后重试。"],
+    needs_review: ["本次结果未通过审查", "有些事实的证据不够可靠，本次不会用于问答。可以重新构建。"],
+    pilot_ready: ["深度记忆已审查", "启用后，问答会优先使用这些有原文依据的人物关系与世界设定。"],
+    production: ["深度记忆已启用", "复杂关系与世界规则会优先使用已审查的原作知识。"],
+    stale: ["原文已经更新", "旧记忆不会继续使用，请基于新版本重新构建。"],
+  }[state.status] || ["增强人物与设定理解", state.stage || "可以开始构建。"];
+  reviewedMemoryBuild.dataset.state = state.status;
+  if (reviewedMemoryBuildTitle) reviewedMemoryBuildTitle.textContent = content[0];
+  if (reviewedMemoryBuildDescription) reviewedMemoryBuildDescription.textContent = content[1];
+  if (reviewedMemoryProgress) {
+    reviewedMemoryProgress.hidden = !active;
+    reviewedMemoryProgress.setAttribute("aria-valuenow", String(Math.round(state.progress || 0)));
+  }
+  if (reviewedMemoryProgressBar) reviewedMemoryProgressBar.style.width = `${state.progress || 0}%`;
+  if (startReviewedMemoryBuildButton) {
+    startReviewedMemoryBuildButton.hidden = !state.canStart && !["idle", "cancelled", "interrupted", "error", "needs_review", "stale"].includes(state.status);
+    startReviewedMemoryBuildButton.disabled = active || state.status === "loading";
+    startReviewedMemoryBuildButton.textContent = ["cancelled", "interrupted"].includes(state.status) ? "继续构建" : ["error", "needs_review", "stale"].includes(state.status) ? "重新构建" : "开始构建";
+  }
+  if (promoteReviewedMemoryBuildButton) promoteReviewedMemoryBuildButton.hidden = !state.canPromote;
+  if (cancelReviewedMemoryBuildButton) cancelReviewedMemoryBuildButton.hidden = !state.canCancel;
+}
+
+function scheduleReviewedMemoryStatus(spaceId) {
+  window.clearTimeout(reviewedMemoryStatusTimer);
+  if (!["queued", "extracting", "reviewing", "building", "cancelling"].includes(reviewedMemoryBuildState.status)) return;
+  reviewedMemoryStatusTimer = window.setTimeout(() => loadReviewedMemoryStatus(spaceId), 1500);
+}
+
+async function loadReviewedMemoryStatus(spaceId = getCurrentNovelSpaceId()) {
+  const normalizedSpaceId = safeText(spaceId, defaultNovelSpaceId, 100);
+  window.clearTimeout(reviewedMemoryStatusTimer);
+  if (reviewedMemoryBuildState.spaceId !== normalizedSpaceId) {
+    reviewedMemoryBuildState = { spaceId: normalizedSpaceId, status: "loading", progress: 0, memoryRevision: "" };
+    renderReviewedMemoryBuild();
+  }
+  try {
+    const query = new URLSearchParams({ novel_space_id: normalizedSpaceId });
+    const response = await fetchWithTimeout(`/api/novels/reviewed-memory/status?${query}`, {}, 15000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.memory_build) throw new Error(payload.error || "深度记忆状态读取失败");
+    if (getCurrentNovelSpaceId() !== normalizedSpaceId) return;
+    reviewedMemoryBuildState = normalizeReviewedMemoryBuild(payload.memory_build, normalizedSpaceId);
+    renderReviewedMemoryBuild();
+    scheduleReviewedMemoryStatus(normalizedSpaceId);
+  } catch (error) {
+    if (getCurrentNovelSpaceId() !== normalizedSpaceId) return;
+    reviewedMemoryBuildState = {
+      spaceId: normalizedSpaceId,
+      status: "error",
+      progress: 0,
+      memoryRevision: "",
+      error: error?.message || "深度记忆状态读取失败",
+      canStart: true,
+    };
+    renderReviewedMemoryBuild();
+  }
+}
+
+async function startReviewedMemoryBuild() {
+  const spaceId = getCurrentNovelSpaceId();
+  const novelName = getCurrentNovelDisplayName();
+  if (!await ensureProviderDataConsent(
+    "构建深度记忆",
+    `构建深度记忆会把「${novelName}」中最多 6 个代表章节的有限预览发送给当前模型服务，用于提取并核对人物、关系与设定。不会发送完整小说或本地索引。`,
+  )) return;
+  if (startReviewedMemoryBuildButton) startReviewedMemoryBuildButton.disabled = true;
+  try {
+    const response = await fetchWithTimeout("/api/novels/reviewed-memory/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        novel_space_id: spaceId,
+        provider: providerSelect.value,
+        model: modelName.value.trim(),
+        chapter_limit: 6,
+      }),
+    }, 30000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.memory_build) throw new Error(payload.error || "无法开始构建深度记忆");
+    reviewedMemoryBuildState = normalizeReviewedMemoryBuild(payload.memory_build, spaceId);
+    renderReviewedMemoryBuild();
+    scheduleReviewedMemoryStatus(spaceId);
+  } catch (error) {
+    showToast(error?.message || "无法开始构建深度记忆");
+    await loadReviewedMemoryStatus(spaceId);
+  }
+}
+
+async function cancelReviewedMemoryBuild() {
+  const spaceId = getCurrentNovelSpaceId();
+  try {
+    const response = await fetchWithTimeout("/api/novels/reviewed-memory/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ novel_space_id: spaceId }),
+    }, 15000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.memory_build) throw new Error(payload.error || "无法暂停构建");
+    reviewedMemoryBuildState = normalizeReviewedMemoryBuild(payload.memory_build, spaceId);
+    renderReviewedMemoryBuild();
+    scheduleReviewedMemoryStatus(spaceId);
+  } catch (error) {
+    showToast(error?.message || "无法暂停构建");
+  }
+}
+
+async function promoteReviewedMemoryBuild() {
+  const spaceId = getCurrentNovelSpaceId();
+  if (!reviewedMemoryBuildState.memoryRevision) return;
+  if (promoteReviewedMemoryBuildButton) promoteReviewedMemoryBuildButton.disabled = true;
+  try {
+    const response = await fetchWithTimeout("/api/novels/reviewed-memory/promote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        novel_space_id: spaceId,
+        memory_revision: reviewedMemoryBuildState.memoryRevision,
+      }),
+    }, 15000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.memory_build) throw new Error(payload.error || "无法启用深度记忆");
+    reviewedMemoryBuildState = normalizeReviewedMemoryBuild(payload.memory_build, spaceId);
+    renderReviewedMemoryBuild();
+    await loadSourceKnowledge(spaceId);
+    showToast("深度记忆已启用");
+  } catch (error) {
+    showToast(error?.message || "无法启用深度记忆");
+  } finally {
+    if (promoteReviewedMemoryBuildButton) promoteReviewedMemoryBuildButton.disabled = false;
+  }
+}
+
+function renderNovelMemory() {
+  if (!novelMemoryList) return;
+  if (novelMemorySpaceName) novelMemorySpaceName.textContent = getCurrentNovelDisplayName();
+  const allNotes = activeNovelMemory.notes || [];
+  const query = novelMemorySearchInput?.value.trim().toLocaleLowerCase() || "";
+  const kind = novelMemoryKindFilter?.value || "all";
+  if (clearNovelMemoryFiltersButton) clearNovelMemoryFiltersButton.hidden = !query && kind === "all";
+  const staleCount = allNotes.filter((note) => note.sourceStale).length;
+  const sourceMemoryCount = allNotes.filter((note) => ["source_evidence", "source_summary"].includes(note.kind)).length;
+  const continuityMemoryCount = allNotes.filter((note) => ["manual", "summary", "scene_outcome"].includes(note.kind)).length;
+  novelMemorySummary?.querySelectorAll("[data-memory-summary-count]").forEach((counter) => {
+    const summaryKind = counter.dataset.memorySummaryCount || "all";
+    const count = summaryKind === "source"
+      ? sourceMemoryCount
+      : summaryKind === "continuity"
+        ? continuityMemoryCount
+        : summaryKind === "stale" ? staleCount : allNotes.length;
+    counter.textContent = Number(count).toLocaleString("zh-CN");
+  });
+  novelMemorySummary?.querySelectorAll("[data-memory-summary-kind]").forEach((button) => {
+    const active = button.dataset.memorySummaryKind === kind;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  const notes = allNotes.filter((note) => {
+    if (kind === "stale" && !note.sourceStale) return false;
+    if (kind === "source" && !["source_evidence", "source_summary"].includes(note.kind)) return false;
+    if (kind === "continuity" && !["manual", "summary", "scene_outcome"].includes(note.kind)) return false;
+    if (!["all", "stale", "source", "continuity"].includes(kind) && note.kind !== kind) return false;
+    if (!query) return true;
+    return [note.title, note.content, note.origin].some((value) => String(value || "").toLocaleLowerCase().includes(query));
+  }).sort((left, right) => {
+    if (left.pinned !== right.pinned) return left.pinned ? -1 : 1;
+    return Number(right.updated_at || 0) - Number(left.updated_at || 0);
+  });
+  novelMemoryList.replaceChildren();
+  const pinnedCount = allNotes.filter((note) => note.pinned).length;
+  if (novelMemoryCount) novelMemoryCount.textContent = notes.length === allNotes.length
+    ? novelMemoryLoadInFlight[activeNovelMemory.spaceId]
+      ? "正在读取……"
+      : `${allNotes.length} 条记忆`
+    : `${notes.length} / ${allNotes.length} 条记忆`;
+  if (previewNovelMemoryButton) {
+    previewNovelMemoryButton.disabled = !allNotes.length || Boolean(novelMemoryLoadInFlight[activeNovelMemory.spaceId]);
+    previewNovelMemoryButton.title = allNotes.length ? "查看当前续写任务会带入哪些记忆" : "还没有可用于续写的记忆";
+  }
+  if (novelMemoryContextHint) {
+    novelMemoryContextHint.textContent = staleCount
+      ? `${staleCount} 条记忆需要重新核对，核对前不会用于续写。`
+      : pinnedCount
+        ? "续写会优先参考置顶记忆，并自动匹配其他相关内容。"
+        : "续写会自动选取相关记忆；内容问答只依据原作。";
+  }
+  if (removeStaleNovelMemoryButton) {
+    removeStaleNovelMemoryButton.hidden = !staleCount || Boolean(novelMemoryLoadErrors[activeNovelMemory.spaceId]);
+    removeStaleNovelMemoryButton.textContent = staleCount ? `清理 ${staleCount} 条待核对` : "清理待核对";
+    removeStaleNovelMemoryButton.title = staleCount
+      ? "删除当前小说空间中所有已失效的原作依据 / 章节摘要记忆"
+      : "当前没有待核对的原文记忆";
+  }
+  if (!notes.length) {
+    const empty = document.createElement("p");
+    empty.className = "memory-empty";
+    empty.textContent = novelMemoryLoadInFlight[activeNovelMemory.spaceId]
+      ? "空间记忆正在读取，请稍候再编辑。"
+      : allNotes.length
+        ? "没有符合当前搜索或来源筛选的记忆。"
+        : novelMemoryLoadErrors[activeNovelMemory.spaceId]
+          ? "空间记忆暂时读取失败，请刷新小说库后再编辑，避免覆盖已有内容。"
+          : "还没有记忆。新增一条人物关系、世界规则或二创约定吧。";
+    novelMemoryList.appendChild(empty);
+    syncWorkspaceGuideProgress();
+    return;
+  }
+  notes.forEach((note) => {
+    const card = document.createElement("article");
+    card.className = "novel-memory-card";
+    const heading = document.createElement("div");
+    heading.className = "novel-memory-heading";
+    const title = document.createElement("strong");
+    title.textContent = note.title;
+    const actions = [];
+    if (note.sourceChapter) {
+      const recheck = document.createElement("button");
+      const sourceUnavailable = !novelSpaces.find((space) => space.id === activeNovelMemory.spaceId)?.source?.available;
+      const needsSourceRecovery = note.sourceStale && note.sourceStaleReason === "missing" && sourceUnavailable;
+      recheck.type = "button";
+      recheck.className = "text-button memory-recheck-button";
+      recheck.textContent = note.sourceStale ? "重新核对" : "查看原文";
+      recheck.title = note.sourceStale
+        ? needsSourceRecovery
+          ? "原文尚未恢复，先回到小说库上传或恢复原文"
+          : "打开这条记忆对应的当前原文章节，并重新生成摘要或核对依据"
+        : "打开这条记忆对应的当前原文，核对记忆来源";
+      recheck.addEventListener("click", () => {
+        if (needsSourceRecovery) {
+          setWorkspaceView("library", { announce: true, focus: true });
+          showToast("请先恢复当前小说原文，再重新核对这条记忆");
+          return;
+        }
+        setWorkspaceView("source", { announce: true, focus: false });
+        if (sourcePageChapter) {
+          sourcePageChapter.value = note.sourceChapter;
+          sourcePageChapter.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (note.sourceChapter === "作品开篇") openSourceChapterReader("", { sample: true });
+        else openSourceChapterReader(note.sourceChapter);
+      });
+      actions.push(recheck);
+    }
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "text-button memory-edit-button";
+    edit.textContent = "编辑";
+    edit.addEventListener("click", () => startNovelMemoryEdit(note.id));
+    const pin = document.createElement("button");
+    pin.type = "button";
+    pin.className = "text-button memory-pin-button";
+    pin.classList.toggle("is-pinned", note.pinned);
+    pin.textContent = note.pinned ? "已置顶" : "置顶";
+    const staleSourceMemory = note.sourceStale && ["source_evidence", "source_summary"].includes(note.kind);
+    pin.disabled = staleSourceMemory;
+    pin.title = staleSourceMemory
+      ? "原文来源已失效，重新核对后才能置顶并用于续写"
+      : note.pinned ? "取消置顶这条记忆" : "优先带入续写上下文";
+    pin.addEventListener("click", () => toggleNovelMemoryPinned(note.id, pin));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "text-button";
+    remove.textContent = "删除";
+    remove.addEventListener("click", () => deleteNovelMemory(note.id));
+    heading.append(title);
+    const origin = document.createElement("small");
+    origin.className = "novel-memory-origin";
+    origin.classList.toggle("is-stale", note.sourceStale);
+    origin.textContent = [
+      novelMemoryKindLabels[note.kind] || "手动记录",
+      note.origin || "",
+      note.sourceChapter ? `依据：${note.sourceChapter}` : "",
+      note.sourceStale
+        ? note.sourceStaleReason === "missing" ? "原文未就绪，请重新核对" : "原文已更新，请重新核对"
+        : "",
+    ].filter(Boolean).join(" · ");
+    const content = document.createElement("p");
+    content.textContent = note.content;
+    const actionBar = document.createElement("div");
+    actionBar.className = "memory-card-actions";
+    actionBar.append(...actions, edit, pin, remove);
+    card.append(heading, origin, content, actionBar);
+    novelMemoryList.appendChild(card);
+  });
+  syncWorkspaceGuideProgress();
+}
+
+function resetNovelMemoryEditor() {
+  editingNovelMemoryId = null;
+  if (novelMemoryTitleInput) novelMemoryTitleInput.value = "";
+  if (novelMemoryContentInput) novelMemoryContentInput.value = "";
+  updateNovelMemoryContentCount();
+  if (saveNovelMemoryButton) saveNovelMemoryButton.textContent = "保存记忆";
+  if (novelMemoryComposerTitle) novelMemoryComposerTitle.textContent = "记住一条创作设定";
+}
+
+function setNovelMemoryComposerOpen(open, { focus = false } = {}) {
+  if (!novelMemoryComposer) return;
+  novelMemoryComposer.hidden = !open;
+  openNovelMemoryComposerButton?.setAttribute("aria-expanded", String(open));
+  openNovelMemoryComposerButton?.classList.toggle("is-active", open);
+  if (open && focus) {
+    window.setTimeout(() => {
+      novelMemoryTitleInput?.focus();
+      novelMemoryComposer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 0);
+  }
+}
+
+function closeNovelMemoryComposer({ discard = false } = {}) {
+  if (!discard && hasNovelMemoryDraft() && !window.confirm("这条记忆还没有保存，确定放弃吗？")) return false;
+  resetNovelMemoryEditor();
+  setNovelMemoryComposerOpen(false);
+  openNovelMemoryComposerButton?.focus();
+  return true;
+}
+
+function updateNovelMemoryContentCount() {
+  if (!novelMemoryContentCount) return;
+  const length = novelMemoryContentInput?.value.length || 0;
+  novelMemoryContentCount.textContent = `${length} / 4000 字`;
+  novelMemoryContentCount.classList.toggle("is-near-limit", length >= 3600);
+}
+
+function applyNovelMemoryTemplate(title, content) {
+  if (!novelMemoryTitleInput || !novelMemoryContentInput) return;
+  if (hasNovelMemoryDraft() && !window.confirm("当前空间笔记编辑器已有内容，使用模板会替换未保存内容。继续吗？")) return;
+  resetNovelMemoryEditor();
+  novelMemoryTitleInput.value = title;
+  novelMemoryContentInput.value = String(content || "").replace(/\\n/g, "\n");
+  updateNovelMemoryContentCount();
+  setNovelMemoryComposerOpen(true);
+  novelMemoryContentInput.focus();
+  showToast(`已套用「${title}」记忆模板，可继续补充内容`);
+}
+
+function hasNovelMemoryDraft() {
+  return Boolean(
+    editingNovelMemoryId
+    || novelMemoryTitleInput?.value.trim()
+    || novelMemoryContentInput?.value.trim()
+  );
+}
+
+function confirmNovelMemorySpaceSwitch(nextSpaceId) {
+  const currentSpaceId = getCurrentNovelSpaceId();
+  if (String(nextSpaceId) === String(currentSpaceId)) return true;
+  if (!hasNovelMemoryDraft()) {
+    resetNovelMemoryEditor();
+    setNovelMemoryComposerOpen(false);
+    return true;
+  }
+  if (!window.confirm("当前空间笔记还有未保存的编辑内容，切换小说会放弃这些修改。确定切换吗？")) return false;
+  resetNovelMemoryEditor();
+  setNovelMemoryComposerOpen(false);
+  return true;
+}
+
+function startNovelMemoryEdit(noteId) {
+  const spaceId = getCurrentNovelSpaceId();
+  if (blockNovelMemoryWrite(spaceId)) return;
+  const note = activeNovelMemory.notes.find((item) => item.id === noteId);
+  if (!note || activeNovelMemory.spaceId !== spaceId) return;
+  editingNovelMemoryId = note.id;
+  novelMemoryTitleInput.value = note.title;
+  novelMemoryContentInput.value = note.content;
+  updateNovelMemoryContentCount();
+  saveNovelMemoryButton.textContent = "更新空间笔记";
+  if (novelMemoryComposerTitle) novelMemoryComposerTitle.textContent = "编辑空间记忆";
+  setNovelMemoryComposerOpen(true);
+  novelMemoryContentInput.focus();
+  showToast(`正在编辑「${note.title}」`);
+}
+
+function resetNovelMemoryFilters() {
+  if (novelMemorySearchInput) novelMemorySearchInput.value = "";
+  if (novelMemoryKindFilter) novelMemoryKindFilter.value = "all";
+  hideNovelMemoryPreview();
+}
+
+function hideNovelMemoryPreview() {
+  if (novelMemoryPreview) novelMemoryPreview.hidden = true;
+  novelMemoryPreviewList?.replaceChildren();
+}
+
+function getNovelMemoryPreviewQuery() {
+  return messageInput?.value.trim() ? getDraftSourceQuery() : getSourceQuery(selectedMode);
+}
+
+function renderNovelMemoryPreview(preview) {
+  if (!novelMemoryPreview || !novelMemoryPreviewList) return;
+  novelMemoryPreview.hidden = false;
+  novelMemoryPreviewList.replaceChildren();
+  const notes = Array.isArray(preview?.notes) ? preview.notes : [];
+  const used = preview?.used === true;
+  if (novelMemoryPreviewTitle) novelMemoryPreviewTitle.textContent = used ? "本次续写会带入的空间记忆" : "本次问答的空间记忆边界";
+  if (novelMemoryPreviewStatus) {
+    const query = safeText(preview?.query, "", 120);
+    novelMemoryPreviewStatus.textContent = used
+      ? `${notes.length} 条 · 查询：${query || "当前章节 / 最近对话"}`
+      : "内容问答不会使用空间记忆";
+  }
+  if (!used || !notes.length) {
+    const empty = document.createElement("p");
+    empty.className = "novel-memory-preview-empty";
+    empty.textContent = used ? "本次没有匹配到空间笔记；模型仍会使用原作检索和当前创作上下文。" : "空间记忆只作为续写连续性辅助，不会作为原作事实依据。";
+    novelMemoryPreviewList.appendChild(empty);
+    return;
+  }
+  notes.forEach((note) => {
+    const item = document.createElement("article");
+    item.className = "novel-memory-preview-item";
+    const title = document.createElement("strong");
+    title.textContent = note.title || "空间笔记";
+    const meta = document.createElement("small");
+    meta.textContent = [
+      note.selection_reason || "相关命中",
+      novelMemoryKindLabels[note.kind] || "手动记录",
+      note.pinned ? "已置顶" : "",
+      note.origin || "",
+      (note.source_chapter || note.sourceChapter) ? `依据：${note.source_chapter || note.sourceChapter}` : "",
+      Number(note.source_chunk_count || note.sourceChunkCount) > 1
+        ? `分片 ${Number(note.source_chunk_index || note.sourceChunkIndex) || 1}/${Number(note.source_chunk_count || note.sourceChunkCount)}`
+        : "",
+      note.source_stale ? "原文已更新，未带入" : "",
+    ].filter(Boolean).join(" · ");
+    const content = document.createElement("p");
+    content.textContent = note.content || "暂无笔记内容";
+    item.append(title, meta, content);
+    novelMemoryPreviewList.appendChild(item);
+  });
+}
+
+async function previewNovelMemory() {
+  if (!novelMemoryPreview || !previewNovelMemoryButton) return;
+  const spaceId = getCurrentNovelSpaceId();
+  previewNovelMemoryButton.disabled = true;
+  previewNovelMemoryButton.textContent = "读取中……";
+  try {
+    const response = await fetchWithTimeout("/api/novels/memory/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        novel_space_id: spaceId,
+        query: getNovelMemoryPreviewQuery(),
+        mode: selectedMode,
+      }),
+    }, 12000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.preview) throw new Error(payload.error || "空间记忆预览失败");
+    renderNovelMemoryPreview(payload.preview);
+  } catch (error) {
+    renderNovelMemoryPreview({ used: selectedMode !== "问答", notes: [] });
+    if (novelMemoryPreviewStatus) novelMemoryPreviewStatus.textContent = error?.message || "空间记忆预览失败";
+  } finally {
+    previewNovelMemoryButton.disabled = false;
+    previewNovelMemoryButton.textContent = "刷新记忆预览";
+  }
+}
+
+async function loadNovelSpaceMemory(spaceId = getCurrentNovelSpaceId(), { force = false } = {}) {
+  const normalizedSpaceId = safeText(spaceId, defaultNovelSpaceId, 100);
+  const isCurrentSpace = () => getCurrentNovelSpaceId() === normalizedSpaceId;
+  if (!force && novelMemoryCache[normalizedSpaceId] && !novelMemoryLoadErrors[normalizedSpaceId]) {
+    if (isCurrentSpace()) {
+      activeNovelMemory = novelMemoryCache[normalizedSpaceId];
+      renderNovelMemory();
+    }
+    return novelMemoryCache[normalizedSpaceId];
+  }
+  const requestId = (novelMemoryRequestIds[normalizedSpaceId] || 0) + 1;
+  novelMemoryRequestIds[normalizedSpaceId] = requestId;
+  if (isCurrentSpace()) {
+    activeNovelMemory = novelMemoryCache[normalizedSpaceId] || { spaceId: normalizedSpaceId, notes: [], count: 0, updated_at: 0 };
+    renderNovelMemory();
+  }
+  novelMemoryLoadInFlight[normalizedSpaceId] = (novelMemoryLoadInFlight[normalizedSpaceId] || 0) + 1;
+  if (isCurrentSpace()) renderNovelMemory();
+  try {
+    const params = new URLSearchParams({ novel_space_id: normalizedSpaceId });
+    const response = await fetchWithTimeout(`/api/novels/memory?${params.toString()}`, {}, 12000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.memory) throw new Error("空间记忆读取失败");
+    const memory = normalizeNovelMemory(payload.memory, normalizedSpaceId);
+    if (novelMemoryRequestIds[normalizedSpaceId] !== requestId) {
+      return novelMemoryCache[normalizedSpaceId] || memory;
+    }
+    novelMemoryCache[normalizedSpaceId] = memory;
+    novelMemorySourceRevisions[normalizedSpaceId] = novelSpaces.find((item) => item.id === normalizedSpaceId)?.source?.revision || "";
+    delete novelMemoryLoadErrors[normalizedSpaceId];
+    const space = novelSpaces.find((item) => item.id === normalizedSpaceId);
+    if (space) space.memory = novelMemorySpaceSummary(memory);
+    if (isCurrentSpace()) {
+      activeNovelMemory = memory;
+      renderNovelMemory();
+    }
+    renderNovelSpaceLibrary();
+    return memory;
+  } catch {
+    if (novelMemoryRequestIds[normalizedSpaceId] !== requestId) {
+      return novelMemoryCache[normalizedSpaceId] || { spaceId: normalizedSpaceId, notes: [], count: 0, updated_at: 0 };
+    }
+    const memory = novelMemoryCache[normalizedSpaceId] || { spaceId: normalizedSpaceId, notes: [], count: 0, updated_at: 0 };
+    novelMemoryLoadErrors[normalizedSpaceId] = "空间记忆读取失败";
+    if (isCurrentSpace()) {
+      activeNovelMemory = memory;
+      renderNovelMemory();
+    }
+    renderNovelSpaceLibrary();
+    return memory;
+  } finally {
+    const remaining = (novelMemoryLoadInFlight[normalizedSpaceId] || 1) - 1;
+    if (remaining > 0) novelMemoryLoadInFlight[normalizedSpaceId] = remaining;
+    else delete novelMemoryLoadInFlight[normalizedSpaceId];
+    if (isCurrentSpace()) renderNovelMemory();
+  }
+}
+
+async function refreshNovelSpaceMemory() {
+  const spaceId = getCurrentNovelSpaceId();
+  if (hasNovelMemoryDraft() && !window.confirm("当前空间笔记编辑器有未保存内容。刷新只会更新记忆列表，不会保存或覆盖这段编辑内容。继续吗？")) return;
+  if (refreshNovelMemoryButton) {
+    refreshNovelMemoryButton.disabled = true;
+    refreshNovelMemoryButton.textContent = "刷新中……";
+  }
+  try {
+    await loadNovelSpaceMemory(spaceId, { force: true });
+    if (novelMemoryLoadErrors[spaceId]) {
+      showToast("空间记忆刷新失败，请检查本地服务后重试");
+    } else {
+      showToast(`已刷新「${getCurrentNovelDisplayName()}」的空间记忆`);
+    }
+  } finally {
+    if (refreshNovelMemoryButton) {
+      refreshNovelMemoryButton.disabled = false;
+      refreshNovelMemoryButton.textContent = "刷新记忆";
+    }
+  }
+}
+
+async function removeStaleNovelMemory() {
+  const spaceId = getCurrentNovelSpaceId();
+  if (blockNovelMemoryWrite(spaceId)) return;
+  const staleNotes = activeNovelMemory.notes.filter((note) => note.sourceStale);
+  if (!staleNotes.length) {
+    showToast("当前没有待核对的原文记忆");
+    return;
+  }
+  const draftHint = hasNovelMemoryDraft() ? "未保存的编辑内容不会被删除。" : "";
+  const confirmed = window.confirm(
+    `确认清理待核对原文记忆吗？当前空间共有 ${staleNotes.length} 条，这会删除已失效的原作依据 / 章节摘要，之后如有需要可以重新生成。${draftHint}`,
+  );
+  if (!confirmed) return;
+  try {
+    removeStaleNovelMemoryButton.disabled = true;
+    removeStaleNovelMemoryButton.textContent = "清理中……";
+    const response = await fetchWithTimeout("/api/novels/memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(memoryWritePayload(spaceId, activeNovelMemory.notes.filter((note) => !note.sourceStale))),
+    }, 15000);
+    const payload = await readMemoryWriteResponse(response, "待核对记忆清理失败");
+    activeNovelMemory = normalizeNovelMemory(payload.memory, spaceId);
+    novelMemoryCache[spaceId] = activeNovelMemory;
+    novelMemorySourceRevisions[spaceId] = novelSpaces.find((item) => item.id === spaceId)?.source?.revision || "";
+    const space = novelSpaces.find((item) => item.id === spaceId);
+    if (space) space.memory = novelMemorySpaceSummary(activeNovelMemory);
+    persistNovelSpaces();
+    renderNovelMemory();
+    renderNovelSpaceLibrary();
+    showToast(`已清理 ${staleNotes.length} 条待核对原文记忆`);
+  } catch (error) {
+    await showMemoryWriteError(error, spaceId, "待核对记忆清理失败");
+  } finally {
+    if (removeStaleNovelMemoryButton) removeStaleNovelMemoryButton.disabled = false;
+    renderNovelMemory();
+  }
+}
+
+function blockNovelMemoryWrite(spaceId) {
+  if (novelMemoryLoadInFlight[spaceId]) {
+    showToast("当前小说空间记忆正在读取，请稍候再保存");
+    return true;
+  }
+  if (!novelMemoryLoadErrors[spaceId]) return false;
+  showToast("空间记忆读取失败，请先刷新小说库后再编辑，避免覆盖已有内容");
+  return true;
+}
+
+function memoryWritePayload(spaceId, notes) {
+  const payload = { novel_space_id: spaceId, notes };
+  if (activeNovelMemory.spaceId !== spaceId) return payload;
+  const version = Number(activeNovelMemory.updated_at);
+  return { ...payload, expected_updated_at: Number.isFinite(version) ? version : 0 };
+}
+
+async function readMemoryWriteResponse(response, fallbackMessage) {
+  const payload = await response.json();
+  if (!response.ok || !payload.ok || !payload.memory) {
+    const error = new Error(payload.error || fallbackMessage);
+    error.memoryConflict = response.status === 409;
+    throw error;
+  }
+  return payload;
+}
+
+async function showMemoryWriteError(error, spaceId, fallbackMessage) {
+  if (error?.memoryConflict) {
+    await loadNovelSpaceMemory(spaceId);
+    showToast("空间记忆已在其他页面更新，请刷新后再保存");
+    return;
+  }
+  showToast(error?.message || fallbackMessage);
+}
+
+async function saveNovelMemory() {
+  const content = novelMemoryContentInput?.value.trim() || "";
+  if (!content) {
+    showToast("先写一点要长期记住的内容");
+    novelMemoryContentInput?.focus();
+    return;
+  }
+  const spaceId = getCurrentNovelSpaceId();
+  if (blockNovelMemoryWrite(spaceId)) return;
+  const existingNotes = activeNovelMemory.spaceId === spaceId ? activeNovelMemory.notes : [];
+  const editingNote = editingNovelMemoryId
+    ? existingNotes.find((item) => item.id === editingNovelMemoryId)
+    : null;
+  if (editingNovelMemoryId && !editingNote) {
+    resetNovelMemoryEditor();
+    showToast("这条空间笔记已不存在，请重新选择要编辑的笔记");
+    return;
+  }
+  if (!editingNote && existingNotes.length >= maxNovelMemoryNotes) {
+    showToast(`空间记忆已达到 ${maxNovelMemoryNotes} 条上限，请编辑或删除旧笔记后再新增`);
+    return;
+  }
+  const note = editingNote
+    ? {
+      ...editingNote,
+      title: novelMemoryTitleInput?.value.trim() || "空间笔记",
+      content,
+      updated_at: Date.now(),
+    }
+    : {
+      id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      title: novelMemoryTitleInput?.value.trim() || "空间笔记",
+      content,
+      kind: "manual",
+      pinned: false,
+      updated_at: Date.now(),
+    };
+  const notes = editingNote
+    ? existingNotes.map((item) => item.id === editingNote.id ? note : item)
+    : [...existingNotes, note];
+  const wasEditing = Boolean(editingNote);
+  try {
+    saveNovelMemoryButton.disabled = true;
+    const response = await fetchWithTimeout("/api/novels/memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(memoryWritePayload(spaceId, notes)),
+    }, 15000);
+    const payload = await readMemoryWriteResponse(response, "空间笔记保存失败");
+    activeNovelMemory = normalizeNovelMemory(payload.memory, spaceId);
+    novelMemoryCache[spaceId] = activeNovelMemory;
+    novelMemorySourceRevisions[spaceId] = novelSpaces.find((item) => item.id === spaceId)?.source?.revision || "";
+    const space = novelSpaces.find((item) => item.id === spaceId);
+    if (space) space.memory = novelMemorySpaceSummary(activeNovelMemory);
+    persistNovelSpaces();
+    renderNovelMemory();
+    renderNovelSpaceLibrary();
+    resetNovelMemoryEditor();
+    setNovelMemoryComposerOpen(false);
+    showToast(wasEditing ? "记忆已更新" : "记忆已保存");
+  } catch (error) {
+    await showMemoryWriteError(error, spaceId, "空间笔记保存失败");
+  } finally {
+    saveNovelMemoryButton.disabled = false;
+  }
+}
+
+async function saveGeneratedMemoryNote(title, content, button, successMessage, kind = "manual", origin = "", sourceRevision = "", sourceMeta = {}) {
+  const cleanContent = String(content || "").trim();
+  if (!cleanContent) {
+    showToast("没有可写入的记忆内容");
+    return false;
+  }
+  const spaceId = getCurrentNovelSpaceId();
+  if (blockNovelMemoryWrite(spaceId)) return false;
+  const existingNotes = activeNovelMemory.spaceId === spaceId ? activeNovelMemory.notes : [];
+  const normalizedKind = Object.prototype.hasOwnProperty.call(novelMemoryKindLabels, kind) ? kind : "manual";
+  const normalizedTitle = String(title || "创作记忆").trim().slice(0, 80) || "创作记忆";
+  const normalizedOrigin = String(origin || "").trim().slice(0, 120);
+  const normalizedSourceRevision = String(sourceRevision || "").trim().slice(0, 80);
+  const normalizedSourceChapter = String(sourceMeta?.chapterTitle || "").trim().slice(0, 160);
+  const normalizedSourceChunkIndex = Math.max(0, Number(sourceMeta?.chunkIndex) || 0);
+  const normalizedSourceChunkCount = Math.max(0, Number(sourceMeta?.chunkCount) || 0);
+  const generatedNoteIndex = normalizedKind === "manual"
+    ? -1
+    : existingNotes.findIndex((item) => item.kind === normalizedKind
+      && item.title === normalizedTitle
+      && item.origin === normalizedOrigin);
+  if (generatedNoteIndex < 0 && existingNotes.length >= maxNovelMemoryNotes) {
+    showToast(`空间记忆已达到 ${maxNovelMemoryNotes} 条上限，请编辑或删除旧笔记后再写入`);
+    return false;
+  }
+  const previousNote = generatedNoteIndex >= 0 ? existingNotes[generatedNoteIndex] : null;
+  const note = {
+    id: previousNote?.id || `note-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    title: normalizedTitle,
+    content: cleanContent.slice(0, 4000),
+    kind: normalizedKind,
+    origin: normalizedOrigin,
+    source_revision: normalizedSourceRevision || previousNote?.sourceRevision || "",
+    source_chapter: normalizedSourceChapter || previousNote?.sourceChapter || "",
+    source_chunk_index: normalizedSourceChunkIndex || previousNote?.sourceChunkIndex || 0,
+    source_chunk_count: normalizedSourceChunkCount || previousNote?.sourceChunkCount || 0,
+    pinned: previousNote?.pinned === true,
+    created_at: previousNote?.created_at || Date.now(),
+    updated_at: Date.now(),
+  };
+  const notes = generatedNoteIndex >= 0
+    ? existingNotes.map((item, index) => index === generatedNoteIndex ? note : item)
+    : [...existingNotes, note];
+  try {
+    if (button) button.disabled = true;
+    const response = await fetchWithTimeout("/api/novels/memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(memoryWritePayload(spaceId, notes)),
+    }, 15000);
+    const payload = await readMemoryWriteResponse(response, "空间记忆写入失败");
+    activeNovelMemory = normalizeNovelMemory(payload.memory, spaceId);
+    novelMemoryCache[spaceId] = activeNovelMemory;
+    novelMemorySourceRevisions[spaceId] = novelSpaces.find((item) => item.id === spaceId)?.source?.revision || "";
+    const space = novelSpaces.find((item) => item.id === spaceId);
+    if (space) space.memory = novelMemorySpaceSummary(activeNovelMemory);
+    persistNovelSpaces();
+    renderNovelMemory();
+    renderNovelSpaceLibrary();
+    showToast(successMessage || "已写入小说空间记忆");
+    return true;
+  } catch (error) {
+    await showMemoryWriteError(error, spaceId, "空间记忆写入失败");
+    return false;
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function deleteNovelMemory(noteId) {
+  const spaceId = getCurrentNovelSpaceId();
+  if (blockNovelMemoryWrite(spaceId)) return;
+  const note = activeNovelMemory.notes.find((item) => item.id === noteId);
+  if (!note || !window.confirm(`删除空间笔记「${note.title}」吗？`)) return;
+  try {
+    const response = await fetchWithTimeout("/api/novels/memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(memoryWritePayload(spaceId, activeNovelMemory.notes.filter((item) => item.id !== noteId))),
+    }, 15000);
+    const payload = await readMemoryWriteResponse(response, "空间笔记删除失败");
+    activeNovelMemory = normalizeNovelMemory(payload.memory, spaceId);
+    novelMemoryCache[spaceId] = activeNovelMemory;
+    novelMemorySourceRevisions[spaceId] = novelSpaces.find((item) => item.id === spaceId)?.source?.revision || "";
+    const space = novelSpaces.find((item) => item.id === spaceId);
+    if (space) space.memory = novelMemorySpaceSummary(activeNovelMemory);
+    persistNovelSpaces();
+    renderNovelMemory();
+    renderNovelSpaceLibrary();
+    showToast("空间笔记已删除");
+  } catch (error) {
+    await showMemoryWriteError(error, spaceId, "空间笔记删除失败");
+  }
+}
+
+async function toggleNovelMemoryPinned(noteId, button) {
+  const spaceId = getCurrentNovelSpaceId();
+  if (blockNovelMemoryWrite(spaceId)) return;
+  const note = activeNovelMemory.notes.find((item) => item.id === noteId);
+  if (!note || activeNovelMemory.spaceId !== spaceId) return;
+  const nextPinned = !note.pinned;
+  try {
+    if (button) button.disabled = true;
+    const response = await fetchWithTimeout("/api/novels/memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(memoryWritePayload(spaceId, activeNovelMemory.notes.map((item) => item.id === noteId ? { ...item, pinned: nextPinned } : item))),
+    }, 15000);
+    const payload = await readMemoryWriteResponse(response, "空间记忆置顶失败");
+    activeNovelMemory = normalizeNovelMemory(payload.memory, spaceId);
+    novelMemoryCache[spaceId] = activeNovelMemory;
+    novelMemorySourceRevisions[spaceId] = novelSpaces.find((item) => item.id === spaceId)?.source?.revision || "";
+    const space = novelSpaces.find((item) => item.id === spaceId);
+    if (space) space.memory = novelMemorySpaceSummary(activeNovelMemory);
+    persistNovelSpaces();
+    renderNovelMemory();
+    renderNovelSpaceLibrary();
+    showToast(nextPinned ? "记忆已置顶，会优先带入续写上下文" : "已取消记忆置顶");
+  } catch (error) {
+    await showMemoryWriteError(error, spaceId, "空间记忆置顶失败");
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function loadNovelSpacesFromServer({ announce = false } = {}) {
+  try {
+    const response = await fetchWithTimeout("/api/novels", {}, 12000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !Array.isArray(payload.novels)) throw new Error("小说空间读取失败");
+    const localById = new Map(novelSpaces.map((space) => [space.id, space]));
+    const serverSpaces = payload.novels.map((item) => {
+      const normalized = normalizeNovelSpace(item);
+      const local = localById.get(normalized.id);
+      const internalFilename = /^novel-[a-f0-9]{16}\.txt$/i.test(normalized.filename);
+      if (local?.kind === "uploaded" && normalized.kind === "uploaded" && internalFilename
+        && local.filename && !/^novel-[a-f0-9]{16}\.txt$/i.test(local.filename)) {
+        normalized.filename = local.filename;
+      }
+      if (local?.lastAccessedAt) normalized.lastAccessedAt = local.lastAccessedAt;
+      const cachedMemory = novelMemoryCache[normalized.id];
+      const cachedSourceRevision = novelMemorySourceRevisions[normalized.id];
+      const currentSourceRevision = normalized.source?.revision || "";
+      const serverMemoryCount = Number(normalized.memory?.count) || 0;
+      const serverMemoryUpdatedAt = Number(normalized.memory?.updated_at) || 0;
+      const sourceRevisionChanged = cachedMemory
+        && Object.prototype.hasOwnProperty.call(novelMemorySourceRevisions, normalized.id)
+        && cachedSourceRevision !== currentSourceRevision;
+      if (cachedMemory && (
+        serverMemoryCount !== (Array.isArray(cachedMemory.notes) ? cachedMemory.notes.length : 0)
+        || serverMemoryUpdatedAt > (Number(cachedMemory.updated_at) || 0)
+        || sourceRevisionChanged
+      )) {
+        delete novelMemoryCache[normalized.id];
+        delete novelMemorySourceRevisions[normalized.id];
+      }
+      return normalized;
+    });
+    const localOnly = novelSpaces
+      .filter((local) => !serverSpaces.some((server) => server.id === local.id))
+      .map((local) => local.kind === "uploaded" ? markNovelSpaceUnavailable(local) : local);
+    novelSpaces = [...serverSpaces, ...localOnly];
+    const projectSpaceId = getActiveProject()?.novelSpaceId;
+    const requestedSpaceId = readWorkspaceHashState().spaceId;
+    if (requestedSpaceId && novelSpaces.some((space) => space.id === requestedSpaceId)) {
+      syncNovelSpaceFromUrl(requestedSpaceId);
+    } else if (projectSpaceId && novelSpaces.some((space) => space.id === projectSpaceId)) {
+      activeNovelSpaceId = projectSpaceId;
+    } else if (!novelSpaces.some((space) => space.id === activeNovelSpaceId)) {
+      activeNovelSpaceId = defaultNovelSpaceId;
+    }
+    novelSpacesLoaded = true;
+    novelSpacesLoadError = false;
+    persistNovelSpaces();
+    renderNovelSpaceLibrary();
+    syncModeControls();
+    renderModePrompts();
+    conversationTitle.textContent = getConversationTitle();
+    syncWorkspacePage();
+    loadNovelSpaceMemory(getCurrentNovelSpaceId());
+    if (announce) showToast(`已读取 ${serverSpaces.length} 个小说知识空间`);
+  } catch {
+    novelSpacesLoaded = true;
+    novelSpacesLoadError = true;
+    renderNovelSpaceLibrary();
+  }
+}
+
+function downloadJsonFile(payload, filename) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function novelSpaceConfigSourceWarnings(configSpace, targetSpace) {
+  const exported = configSpace && typeof configSpace === "object" ? configSpace : {};
+  const targetSource = targetSpace?.source && typeof targetSpace.source === "object" ? targetSpace.source : {};
+  const warnings = [];
+  const exportedFiles = Array.isArray(exported.source_files)
+    ? exported.source_files.map((item) => safeText(item, "", 180).trim()).filter(Boolean)
+    : [];
+  const targetFiles = Array.isArray(targetSource.sourceFiles)
+    ? targetSource.sourceFiles.map((item) => safeText(item, "", 180).trim()).filter(Boolean)
+    : [];
+  if (exportedFiles.length && targetFiles.length) {
+    const normalizeFiles = (files) => files.map((item) => item.toLocaleLowerCase()).join("\u0001");
+    if (normalizeFiles(exportedFiles) !== normalizeFiles(targetFiles)) warnings.push("原始文件名不同");
+  }
+  const exportedFormat = safeText(exported.format, "", 20).toLocaleLowerCase();
+  const targetFormat = safeText(targetSource.format, "", 20).toLocaleLowerCase();
+  if (exportedFormat && targetFormat && exportedFormat !== targetFormat) warnings.push("文件格式不同");
+  const exportedCharacters = Number(exported.characters) || 0;
+  const targetCharacters = Number(targetSource.characters) || 0;
+  if (exportedCharacters > 0 && targetCharacters > 0) {
+    const difference = Math.abs(exportedCharacters - targetCharacters);
+    const tolerance = Math.max(200, Math.round(Math.max(exportedCharacters, targetCharacters) * 0.05));
+    if (difference > tolerance) warnings.push("正文规模差异较大");
+  }
+  return warnings;
+}
+
+async function exportNovelSpaceConfig() {
+  const space = getActiveNovelSpace();
+  if (!space) {
+    showToast("还没有可导出的小说知识空间");
+    return;
+  }
+  try {
+    const memory = await loadNovelSpaceMemory(space.id);
+    const config = {
+      format: "inkecho-novel-space",
+      version: novelSpaceConfigVersion,
+      exportedAt: new Date().toISOString(),
+      space: {
+        name: space.name,
+        kind: space.kind,
+        format: space.source?.format || "txt",
+        encoding: space.source?.encoding || "",
+        source_files: Array.isArray(space.source?.sourceFiles) ? space.source.sourceFiles.slice(0, 32) : [],
+        characters: Number(space.source?.characters) || 0,
+        sections: Number(space.source?.sections) || 0,
+      },
+      retrieval_strategy: loadRetrievalStrategy(space.id),
+      memory: {
+        notes: (memory?.notes || []).slice(0, 100),
+      },
+    };
+    const safeName = (space.name || "novel-space").replace(/[\\/:*?"<>|\s]+/g, "-").slice(0, 60);
+    downloadJsonFile(config, `${safeName || "novel-space"}-inkecho-space.json`);
+    showToast(`已导出「${space.name}」空间配置`);
+  } catch (error) {
+    showToast(error?.message || "空间配置导出失败");
+  }
+}
+
+async function importNovelSpaceConfig() {
+  const file = novelSpaceConfigInput?.files?.[0];
+  if (!file) return;
+  novelSpaceConfigInput.value = "";
+  if (file.size > 2_000_000) {
+    showToast("空间配置超过 2MB，无法导入");
+    return;
+  }
+  const target = getActiveNovelSpace();
+  if (!target) {
+    showToast("请先选择一本小说，再导入空间配置");
+    return;
+  }
+  try {
+    const config = JSON.parse(await file.text());
+    const configVersion = Number(config?.version);
+    if (config?.format !== "inkecho-novel-space" || !Number.isInteger(configVersion) || configVersion < 1) {
+      throw new Error("这不是 InkEcho 小说空间配置文件");
+    }
+    if (configVersion > novelSpaceConfigVersion) {
+      throw new Error(`空间配置版本 v${configVersion} 高于当前版本 v${novelSpaceConfigVersion}，请升级 InkEcho 后再导入`);
+    }
+    if (config.space != null && (typeof config.space !== "object" || Array.isArray(config.space))) {
+      throw new Error("空间配置中的小说信息格式不正确");
+    }
+    const exportedName = safeText(config.space?.name, "未命名小说", 80);
+    const rawNotes = Array.isArray(config.memory) ? config.memory : config.memory?.notes;
+    if (config.memory != null && !Array.isArray(rawNotes)) {
+      throw new Error("空间配置中的长期记忆格式不正确");
+    }
+    if (Array.isArray(rawNotes) && rawNotes.length > maxNovelMemoryNotes) {
+      throw new Error(`空间配置包含 ${rawNotes.length} 条记忆，超过当前上限 ${maxNovelMemoryNotes} 条；请先在原设备整理后再导入`);
+    }
+    const importedMemory = normalizeNovelMemory({ space_id: target.id, notes: rawNotes }, target.id);
+    const strategy = normalizeRetrievalStrategy(config.retrieval_strategy);
+    const nameHint = exportedName === target.name ? "" : `\n配置来自「${exportedName}」，当前目标是「${target.name}」。`;
+    const sourceWarnings = novelSpaceConfigSourceWarnings(config.space, target);
+    const sourceHint = sourceWarnings.length
+      ? `\n⚠️ 原文可能不匹配：${sourceWarnings.join("、")}。建议先选择配置对应的小说空间。`
+      : "";
+    if (!window.confirm(`将空间配置导入当前小说「${target.name}」，并覆盖当前空间记忆（${importedMemory.notes.length} 条），同时设置检索策略为“${retrievalStrategyLabels[strategy]}”。${nameHint}${sourceHint}\n不会上传、覆盖或修改当前小说原文。确定继续吗？`)) return;
+    const response = await fetchWithTimeout("/api/novels/memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(memoryWritePayload(target.id, importedMemory.notes)),
+    }, 15000);
+    const payload = await readMemoryWriteResponse(response, "空间记忆导入失败");
+    activeNovelMemory = normalizeNovelMemory(payload.memory, target.id);
+    novelMemoryCache[target.id] = activeNovelMemory;
+    novelMemorySourceRevisions[target.id] = target.source?.revision || "";
+    delete novelMemoryLoadErrors[target.id];
+    target.memory = novelMemorySpaceSummary(activeNovelMemory);
+    activeNovelSpaceId = target.id;
+    retrievalStrategy = strategy;
+    persistRetrievalStrategy();
+    persistNovelSpaces();
+    renderNovelMemory();
+    renderNovelSpaceLibrary();
+    syncRetrievalStrategy();
+    resetNovelMemoryEditor();
+    showToast(`已恢复「${target.name}」空间配置`);
+  } catch (error) {
+    await showMemoryWriteError(error, target?.id || getCurrentNovelSpaceId(), "空间配置导入失败");
+  }
+}
+
+async function removeNovelSpace(spaceId) {
+  if (preventWorkspaceMutation("移除小说空间")) return;
+  const space = novelSpaces.find((item) => item.id === spaceId);
+  if (!space || space.kind !== "uploaded") return;
+  const linkedProjects = projects.filter((project) => project.novelSpaceId === space.id);
+  const linkedMessage = linkedProjects.length
+    ? `\n关联的 ${linkedProjects.length} 个创作项目会保留，并改为关联默认小说空间。`
+    : "";
+  if (!window.confirm(`移除小说知识空间「${space.name}」吗？\n原始文件、章节索引和空间记忆都会从本机移除。${linkedMessage}`)) return;
+  if (space.id === getCurrentNovelSpaceId() && !confirmNovelMemorySpaceSwitch(defaultNovelSpaceId)) return;
+  try {
+    const response = await fetchWithTimeout("/api/novels/remove", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ novel_space_id: space.id }),
+    }, 15000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "小说空间移除失败");
+    linkedProjects.forEach((project) => {
+      project.novelSpaceId = defaultNovelSpaceId;
+      project.checkpoints = (project.checkpoints || []).map((checkpoint) => ({
+        ...checkpoint,
+        novelSpaceId: defaultNovelSpaceId,
+      }));
+    });
+    novelSpaces = novelSpaces.filter((item) => item.id !== space.id);
+    delete novelMemoryCache[space.id];
+    delete novelMemorySourceRevisions[space.id];
+    if (activeNovelSpaceId === space.id) activeNovelSpaceId = defaultNovelSpaceId;
+    let fallbackProject = projects.find((project) => project.novelSpaceId === activeNovelSpaceId);
+    if (!fallbackProject) fallbackProject = createProjectForNovelSpace(getActiveNovelSpace());
+    activeProjectId = fallbackProject.id;
+    persistNovelSpaces();
+    persistProjects();
+    hydrateActiveProject();
+    renderProjectSelect();
+    renderCharacters();
+    renderConversation();
+    updateProviderUI();
+    renderNovelSpaceLibrary();
+    loadNovelSpaceMemory(activeNovelSpaceId);
+    showToast(`已移除「${space.name}」知识空间`);
+  } catch (error) {
+    showToast(error?.message || "小说空间移除失败");
+  }
+}
+
+async function renameNovelSpace(spaceId) {
+  if (preventWorkspaceMutation("重命名小说空间")) return;
+  const space = novelSpaces.find((item) => item.id === spaceId);
+  if (!space || space.kind !== "uploaded") return;
+  const previousName = space.name;
+  const nextName = window.prompt("给这本小说空间取一个便于识别的名称：", previousName);
+  if (nextName == null) return;
+  const cleanName = nextName.replace(/\s+/g, " ").trim().slice(0, 80);
+  if (!cleanName) {
+    showToast("小说空间名称不能为空");
+    return;
+  }
+  if (cleanName === previousName) return;
+  try {
+    const response = await fetchWithTimeout("/api/novels/rename", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ novel_space_id: space.id, name: cleanName }),
+    }, 12000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.novel) throw new Error(payload.error || "小说空间重命名失败");
+    space.name = cleanName;
+    space.source = { ...(space.source || {}), name: cleanName };
+    space.updated_at = Number(payload.novel.updated_at) || Date.now() / 1000;
+    projects.forEach((project) => {
+      if (project.novelSpaceId !== space.id) return;
+      const wasDefaultProject = project.name === `${previousName} · 新创作`;
+      if (!wasDefaultProject) return;
+      project.name = `${cleanName} · 新创作`;
+      if (project.context?.title === previousName) project.context.title = cleanName;
+      if (project.context?.world === `基于「${previousName}」原作知识空间进行内容问答与续写。`) {
+        project.context.world = `基于「${cleanName}」原作知识空间进行内容问答与续写。`;
+      }
+    });
+    persistNovelSpaces();
+    persistProjects();
+    renderNovelSpaceLibrary();
+    renderNovelMemory();
+    renderProjectSelect();
+    syncModeControls();
+    syncWorkspacePage();
+    showToast(`已将小说空间重命名为「${cleanName}」`);
+  } catch (error) {
+    showToast(error?.message || "小说空间重命名失败");
+  }
+}
+
+function renderNovelSpaceLibrary() {
+  if (!novelSpaceList) return;
+  novelSpaceList.setAttribute("aria-busy", String(!novelSpacesLoaded));
+  if (!novelSpacesLoaded) {
+    novelSpaceList.replaceChildren();
+    if (novelLibraryCount) novelLibraryCount.textContent = "正在读取……";
+    if (novelLibraryStatusSummary) novelLibraryStatusSummary.textContent = "正在读取小说知识空间……";
+    if (novelLibraryEmpty) novelLibraryEmpty.hidden = true;
+    if (novelLibraryNoResults) novelLibraryNoResults.hidden = true;
+    return;
+  }
+  const spaces = novelSpaces.slice().sort((a, b) => {
+    if (a.id === activeNovelSpaceId) return -1;
+    if (b.id === activeNovelSpaceId) return 1;
+    const lastAccessedDifference = (Number(b.lastAccessedAt) || 0) - (Number(a.lastAccessedAt) || 0);
+    if (lastAccessedDifference) return lastAccessedDifference;
+    return (Number(b.updated_at) || 0) - (Number(a.updated_at) || 0);
+  });
+  const query = novelLibrarySearchInput?.value.trim().toLocaleLowerCase() || "";
+  const statusFilter = novelLibraryStatusFilter?.value || "all";
+  if (clearNovelLibraryFiltersButton) clearNovelLibraryFiltersButton.hidden = !query && statusFilter === "all";
+  const filteredSpaces = spaces.filter((space) => {
+    const source = space.source || {};
+    const sourceFileNames = Array.isArray(source.sourceFiles) ? source.sourceFiles : [];
+    const searchText = [space.name, space.filename, ...sourceFileNames, source.parseMessage, source.error]
+      .filter(Boolean)
+      .join(" ")
+      .toLocaleLowerCase();
+    const matchesQuery = !query || searchText.includes(query);
+    const readiness = getNovelSpaceReadiness(space);
+    return matchesQuery && (statusFilter === "all" || readiness.filter === statusFilter);
+  });
+  const statusCounts = spaces.reduce((counts, space) => {
+    const key = getNovelSpaceReadiness(space).filter;
+    counts[key] = (counts[key] || 0) + 1;
+    return counts;
+  }, {});
+  novelSpaceList.replaceChildren();
+  if (novelLibraryCount) {
+    novelLibraryCount.textContent = filteredSpaces.length === spaces.length
+      ? `${spaces.length} 个空间`
+      : `显示 ${filteredSpaces.length} / ${spaces.length} 个空间`;
+  }
+  if (novelLibraryStatusSummary) {
+    novelLibraryStatusSummary.textContent = novelSpacesLoadError
+      ? spaces.length
+        ? `空间服务暂不可用 · 当前显示 ${spaces.length} 个本地缓存空间`
+        : "暂时无法读取小说空间 · 请点击“刷新状态”重试"
+      : spaces.length
+        ? `可检索 ${statusCounts.ready || 0} · 解析提醒 ${statusCounts.partial || 0} · 正文为空 ${statusCounts.empty || 0} · 待恢复 ${statusCounts.unavailable || 0}`
+        : "上传小说后，这里会显示空间健康度";
+  }
+  if (novelLibraryEmpty) novelLibraryEmpty.hidden = spaces.length > 0;
+  if (novelLibraryEmpty) {
+    const emptyTitle = novelLibraryEmpty.querySelector("strong");
+    const emptyDescription = novelLibraryEmpty.querySelector("p");
+    if (novelSpacesLoadError) {
+      if (emptyTitle) emptyTitle.textContent = "暂时无法读取小说知识空间";
+      if (emptyDescription) emptyDescription.textContent = "本地服务没有返回空间列表；可以点击上方“刷新状态”重试，已有本地缓存会在恢复后自动同步。";
+    } else {
+      if (emptyTitle) emptyTitle.textContent = "还没有小说知识空间";
+      if (emptyDescription) emptyDescription.textContent = "上传 TXT、Markdown、HTML、DOCX、EPUB、FB2 或 PDF 小说，InkEcho 会为它建立章节索引和原作检索空间。";
+    }
+  }
+  if (novelLibraryNoResults) novelLibraryNoResults.hidden = !spaces.length || filteredSpaces.length > 0;
+  filteredSpaces.forEach((space) => {
+    const source = space.source || {};
+    const card = document.createElement("article");
+    card.className = "novel-space-card";
+    card.classList.toggle("is-active", space.id === activeNovelSpaceId);
+    const label = document.createElement("div");
+    label.className = "page-card-label";
+    label.textContent = space.kind === "uploaded" ? "UPLOADED NOVEL" : "LOCAL CONFIGURATION";
+    const title = document.createElement("h3");
+    title.textContent = space.name;
+    const filename = document.createElement("span");
+    filename.className = "novel-file";
+    const sourceFiles = Array.isArray(source.sourceFiles) && source.sourceFiles.length
+      ? source.sourceFiles
+      : [space.filename || "本地配置文件"];
+    filename.textContent = sourceFiles.length > 1
+      ? `${sourceFiles[0]} 等 ${sourceFiles.length} 个文件`
+      : sourceFiles[0];
+    filename.title = sourceFiles.join("\n");
+    filename.setAttribute("aria-label", `原始文件：${sourceFiles.join("、")}`);
+    let sourceFileDetails = null;
+    if (sourceFiles.length > 1) {
+      sourceFileDetails = document.createElement("details");
+      sourceFileDetails.className = "novel-file-details";
+      const sourceFileSummary = document.createElement("summary");
+      sourceFileSummary.textContent = `查看全部 ${sourceFiles.length} 个分卷`;
+      const sourceFileList = document.createElement("span");
+      sourceFileList.textContent = sourceFiles.join("、");
+      sourceFileDetails.append(sourceFileSummary, sourceFileList);
+    }
+    const spaceProjects = projects
+      .filter((project) => project.novelSpaceId === space.id)
+      .sort((left, right) => (Number(right.updatedAt) || 0) - (Number(left.updatedAt) || 0));
+    const projectHint = document.createElement("small");
+    projectHint.className = "novel-space-projects";
+    projectHint.textContent = spaceProjects.length > 1
+      ? `${spaceProjects.length} 个创作项目 · 点击续写将恢复最近项目`
+      : spaceProjects.length === 1
+        ? `已有创作项目 · ${spaceProjects[0].name}`
+        : "尚未建立创作项目 · 点击开始续写将自动创建";
+    const meta = document.createElement("div");
+    meta.className = "novel-space-meta";
+    const sections = document.createElement("div");
+    sections.innerHTML = `<span>可浏览章节</span><strong>${source.available ? Number(source.sections || 0).toLocaleString("zh-CN") : "待恢复"}</strong>`;
+    const memory = document.createElement("div");
+    const staleMemoryCount = Math.max(0, Number(space.memory?.staleCount || space.memory?.stale_count) || 0);
+    memory.innerHTML = `<span>空间笔记</span><strong>${novelMemoryLoadErrors[space.id] ? "读取失败" : Number(space.memory?.count || 0).toLocaleString("zh-CN")}</strong>`;
+    memory.title = staleMemoryCount ? `${staleMemoryCount} 条原文来源记忆待重新核对` : "空间记忆状态";
+    meta.append(sections, memory);
+    const readiness = getNovelSpaceReadiness(space);
+    const status = document.createElement("div");
+    status.className = "novel-space-status";
+    status.classList.toggle("is-warning", !readiness.canQuery || Boolean(novelMemoryLoadErrors[space.id]) || staleMemoryCount > 0);
+    status.textContent = novelMemoryLoadErrors[space.id]
+      ? "空间记忆读取失败 · 请刷新小说库后重试"
+      : `${readiness.canQuery ? "原作已就绪" : readiness.label}${staleMemoryCount ? ` · ${staleMemoryCount} 条记忆待核对` : ""}`;
+    status.title = source.parseMessage || "";
+    const parseWarnings = Array.isArray(source.parseDiagnostics?.warnings)
+      ? source.parseDiagnostics.warnings.filter(Boolean).slice(0, 3)
+      : [];
+    const parseDetail = document.createElement("small");
+    parseDetail.className = "novel-space-parse-detail";
+    parseDetail.textContent = parseWarnings.length
+      ? parseWarnings.join("；")
+      : (!readiness.canQuery ? (source.parseMessage || source.error || readiness.capability) : "");
+    const actions = document.createElement("div");
+    actions.className = "novel-space-actions";
+    const needsRecovery = space.kind === "uploaded" && ["empty", "partial", "unavailable"].includes(readiness.filter);
+    const recoveryIsPrimary = readiness.filter === "unavailable";
+    let recoveryButton = null;
+    if (needsRecovery) {
+      recoveryButton = document.createElement("button");
+      recoveryButton.type = "button";
+      recoveryButton.className = recoveryIsPrimary ? "page-primary-button" : "page-secondary-button";
+      recoveryButton.textContent = recoveryIsPrimary ? "恢复原文" : "重新解析";
+      recoveryButton.title = recoveryIsPrimary
+        ? "重新上传原文，保留当前空间 ID、项目绑定和空间记忆"
+        : "选择修正版原文，保留当前空间 ID、项目绑定和空间记忆";
+      recoveryButton.setAttribute("aria-label", `${recoveryButton.textContent}「${space.name}」`);
+      recoveryButton.addEventListener("click", () => prepareNovelSpaceReparse(space.id));
+    }
+    const continueWriting = document.createElement("button");
+    continueWriting.type = "button";
+    continueWriting.className = recoveryIsPrimary ? "page-secondary-button" : "page-primary-button";
+    continueWriting.textContent = spaceProjects.length ? "继续最近项目" : "开始续写";
+    continueWriting.addEventListener("click", () => openNovelSpaceFlow(space.id, "续写"));
+    const askQuestion = document.createElement("button");
+    askQuestion.type = "button";
+    askQuestion.className = "page-secondary-button";
+    askQuestion.textContent = readiness.canQuery ? "内容问答" : "内容问答 · 待原文";
+    askQuestion.disabled = !readiness.canQuery;
+    askQuestion.title = readiness.canQuery ? "进入内容问答模式" : readiness.capability;
+    askQuestion.setAttribute("aria-label", `${askQuestion.textContent}「${space.name}」`);
+    askQuestion.addEventListener("click", () => openNovelSpaceFlow(space.id, "问答"));
+    const details = document.createElement("button");
+    details.type = "button";
+    details.className = "page-secondary-button";
+    details.textContent = "查看资料";
+    details.setAttribute("aria-label", `查看资料「${space.name}」`);
+    details.addEventListener("click", () => selectNovelSpace(space.id, false));
+    if (recoveryIsPrimary && recoveryButton) actions.appendChild(recoveryButton);
+    actions.append(continueWriting, askQuestion, details);
+    if (!recoveryIsPrimary && recoveryButton) actions.appendChild(recoveryButton);
+    card.append(label, title, filename, ...(sourceFileDetails ? [sourceFileDetails] : []), projectHint, meta, status);
+    if (parseDetail.textContent) card.appendChild(parseDetail);
+    card.appendChild(actions);
+    if (space.kind === "uploaded") {
+      const rename = document.createElement("button");
+      rename.type = "button";
+      rename.className = "text-button novel-space-rename";
+      rename.textContent = "重命名空间";
+      rename.addEventListener("click", () => renameNovelSpace(space.id));
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "text-button novel-space-remove";
+      remove.textContent = "移除这个空间";
+      remove.addEventListener("click", () => removeNovelSpace(space.id));
+      card.append(rename, remove);
+    }
+    novelSpaceList.appendChild(card);
+  });
+  renderSpaceRecoveryNotice();
+}
+
+function prepareNovelSpaceReparse(spaceId) {
+  if (preventWorkspaceMutation("重新解析原文")) return;
+  const space = novelSpaces.find((item) => item.id === spaceId);
+  if (!space || space.kind !== "uploaded") return;
+  if (novelUploadInFlight) {
+    showToast("上一份小说仍在解析中");
+    return;
+  }
+  novelUploadTargetSpaceId = space.id;
+  if (novelUploadInput) {
+    novelUploadInput.value = "";
+    novelUploadInput.click();
+    window.setTimeout(() => {
+      if (!novelUploadInput.files?.length && !novelUploadInFlight) novelUploadTargetSpaceId = "";
+    }, 1000);
+  }
+}
+
+function invalidateSourceRequestsForSpaceChange() {
+  sourceOutlineRequestId += 1;
+  sourceOutlineSearchRequestId += 1;
+  sourceChapterReaderRequestId += 1;
+  sourceEvidenceRequestId += 1;
+  sourceEvidenceDialog?.close();
+  sourceChapterReaderDialog?.close();
+}
+
+function loadNovelUploadJob() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(novelUploadJobStorageKey) || "null");
+    if (!saved || typeof saved !== "object") return null;
+    const jobId = safeText(saved.jobId, "", 100).trim();
+    if (!jobId) return null;
+    return {
+      jobId,
+      fileName: safeText(saved.fileName, "小说文件", 180),
+      startedAt: Number(saved.startedAt) || 0,
+    };
+  } catch {
+    notifyStorageIssue();
+    return null;
+  }
+}
+
+function persistNovelUploadJob(jobId, fileName) {
+  try {
+    localStorage.setItem(novelUploadJobStorageKey, JSON.stringify({
+      jobId: safeText(jobId, "", 100),
+      fileName: safeText(fileName, "小说文件", 180),
+      startedAt: Date.now(),
+    }));
+  } catch {
+    notifyStorageIssue();
+  }
+}
+
+function clearNovelUploadJob() {
+  try {
+    localStorage.removeItem(novelUploadJobStorageKey);
+  } catch {
+    notifyStorageIssue();
+  }
+}
+
+function applyNovelUploadResult(payload, fileName = "小说文件") {
+  if (!payload?.novel) throw new Error(payload?.error || "小说解析失败");
+  const uploaded = normalizeNovelSpace(payload.novel);
+  novelSpacesLoaded = true;
+  novelSpacesLoadError = false;
+  novelSpaces = [uploaded, ...novelSpaces.filter((item) => item.id !== uploaded.id)];
+  persistNovelSpaces();
+  resolveSpaceRecoveryUpload(uploaded.name);
+  renderNovelSpaceLibrary();
+  selectNovelSpace(uploaded.id, false, true);
+  pendingNovelUploadFile = null;
+  const partial = uploaded.source?.parse_status === "partial";
+  const empty = uploaded.source?.parse_status === "empty"
+    || Number(uploaded.source?.chunks || 0) <= 0
+    || Number(uploaded.source?.characters || 0) <= 0;
+  setWorkspaceView(empty ? "source" : "home", { announce: false, focus: !empty });
+  const parseMessage = uploaded.source?.parse_message || (partial ? "章节识别有限，当前以段落片段为主" : "已建立章节索引");
+  const warning = Array.isArray(uploaded.source?.parse_diagnostics?.warnings)
+    ? uploaded.source.parse_diagnostics.warnings[0]
+    : "";
+  setNovelUploadFeedback(
+    partial || empty ? "warning" : "success",
+    partial || empty
+      ? `「${uploaded.name}」需要检查：${warning || parseMessage}`
+      : `「${uploaded.name}」已建立知识空间，可以开始阅读、问答或续写。`,
+    false,
+  );
+  showToast(`「${uploaded.name}」已建立知识空间`);
+  return uploaded;
+}
+
+function isRecoverableNovelUploadStatusError(error) {
+  return ["AbortError", "TypeError", "UploadPollingTimeout", "UploadPollingUnavailable"].includes(error?.name);
+}
+
+function markNovelSpaceUnavailable(space) {
+  const source = space?.source && typeof space.source === "object" ? space.source : {};
+  return {
+    ...space,
+    memory: { count: 0, updated_at: 0 },
+    source: {
+      ...source,
+      available: false,
+      configured: true,
+      chunks: 0,
+      sections: 0,
+      characters: 0,
+      parse_status: "empty",
+      parse_message: "原文文件不可用，请重新上传恢复",
+      parse_diagnostics: {
+        ...(source.parse_diagnostics || {}),
+        quality: "empty",
+        recognized_sections: 0,
+        structured_chunks: 0,
+        average_chunk_characters: 0,
+        heading_coverage: 0,
+        warnings: ["原文文件不可用，请重新上传恢复"],
+      },
+      error: "原文文件不存在或无法读取",
+    },
+  };
+}
+
+function createProjectForNovelSpace(space) {
+  const service = getActiveProject()?.service || { provider: "custom_azure", model: providerDefaults.custom_azure };
+  const characters = getNovelCharacters(space);
+  const project = createProject({
+    id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    novelSpaceId: space.id,
+    name: `${space.name} · 新创作`,
+    context: {
+      title: space.name,
+      world: `基于「${space.name}」原作知识空间进行内容问答与续写。`,
+    },
+    conversation: getNovelOpeningConversation(space),
+    service,
+    characters,
+    selectedCharacterName: characters[0]?.name || "主角",
+    mode: "续写",
+  });
+  projects.push(project);
+  return project;
+}
+
+function findResumeProjectForNovelSpace(spaceId) {
+  const candidates = projects.filter((project) => project.novelSpaceId === spaceId);
+  return candidates.find((project) => project.id === activeProjectId)
+    || candidates.slice().sort((left, right) => (Number(right.updatedAt) || 0) - (Number(left.updatedAt) || 0))[0]
+    || null;
+}
+
+function selectNovelSpace(spaceId, enterWorkbench = false, preserveWorkspaceView = false, { syncUrl = true } = {}) {
+  if (preventWorkspaceMutation("切换小说空间")) return false;
+  const space = novelSpaces.find((item) => item.id === spaceId);
+  if (!space) return false;
+  if (!confirmNovelMemorySpaceSwitch(space.id)) {
+    renderWorkspaceNovelSelect();
+    return false;
+  }
+  if (space.id !== getCurrentNovelSpaceId()) invalidateSourceRequestsForSpaceChange();
+  activeNovelSpaceId = space.id;
+  space.lastAccessedAt = Date.now();
+  retrievalStrategy = loadRetrievalStrategy(space.id);
+  syncRetrievalStrategy();
+  resetNovelMemoryFilters();
+  persistNovelSpaces();
+  let project = findResumeProjectForNovelSpace(space.id);
+  if (!project) project = createProjectForNovelSpace(space);
+  activeProjectId = project.id;
+  persistProjects();
+  hydrateActiveProject();
+  renderProjectSelect();
+  renderCharacters();
+  renderConversation();
+  updateProviderUI();
+  renderNovelSpaceLibrary();
+  loadNovelSpaceMemory(space.id);
+  if (activeWorkspaceView === "memory") {
+    loadSourceKnowledge(space.id);
+    loadReviewedMemoryStatus(space.id);
+  }
+  showToast(`已选择「${space.name}」知识空间`);
+  if (preserveWorkspaceView) {
+    syncWorkspacePage();
+    if (syncUrl) persistWorkspaceView(activeWorkspaceView);
+  }
+  else if (enterWorkbench) setWorkspaceView("workbench", { announce: false, focus: true });
+  else setWorkspaceView("source", { announce: false, focus: false });
+  return true;
+}
+
+function syncNovelSpaceFromUrl(spaceId) {
+  const space = novelSpaces.find((item) => item.id === spaceId);
+  if (!space || space.id === getCurrentNovelSpaceId()) return true;
+  return selectNovelSpace(space.id, false, true, { syncUrl: false });
+}
+
+function setComposerMode(mode, { announce = false } = {}) {
+  const supportedModes = new Set(["续写", "问答", "改写", "独白"]);
+  selectedMode = supportedModes.has(mode) ? mode : "续写";
+  document.querySelectorAll(".mode-tab").forEach((item) => {
+    const active = item.dataset.mode === selectedMode;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-selected", String(active));
+  });
+  advancedModeDisclosure?.classList.toggle("has-active-mode", ["改写", "独白"].includes(selectedMode));
+  composerHint.textContent = getModeHint(selectedMode);
+  syncModeControls();
+  renderModePrompts();
+  renderTaskStarters();
+  persistActiveProject();
+  if (announce) showToast(`已切换到「${selectedMode}」模式`);
+}
+
+function openNovelSpaceFlow(spaceId, mode) {
+  const space = novelSpaces.find((item) => item.id === spaceId);
+  if (!space) return;
+  const readiness = getNovelSpaceReadiness(space);
+  if (mode === "问答" && !readiness.canQuery) {
+    showToast(`${space.name}的原文尚未就绪，内容问答暂不可用`);
+    return;
+  }
+  if (!selectNovelSpace(spaceId, true)) return;
+  beginConversationForMode(mode, { announce: false });
+  messageInput?.focus();
+}
+
+function openWorkspaceTask(mode) {
+  const space = novelSpaceForProject();
+  if (!space) {
+    setWorkspaceView("library", { announce: true, focus: true });
+    return;
+  }
+  const readiness = getNovelSpaceReadiness(space);
+  if (mode === "问答" && !readiness.canQuery) {
+    setWorkspaceView("source", { announce: true, focus: true });
+    showToast("当前原文尚未就绪，请先恢复或检查解析状态");
+    return;
+  }
+  if (!selectNovelSpace(space.id, true)) return;
+  beginConversationForMode(mode, { announce: true });
+  messageInput?.focus();
+}
+
+async function uploadNovelFile(fileSelection) {
+  if (preventWorkspaceMutation("上传或重新解析原文")) return;
+  const files = Array.from(fileSelection?.length !== undefined ? fileSelection : [fileSelection]).filter(Boolean)
+    .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), undefined, { numeric: true, sensitivity: "base" }));
+  if (!files.length) return;
+  const file = files[0];
+  const displayName = files.length > 1 ? `${file.name} 等 ${files.length} 个文件` : file.name;
+  if (novelUploadInFlight) {
+    showToast("上一份小说仍在解析中");
+    return;
+  }
+  if (novelUploadPollingTimedOut || activeNovelUploadJobId || loadNovelUploadJob()) {
+    setNovelUploadFeedback("warning", "已有后台解析任务尚未确认结束，请先刷新状态或取消任务，不要重复上传。", false);
+    showToast("请先处理仍在后台运行的上传任务");
+    return;
+  }
+  const pendingRecoveryNames = pendingSpaceRecovery.uploadNames;
+  const selectedRecoveryName = pendingRecoveryNames.length
+    ? safeText(spaceRecoveryTargetSelect?.value, "", 80).trim()
+    : "";
+  if (pendingRecoveryNames.length > 1 && !selectedRecoveryName) {
+    setNovelUploadFeedback("warning", "请先选择要恢复的小说空间，再上传原文。", false);
+    showToast("请先选择待恢复的小说空间");
+    return;
+  }
+  const unsupportedFile = files.find((item) => {
+    const extension = item.name.toLowerCase().split(".").pop() || "";
+    return !supportedNovelFileExtensions.has(extension);
+  });
+  if (unsupportedFile) {
+    pendingNovelUploadFile = null;
+    novelUploadTargetSpaceId = "";
+    novelUploadRetrySpaceId = "";
+    setNovelUploadFeedback("error", "暂不支持该文件格式，请上传 TXT、Markdown、HTML、DOCX、EPUB、FB2 或 PDF", false);
+    showToast("暂不支持该文件格式，请更换小说文件");
+    return;
+  }
+  const replacementSpaceId = novelUploadTargetSpaceId || novelUploadRetrySpaceId;
+  const targetSpace = novelSpaces.find((space) => space.id === replacementSpaceId);
+  novelUploadTargetSpaceId = "";
+  novelUploadRetrySpaceId = "";
+  pendingNovelUploadFile = files;
+  novelUploadPollingTimedOut = false;
+  const name = targetSpace?.name
+    || selectedRecoveryName
+    || (pendingRecoveryNames.length === 1 ? pendingRecoveryNames[0] : "")
+    || safeText(novelUploadNameInput?.value, "", 80).trim()
+    || file.name.replace(/\.(txt|md|markdown|html|htm|docx|epub|fb2|pdf)$/i, "").trim()
+    || "未命名小说";
+  const totalBytes = files.reduce((total, item) => total + (Number(item.size) || 0), 0);
+  if (files.some((item) => Number(item.size) > 20_000_000) || totalBytes > 20_000_000) {
+    setNovelUploadFeedback("error", "单个文件或合并后的总大小不能超过 20 MB，请压缩或拆分后再上传", false);
+    showToast("上传文件合计不能超过 20 MB");
+    return;
+  }
+  if (targetSpace && !window.confirm(`将使用「${displayName}」重新解析并替换「${targetSpace.name}」的原文。空间 ID、项目绑定和空间记忆会保留，确定继续吗？`)) {
+    pendingNovelUploadFile = null;
+    setNovelUploadFeedback("warning", "已取消重新解析，当前小说空间没有变化", false);
+    showToast("已取消重新解析");
+    return;
+  }
+  novelUploadInFlight = true;
+  setNovelUploadFeedback("processing", `正在上传并解析「${displayName}」……`, false);
+  if (novelUploadRetryButton) novelUploadRetryButton.disabled = true;
+  showToast("正在上传并建立小说知识空间……");
+  try {
+    const filePayloads = [];
+    for (const currentFile of files) {
+      filePayloads.push({ filename: currentFile.name, ...(await readNovelFilePayload(currentFile)) });
+    }
+    const filePayload = files.length === 1 ? filePayloads[0] : { files: filePayloads };
+    const recoverableSpace = novelSpaces.find((space) => (
+      space.kind === "uploaded"
+      && !space.source?.available
+      && space.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase()
+    ));
+    const response = await fetchWithTimeout("/api/novels/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        filename: displayName,
+        async: true,
+        replace_space_id: targetSpace?.id || recoverableSpace?.id || "",
+        replace_existing: Boolean(targetSpace),
+        ...(files.length === 1
+          ? filePayload
+          : { files: filePayload.files }),
+      }),
+    }, 60000);
+    let payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "小说上传失败");
+   if (payload.job_id) {
+     activeNovelUploadJobId = payload.job_id;
+     persistNovelUploadJob(payload.job_id, displayName);
+     showToast("文件已上传，正在后台解析章节……");
+     payload = await waitForNovelUpload(payload.job_id, displayName);
+   }
+    applyNovelUploadResult(payload, displayName);
+    clearNovelUploadJob();
+    if (novelUploadNameInput) novelUploadNameInput.value = "";
+ } catch (error) {
+    if (replacementSpaceId) novelUploadRetrySpaceId = replacementSpaceId;
+    const cancelled = error?.name === "UploadCancelled";
+    const pollingTimedOut = error?.name === "UploadPollingTimeout";
+    const pollingStatusLost = Boolean(activeNovelUploadJobId) && isRecoverableNovelUploadStatusError(error);
+    if (pollingTimedOut || pollingStatusLost) novelUploadPollingTimedOut = true;
+    const message = cancelled
+      ? "上传已取消，可点击重试解析"
+      : (pollingTimedOut || pollingStatusLost
+        ? "后台任务仍可能继续，状态暂时无法确认，请先取消任务或刷新小说库，不要重复上传"
+        : (error?.name === "AbortError" ? "上传或解析超时，请检查本地服务后重试" : (error?.message || "小说上传失败")));
+    setNovelUploadFeedback(
+      cancelled || pollingTimedOut || pollingStatusLost ? "warning" : "error",
+      `${displayName}：${message}`,
+      !pollingTimedOut && !pollingStatusLost,
+    );
+    showToast(message);
+ } finally {
+   novelUploadInFlight = false;
+   if (!novelUploadPollingTimedOut) {
+     activeNovelUploadJobId = "";
+     clearNovelUploadJob();
+   }
+   novelUploadCancelInFlight = false;
+   if (novelUploadRetryButton) novelUploadRetryButton.disabled = false;
+   if (novelUploadInput) novelUploadInput.value = "";
+ }
+}
+
+function setNovelUploadFeedback(kind, message, canRetry) {
+  if (!novelUploadFeedback || !novelUploadFeedbackText) return;
+  novelUploadFeedback.hidden = false;
+  novelUploadFeedback.classList.remove("is-error", "is-success", "is-warning", "is-processing");
+  if (kind) novelUploadFeedback.classList.add(`is-${kind}`);
+  novelUploadFeedbackText.textContent = message;
+  if (novelUploadCancelButton) {
+    novelUploadCancelButton.hidden = !activeNovelUploadJobId
+      || (kind !== "processing" && !(kind === "warning" && novelUploadPollingTimedOut));
+    novelUploadCancelButton.disabled = novelUploadCancelInFlight;
+  }
+  if (novelUploadRetryButton) {
+    novelUploadRetryButton.hidden = !canRetry || !pendingNovelUploadFile;
+    novelUploadRetryButton.disabled = novelUploadInFlight;
+  }
+}
+
+async function cancelNovelUpload() {
+  if (!activeNovelUploadJobId || novelUploadCancelInFlight) return;
+  const jobId = activeNovelUploadJobId;
+  novelUploadCancelInFlight = true;
+  setNovelUploadFeedback("processing", "正在取消解析任务……", false);
+  try {
+    const response = await fetchWithTimeout("/api/novels/upload-cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job_id: jobId }),
+    }, 12000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "取消解析失败");
+    if (novelUploadPollingTimedOut) {
+      const terminal = await waitForNovelCancellation(jobId);
+      activeNovelUploadJobId = "";
+      novelUploadPollingTimedOut = false;
+      clearNovelUploadJob();
+      if (terminal.status === "cancelled") {
+        novelUploadCancelInFlight = false;
+        const canRetry = Boolean(pendingNovelUploadFile);
+        setNovelUploadFeedback("warning", canRetry ? "上传任务已取消，可点击重试解析" : "上传任务已取消，请重新选择原文件", canRetry);
+        showToast("上传任务已取消");
+        return;
+      }
+      if (terminal.status === "ready") {
+        novelUploadCancelInFlight = false;
+        pendingNovelUploadFile = null;
+        setNovelUploadFeedback("success", "后台解析已完成，请刷新小说库查看新空间", false);
+        await loadNovelSpacesFromServer({ announce: true });
+        return;
+      }
+      throw new Error(terminal.error || "上传任务结束状态异常");
+    }
+    showToast("已请求取消解析，正在收尾");
+  } catch (error) {
+    novelUploadCancelInFlight = false;
+    setNovelUploadFeedback("processing", error?.message || "取消解析失败，任务仍在继续", false);
+    showToast(error?.message || "取消解析失败，任务仍在继续");
+  }
+}
+
+async function waitForNovelUpload(jobId, fileName = "小说文件") {
+ for (let attempt = 0; attempt < 240; attempt += 1) {
+    const params = new URLSearchParams({ job_id: jobId });
+    const response = await fetchWithTimeout(`/api/novels/upload-status?${params.toString()}`, {}, 12000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "上传任务读取失败");
+    if (payload.status === "ready") return payload;
+    if (payload.status === "error") throw new Error(payload.error || "小说解析失败");
+    if (payload.status === "cancelled") {
+      const error = new Error(payload.error || "上传已取消");
+      error.name = "UploadCancelled";
+      throw error;
+    }
+    const progress = Number.isFinite(Number(payload.progress)) ? Math.max(0, Math.min(100, Number(payload.progress))) : 0;
+    const stage = payload.stage || "正在处理";
+    setNovelUploadFeedback("processing", `正在解析「${fileName}」 · ${stage} · ${progress}%`, false);
+   await new Promise((resolve) => window.setTimeout(resolve, 500));
+  }
+  const error = new Error("小说解析超时，请稍后刷新小说库查看状态");
+  error.name = "UploadPollingTimeout";
+  throw error;
+}
+
+async function waitForNovelCancellation(jobId) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const params = new URLSearchParams({ job_id: jobId });
+    const response = await fetchWithTimeout(`/api/novels/upload-status?${params.toString()}`, {}, 12000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "上传任务读取失败");
+    if (!["processing", "cancelling"].includes(payload.status)) return payload;
+    await new Promise((resolve) => window.setTimeout(resolve, 500));
+  }
+  throw new Error("取消解析超时，请刷新小说库确认任务状态");
+}
+
+async function resumeNovelUploadJob() {
+  if (novelUploadResumeInFlight || novelUploadInFlight) return;
+  const savedJob = loadNovelUploadJob();
+  if (!savedJob) return;
+  novelUploadResumeInFlight = true;
+  novelUploadInFlight = true;
+  activeNovelUploadJobId = savedJob.jobId;
+  novelUploadPollingTimedOut = false;
+  setNovelUploadFeedback("processing", `正在恢复「${savedJob.fileName}」的后台解析任务……`, false);
+  try {
+    const params = new URLSearchParams({ job_id: savedJob.jobId });
+    const response = await fetchWithTimeout(`/api/novels/upload-status?${params.toString()}`, {}, 12000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "上传任务读取失败");
+    if (payload.status === "ready") {
+      applyNovelUploadResult(payload, savedJob.fileName);
+      clearNovelUploadJob();
+      return;
+    }
+    if (payload.status === "error" || payload.status === "cancelled") {
+      clearNovelUploadJob();
+      setNovelUploadFeedback(
+        "warning",
+        `「${savedJob.fileName}」的后台任务${payload.status === "cancelled" ? "已取消" : "失败"}：${payload.error || "请重新选择文件"}。可重新上传原文件。`,
+        false,
+      );
+      return;
+    }
+    const completed = await waitForNovelUpload(savedJob.jobId, savedJob.fileName);
+    applyNovelUploadResult(completed, savedJob.fileName);
+    clearNovelUploadJob();
+  } catch (error) {
+    const pollingStatusLost = isRecoverableNovelUploadStatusError(error);
+    if (pollingStatusLost) novelUploadPollingTimedOut = true;
+    const message = error?.name === "UploadPollingTimeout"
+      ? "后台解析仍在进行，可稍后刷新小说库或取消任务。"
+      : pollingStatusLost
+        ? "后台任务状态暂时无法读取，可稍后刷新小说库或取消任务。"
+      : (error?.name === "AbortError" ? "恢复上传任务超时，请稍后刷新小说库。" : (error?.message || "恢复上传任务失败，请重新选择文件。"));
+    setNovelUploadFeedback("warning", `「${savedJob.fileName}」：${message}`, false);
+  } finally {
+    novelUploadResumeInFlight = false;
+    novelUploadInFlight = false;
+    if (!novelUploadPollingTimedOut) {
+      activeNovelUploadJobId = "";
+      clearNovelUploadJob();
+    }
+    novelUploadCancelInFlight = false;
+    if (novelUploadRetryButton) novelUploadRetryButton.disabled = false;
+  }
+}
+
+async function readNovelFileText(file) {
+  if (typeof file?.arrayBuffer !== "function" || typeof TextDecoder === "undefined") {
+    return { text: await file.text(), encoding: "utf-8" };
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  for (const encoding of ["utf-8", "gb18030"]) {
+    try {
+      return { text: new TextDecoder(encoding, { fatal: true }).decode(bytes), encoding };
+    } catch {
+      // Try the next common novel encoding before falling back with replacement characters.
+    }
+  }
+  return { text: new TextDecoder("utf-8").decode(bytes), encoding: "utf-8-replacement" };
+}
+
+async function readNovelFilePayload(file) {
+  // Keep every upload in the same byte-preserving path. Sending text directly
+  // through JSON can expand GBK/Unicode novels near the request-size boundary.
+  if (typeof file?.arrayBuffer !== "function" || typeof btoa !== "function") {
+    return readNovelFileText(file);
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  const blockSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += blockSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + blockSize));
+  }
+  return { content_base64: btoa(binary), encoding: "binary" };
+}
+
 function persistCustomTemplates() {
   try {
     localStorage.setItem(customTemplatesStorageKey, JSON.stringify(customTemplates));
@@ -759,8 +3905,35 @@ function persistCustomTemplates() {
   }
 }
 
-function createProject({ id, name, context, conversation, conversationArchive, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId, contextMode, summaryMessageCount, summaryUpdatedAt, branchSource }) {
+function normalizeConversationSession(item, fallbackAssistantName = "角色") {
+  const source = item && typeof item === "object" ? item : {};
+  const rawMessages = Array.isArray(source.messages)
+    ? source.messages
+    : [
+      ...(Array.isArray(source.conversationArchive) ? source.conversationArchive : []),
+      ...(Array.isArray(source.conversation) ? source.conversation : []),
+    ];
+  const messages = rawMessages
+    .slice(-maxConversationSessionMessages)
+    .map((message) => normalizeConversationItem(message, fallbackAssistantName))
+    .filter((message) => message.content);
+  const sessionMode = modeHints[source.mode] ? source.mode : "续写";
+  const firstUserMessage = messages.find((message) => message.role === "user")?.content || "";
+  return {
+    id: safeText(source.id, `session-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+    mode: sessionMode,
+    title: safeText(source.title || firstUserMessage, `${sessionMode}会话`, 80),
+    messages,
+    draft: safeText(source.draft, "", 10000),
+    createdAt: Number.isFinite(Number(source.createdAt)) ? Number(source.createdAt) : Date.now(),
+    updatedAt: Number.isFinite(Number(source.updatedAt)) ? Number(source.updatedAt) : Date.now(),
+  };
+}
+
+function createProject({ id, name, context, conversation, conversationArchive, conversationSessions, activeConversationSessionId, activeConversationSessionStartedAt, service, characters, selectedCharacterName, mode, draft, updatedAt, prompts, highlights, checkpoints, beats, activeBeatId, contextMode, summaryMessageCount, summaryUpdatedAt, branchSource, novelSpaceId }) {
   const safeContext = context && typeof context === "object" ? context : {};
+  const normalizedNovelSpaceId = safeText(novelSpaceId, defaultNovelSpaceId, 100);
+  const isDefaultNovelSpace = normalizedNovelSpaceId === defaultNovelSpaceId;
   const safeService = service && typeof service === "object" ? service : {};
   const selectedProvider = Object.prototype.hasOwnProperty.call(providerDefaults, safeService.provider)
     ? safeService.provider
@@ -775,6 +3948,12 @@ function createProject({ id, name, context, conversation, conversationArchive, s
     160,
   );
   safeModels[selectedProvider] = selectedModel;
+  const safeName = safeText(name || safeContext.title, "未命名作品", 80);
+  const safeTitle = safeText(safeContext.title || safeName, safeName, 120);
+  const genericFallbackCharacters = [
+    { name: "主角", tone: "根据当前小说设定行动，保留人物已经建立的目标与性格。", details: "这是当前作品的主要叙事角色，可以在角色管理中替换为原作人物。" },
+    { name: "叙事助手", tone: "克制、清晰，帮助核对设定并推动故事向前。", details: "负责整理原作依据、当前场景和待解决的线索，不代替角色做决定。" },
+  ];
   const safeCharacters = Array.isArray(characters) && characters.length
     ? characters.map((item) => {
       const source = item && typeof item === "object" ? item : {};
@@ -784,15 +3963,13 @@ function createProject({ id, name, context, conversation, conversationArchive, s
         details: safeText(source.details, "", 500),
       };
     }).filter((item, index, list) => list.findIndex((candidate) => candidate.name === item.name) === index)
-    : defaultCharacters.map((item) => ({ ...item }));
+    : (isDefaultNovelSpace ? defaultCharacters : genericFallbackCharacters).map((item) => ({ ...item }));
   const selected = safeCharacters.find((item) => item.name === selectedCharacterName) || safeCharacters[0];
   const safeConversationArchive = Array.isArray(conversationArchive)
     ? conversationArchive.slice(-maxArchivedMessages)
       .map((item) => normalizeConversationItem(item, selected.name))
       .filter((item) => item.content)
     : [];
-  const safeName = safeText(name || safeContext.title, "未命名作品", 80);
-  const safeTitle = safeText(safeContext.title || safeName, safeName, 120);
   const safePrompts = Array.isArray(prompts)
     ? prompts.slice(0, maxPrompts).map((item) => {
       const source = item && typeof item === "object" ? item : {};
@@ -839,16 +4016,33 @@ function createProject({ id, name, context, conversation, conversationArchive, s
     else if (beat.status === "active") beat.status = "planned";
   });
   const safeCheckpoints = Array.isArray(checkpoints)
-    ? checkpoints.slice(-maxCheckpoints).map((item) => normalizeCheckpoint(item))
+    ? checkpoints.slice(-maxCheckpoints).map((item) => normalizeCheckpoint(item, novelSpaceId))
     : [];
   const hasConversation = Array.isArray(conversation);
+  const genericFallbackConversation = [{
+    role: "assistant",
+    name: "主角",
+    content: `「${safeTitle}」知识空间已经准备好。你可以指定章节或场景让我续写，也可以先提问原作内容。`,
+  }];
   const safeConversation = hasConversation
     ? conversation.slice(-maxConversationMessages)
       .map((item) => normalizeConversationItem(item, selected.name))
       .filter((item) => item.content)
-    : defaultConversationHistory.map((item) => ({ ...item }));
+    : (isDefaultNovelSpace ? defaultConversationHistory : genericFallbackConversation).map((item) => ({ ...item }));
+  const safeConversationSessions = Array.isArray(conversationSessions)
+    ? conversationSessions
+      .slice(-maxConversationSessions)
+      .map((item) => normalizeConversationSession(item, selected.name))
+      .filter((item, index, list) => item.messages.length && list.findIndex((candidate) => candidate.id === item.id) === index)
+    : [];
+  const safeActiveConversationSessionId = safeText(
+    activeConversationSessionId,
+    `session-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    100,
+  );
   return {
     id: safeText(id, `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+    novelSpaceId: normalizedNovelSpaceId,
     name: safeName,
     branchSource: normalizeBranchSource(branchSource),
     context: {
@@ -862,6 +4056,11 @@ function createProject({ id, name, context, conversation, conversationArchive, s
     },
     conversation: safeConversation,
     conversationArchive: safeConversationArchive,
+    conversationSessions: safeConversationSessions,
+    activeConversationSessionId: safeActiveConversationSessionId,
+    activeConversationSessionStartedAt: Number.isFinite(Number(activeConversationSessionStartedAt))
+      ? Number(activeConversationSessionStartedAt)
+      : Date.now(),
     service: {
       provider: selectedProvider,
       model: selectedModel,
@@ -885,14 +4084,19 @@ function createProject({ id, name, context, conversation, conversationArchive, s
   };
 }
 
-function normalizeCheckpoint(item) {
+function normalizeCheckpoint(item, fallbackNovelSpaceId = defaultNovelSpaceId) {
   const source = item && typeof item === "object" ? item : {};
+  const checkpointNovelSpaceId = safeText(source.novelSpaceId, fallbackNovelSpaceId, 100);
   const normalized = createProject({
     id: source.id,
+    novelSpaceId: checkpointNovelSpaceId,
     name: source.name || "检查点",
     context: source.context,
     conversation: source.conversation,
     conversationArchive: source.conversationArchive,
+    conversationSessions: source.conversationSessions,
+    activeConversationSessionId: source.activeConversationSessionId,
+    activeConversationSessionStartedAt: source.activeConversationSessionStartedAt,
     service: source.service,
     characters: source.characters,
     selectedCharacterName: source.selectedCharacterName,
@@ -908,11 +4112,15 @@ function normalizeCheckpoint(item) {
   });
   return {
     id: safeText(source.id, `checkpoint-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, 100),
+    novelSpaceId: normalized.novelSpaceId,
     name: safeText(source.name, "未命名检查点", 60),
     createdAt: Number.isFinite(Number(source.createdAt)) ? Number(source.createdAt) : Date.now(),
     context: normalized.context,
     conversation: normalized.conversation,
     conversationArchive: normalized.conversationArchive,
+    conversationSessions: normalized.conversationSessions,
+    activeConversationSessionId: normalized.activeConversationSessionId,
+    activeConversationSessionStartedAt: normalized.activeConversationSessionStartedAt,
     service: normalized.service,
     characters: normalized.characters,
     selectedCharacterName: normalized.selectedCharacterName,
@@ -940,6 +4148,7 @@ function isLegacyDemoProject(project) {
 function createInkEchoDefaultProject() {
   return createProject({
     id: `project-${Date.now()}-inkecho`,
+    novelSpaceId: defaultNovelSpaceId,
     name: "蛊真人",
     context: {
       title: "蛊真人",
@@ -988,6 +4197,7 @@ function loadProjects() {
   }
   return [createProject({
     id: `project-${Date.now()}`,
+    novelSpaceId: defaultNovelSpaceId,
     name: context.title,
     context,
     conversation: loadConversation(),
@@ -1266,9 +4476,20 @@ async function copyScenePlan() {
 function hydrateActiveProject() {
   const project = getActiveProject();
   if (!project) return;
+  activeNovelSpaceId = project.novelSpaceId || defaultNovelSpaceId;
+  retrievalStrategy = loadRetrievalStrategy(activeNovelSpaceId);
+  syncRetrievalStrategy();
+  resetNovelMemoryFilters();
+  loadNovelSpaceMemory(activeNovelSpaceId);
+  persistNovelSpaces();
   summaryEditPending = false;
   document.querySelector("#workTitle").value = project.context.title;
-  workChapter.value = project.context.chapter || "";
+  const restoredChapter = normalizeChapterLocator(project.context.chapter);
+  if (restoredChapter !== String(project.context.chapter || "").trim()) {
+    project.context.chapter = restoredChapter;
+    persistProjects();
+  }
+  workChapter.value = restoredChapter;
   document.querySelector("#workEra").value = project.context.era;
   document.querySelector("#workWorld").value = project.context.world;
   workReference.value = project.context.reference || "";
@@ -1297,7 +4518,7 @@ function hydrateActiveProject() {
     tab.classList.toggle("active", active);
     tab.setAttribute("aria-selected", String(active));
   });
-  composerHint.textContent = modeHints[selectedMode];
+  composerHint.textContent = getModeHint(selectedMode);
   renderModePrompts();
   updateContextModeUI();
 }
@@ -1588,7 +4809,7 @@ function renderCommandPalette() {
   if (!matches.length) {
     const empty = document.createElement("p");
     empty.className = "command-palette-empty";
-    empty.textContent = "没有匹配的操作。试试搜索“检查点”或“场景”。";
+    empty.textContent = "没有匹配的功能。试试搜索“续写”“章节”或“记忆”。";
     commandPaletteList.appendChild(empty);
     if (commandPaletteHint) commandPaletteHint.textContent = "按 Esc 关闭";
     return;
@@ -1669,6 +4890,10 @@ function preventWorkspaceMutation(action) {
   return false;
 }
 
+function workspaceRequestStillCurrent(projectId, spaceId) {
+  return activeProjectId === projectId && getCurrentNovelSpaceId() === spaceId;
+}
+
 function updateCount() {
   const count = messages.querySelectorAll(".message-row").length;
   const archivedCount = getActiveProject()?.conversationArchive?.length || 0;
@@ -1700,7 +4925,7 @@ function getModelMessages({ fullHistory = false } = {}) {
   const selected = [];
   let historyChars = 0;
   for (const item of [...source].reverse()) {
-    if (!item || !["user", "assistant"].includes(item.role) || typeof item.content !== "string" || !item.content.trim()) continue;
+    if (!item || item.source === "demo" || !["user", "assistant"].includes(item.role) || typeof item.content !== "string" || !item.content.trim()) continue;
     const content = item.content.slice(0, 4000);
     if (historyChars + content.length > serverHistoryBudget) break;
     selected.push({ ...item, content });
@@ -1713,9 +4938,9 @@ function getPreviewModelMessages() {
   const selected = [];
   let historyChars = 0;
   for (const item of [...getModelMessageSource()].reverse()) {
-    if (!item || !["user", "assistant"].includes(item.role) || typeof item.content !== "string" || !item.content.trim()) continue;
+    if (!item || item.source === "demo" || !["user", "assistant"].includes(item.role) || typeof item.content !== "string" || !item.content.trim()) continue;
     const itemMode = normalizeMessageMode(item.mode);
-    if (selectedMode === "问答" && itemMode && itemMode !== "问答") continue;
+    if (selectedMode === "问答" && itemMode !== "问答") continue;
     const content = selectedMode !== "问答" && itemMode === "问答"
       ? `【原作问答参考，不是剧情对话】\n${item.content.slice(0, 4000)}`
       : item.content.slice(0, 4000);
@@ -1818,10 +5043,11 @@ function getContextPreviewText() {
     `创作倾向：${getEffectiveCreativityLabel()}`,
     `回复长度：${responseLengthLabels[responseLengthSelect.value] || "标准"}`,
     `上下文策略：${isSummaryContextMode() ? "剧情摘要 + 最近两轮对话" : `最近对话 + 最近 ${continuityBridgeMessageCount} 条归档桥接`}`,
+    `数据去向：${providerDataBoundaries[providerSelect.value] || "命中的有限原作片段和必要上下文会发送到当前模型服务；原始小说文件不会发送。"}`,
     `原作检索查询：${sourceQuery || "暂无查询"}`,
     selectedMode === "问答" ? "原作依据：服务端会按上方查询动态检索有限片段，片段不会持久化" : "续写依据：服务端会按上方查询检索设定片段，命中明确章节时补充接续桥",
     selectedMode === "问答" ? "问答隔离：只发送作品 / 章节定位和原作检索依据；创作笔记未发送" : "",
-    selectedMode === "问答" ? "问答历史：已排除带续写 / 改写 / 独白标记的历史消息" : "",
+    selectedMode === "问答" ? "问答历史：仅保留问答消息；旧项目未标记的创作历史也会排除" : "",
     `项目状态：${formatProjectHealth(project)}`,
     `新鲜度提醒：${formatContextFreshnessNotices(project)}`,
     "",
@@ -1898,25 +5124,31 @@ function renderAssistantMarkdown(text) {
 }
 
 function getMessageSourceLabel(item) {
-  return item?.source === "demo" ? "演示回复 · 模型服务未返回，本地模板生成" : "";
+  return item?.source === "demo" ? "未生成 · 模型服务没有返回可用内容" : "";
 }
 
 function formatSourceAttribution(item) {
   const references = normalizeSourceReferences(item?.sourceRefs);
   const query = safeText(item?.sourceQuery, "", 600).replace(/\s+/g, " ");
   const quality = sourceQualityLabel(item?.sourceQuality);
+  const answerCoverage = sourceAnswerCoverageLabel(item?.sourceAnswerCoverage);
   const citationStatus = normalizeCitationStatus(item?.sourceCitationStatus);
   const citationWarning = citationStatus === "unverified"
     ? `> ⚠️ 引用待核对：${(Array.isArray(item?.sourceCitationsUnverified) ? item.sourceCitationsUnverified : []).join("、") || "模型引用不在本次检索结果中"}`
     : "";
   const citationVerified = citationStatus === "verified" ? "> 引用核验：已核对" : "";
-  if (!references.length && !query && !quality && !citationWarning && !citationVerified) return "";
+  const citationMissing = citationStatus === "none" && normalizeMessageMode(item?.mode) === "问答"
+    ? "> 引用核验：未标注章节，建议打开依据"
+    : "";
+  if (!references.length && !query && !quality && !answerCoverage && !citationWarning && !citationVerified && !citationMissing) return "";
   return [
     references.length ? `> 原作参考：${references.join(" · ")}` : "",
-    quality ? `> 依据命中：${quality}` : "",
+    answerCoverage ? `> 答案依据：${answerCoverage}` : "",
+    quality ? `> 检索相关性：${quality}` : "",
     query ? `> 依据查询：${query}` : "",
     citationVerified,
     citationWarning,
+    citationMissing,
   ].filter(Boolean).join("\n");
 }
 
@@ -1929,9 +5161,26 @@ function appendDemoSourceBadge(meta) {
   if (!meta || meta.querySelector(".message-source-badge")) return;
   const sourceBadge = document.createElement("span");
   sourceBadge.className = "message-source-badge";
-  sourceBadge.textContent = "演示回复";
-  sourceBadge.title = "模型服务未返回内容，本段由本地模板生成";
+  sourceBadge.textContent = "未生成";
+  sourceBadge.title = "模型服务没有返回可用内容；这不是故事正文或原作答案";
   meta.appendChild(sourceBadge);
+}
+
+function showFailedGenerationActions(actions, historyIndex) {
+  if (!actions || !Number.isInteger(historyIndex)) return;
+  actions.replaceChildren();
+  const retryButton = document.createElement("button");
+  retryButton.type = "button";
+  retryButton.className = "message-action";
+  retryButton.textContent = "重试";
+  retryButton.setAttribute("aria-label", "重新尝试生成这条回复");
+  retryButton.addEventListener("click", () => retryMessage(historyIndex));
+  const settingsButton = document.createElement("button");
+  settingsButton.type = "button";
+  settingsButton.className = "message-action";
+  settingsButton.textContent = "模型设置";
+  settingsButton.addEventListener("click", () => setWorkspaceView("settings", { announce: true, focus: true }));
+  actions.append(retryButton, settingsButton);
 }
 
 function appendTruncatedBadge(meta) {
@@ -1964,6 +5213,59 @@ function appendCitationVerifiedBadge(meta) {
   meta.appendChild(badge);
 }
 
+function appendCitationMissingBadge(meta) {
+  if (!meta || meta.querySelector(".message-citation-missing-badge")) return;
+  const badge = document.createElement("span");
+  badge.className = "message-citation-missing-badge";
+  badge.textContent = "引用未标注";
+  badge.title = "这条内容问答没有明确标注章节，建议打开“查看依据”核对。";
+  meta.appendChild(badge);
+}
+
+function qualityReviewCodes(review) {
+  const normalized = normalizeQualityReview(review);
+  return normalized?.warnings.map((warning) => warning.code).filter(Boolean).slice(0, 4) || [];
+}
+
+function openContinuationQualityReview(review, historyIndex = null) {
+  const normalized = normalizeQualityReview(review);
+  if (!normalized || normalized.status !== "review" || !normalized.warnings.length) return;
+  continuationQualitySummary.textContent = `发现 ${normalized.warnings.length} 项需要人工确认的续写风险。这不是事实判定，原文仍可保留或重试。`;
+  continuationQualityList.replaceChildren(...normalized.warnings.map((warning) => {
+    const item = document.createElement("article");
+    item.className = "quality-review-item";
+    const title = document.createElement("strong");
+    title.textContent = warning.label;
+    const detail = document.createElement("p");
+    detail.textContent = warning.detail;
+    item.append(title, detail);
+    return item;
+  }));
+  const canRetry = Number.isInteger(historyIndex)
+    && historyIndex === conversationHistory.length - 1
+    && conversationHistory[historyIndex]?.role === "assistant";
+  pendingQualityRetry = canRetry
+    ? { historyIndex, codes: qualityReviewCodes(normalized) }
+    : null;
+  continuationQualityRetryButton.hidden = !pendingQualityRetry;
+  continuationQualityDialog.showModal();
+}
+
+function appendQualityReviewBadge(meta, review, historyIndex = null) {
+  const normalized = normalizeQualityReview(review);
+  if (!meta || !normalized || normalized.status !== "review" || !normalized.warnings.length) return;
+  const existing = meta.querySelector(".message-quality-review-badge");
+  if (existing) existing.remove();
+  const badge = document.createElement("button");
+  badge.type = "button";
+  badge.className = "message-quality-review-badge";
+  badge.textContent = "续写需复核";
+  badge.title = normalized.warnings.map((warning) => warning.label).join("、");
+  badge.setAttribute("aria-label", "查看续写质量检查详情");
+  badge.addEventListener("click", () => openContinuationQualityReview(normalized, historyIndex));
+  meta.appendChild(badge);
+}
+
 function appendExpandedRetryAction(actions, historyIndex) {
   if (!actions || !Number.isInteger(historyIndex) || actions.querySelector(".message-expand-retry")) return;
   const expandRetryButton = document.createElement("button");
@@ -1976,31 +5278,54 @@ function appendExpandedRetryAction(actions, historyIndex) {
   actions.appendChild(expandRetryButton);
 }
 
-function renderSourceReferences(line, references, historyIndex = null, sourceQuery = "", sourceQuality = "") {
+function sourceReferenceChapterTitle(reference) {
+  return String(reference || "")
+    .trim()
+    .replace(/\s*·\s*片段\s*\d+\s*$/, "")
+    .trim();
+}
+
+function renderSourceReferences(line, references, historyIndex = null, sourceQuery = "", sourceQuality = "", sourceAnswerCoverage = "", mode = "") {
   const safeReferences = normalizeSourceReferences(references);
+  const visibleReferences = safeReferences.slice(0, 2);
   const quality = sourceQualityLabel(sourceQuality);
+  const answerCoverage = sourceAnswerCoverageLabel(sourceAnswerCoverage);
+  const questionMode = normalizeMessageMode(mode) === "问答";
   line.replaceChildren();
   line.hidden = !safeReferences.length && !sourceQuery;
   if (!safeReferences.length && !sourceQuery) return;
   const label = document.createElement("span");
   if (!safeReferences.length) {
     label.className = "source-reference-missing";
-    label.textContent = quality === "未命中" ? "原作参考未命中" : "原作参考未标注";
+    label.textContent = quality === "未命中" ? "原作检索未命中" : "原作检索未标注";
   } else {
-    label.textContent = quality ? `原作参考 · ${quality}` : "原作参考";
+    // Retrieved chapters are candidates supplied to the model, not proof that
+    // every chapter supports every sentence in the answer. Keep the wording
+    // distinct from the model's verified inline chapter citations.
+    label.textContent = questionMode && answerCoverage
+      ? `原作依据 · ${answerCoverage}`
+      : (quality ? `检索候选 · ${quality}` : "检索候选");
+    if (questionMode && answerCoverage && quality) label.title = `检索相关性：${quality}`;
   }
   line.appendChild(label);
-  safeReferences.forEach((reference, index) => {
-    const item = document.createElement("span");
-    item.className = "source-reference-item";
-    item.textContent = `${index ? " · " : "："}${reference}`;
+  visibleReferences.forEach((reference, index) => {
+    line.appendChild(document.createTextNode(index ? " · " : "："));
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "source-reference-item source-reference-chapter-button";
+    item.textContent = reference;
+    item.title = "打开这条原作参考所属章节的本机预览";
+    item.setAttribute("aria-label", `阅读原作章节 ${reference}`);
+    item.addEventListener("click", () => openSourceChapterReader(sourceReferenceChapterTitle(reference)));
     line.appendChild(item);
   });
   const evidenceButton = document.createElement("button");
   evidenceButton.type = "button";
   evidenceButton.className = "source-reference-button";
-  evidenceButton.textContent = "查看依据";
-  evidenceButton.setAttribute("aria-label", "查看这条回复的原作检索依据");
+  evidenceButton.textContent = safeReferences.length > visibleReferences.length
+    ? `查看全部 ${safeReferences.length} 个`
+    : "查看检索依据";
+  evidenceButton.setAttribute("aria-label", "查看这条回复的全部原作检索候选");
   evidenceButton.addEventListener("click", () => openSourceEvidence(historyIndex, sourceQuery));
   line.appendChild(evidenceButton);
 }
@@ -2011,7 +5336,7 @@ function setAssistantBubbleText(bubble, text) {
   bubble.innerHTML = renderAssistantMarkdown(rawText);
 }
 
-function addMessage({ role, name, text, avatarClass, historyIndex, mode, versions, sources, source, sourceRefs, sourceQuery, sourceQuality, sourceCitationStatus, sourceCitationsUnverified, truncated = false, truncations, versionIndex = 0 }) {
+function addMessage({ role, name, text, avatarClass, historyIndex, mode, versions, sources, source, sourceRefs, sourceQuery, sourceQuality, sourceAnswerCoverage, sourceCitationStatus, sourceCitationsUnverified, qualityReview, qualityRetryCodes, truncated = false, truncations, versionIndex = 0, syncHistory = true }) {
   const row = document.createElement("div");
   row.className = `message-row ${role}`;
   if (Number.isInteger(historyIndex)) row.dataset.historyIndex = String(historyIndex);
@@ -2047,13 +5372,17 @@ function addMessage({ role, name, text, avatarClass, historyIndex, mode, version
   if (role === "assistant" && sourceCitationStatus === "verified") {
     appendCitationVerifiedBadge(meta);
   }
+  if (role === "assistant" && sourceCitationStatus === "none" && messageMode === "问答") {
+    appendCitationMissingBadge(meta);
+  }
+  if (role === "assistant") appendQualityReviewBadge(meta, qualityReview, historyIndex);
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   if (role === "assistant") setAssistantBubbleText(bubble, text);
   else bubble.textContent = text;
   const sourceReferenceLine = document.createElement("div");
   sourceReferenceLine.className = "source-reference-line";
-  renderSourceReferences(sourceReferenceLine, sourceRefs, historyIndex, sourceQuery, sourceQuality);
+  renderSourceReferences(sourceReferenceLine, sourceRefs, historyIndex, sourceQuery, sourceQuality, sourceAnswerCoverage, messageMode);
   content.append(meta, bubble, sourceReferenceLine);
   let actions = null;
   if (role === "assistant") {
@@ -2123,8 +5452,17 @@ function addMessage({ role, name, text, avatarClass, historyIndex, mode, version
       nextButton.setAttribute("aria-label", "查看下一版回复");
       nextButton.addEventListener("click", () => switchMessageVersion(historyIndex, currentVersion + 1));
       versionControls.append(previousButton, versionLabel, nextButton);
+      const optimizationStatus = qualityOptimizationStatus(qualityRetryCodes, qualityReview);
+      if (optimizationStatus) {
+        const optimizationLabel = document.createElement("span");
+        optimizationLabel.className = `quality-optimization-status is-${optimizationStatus.status}`;
+        optimizationLabel.textContent = optimizationStatus.label;
+        optimizationLabel.title = optimizationStatus.detail;
+        versionControls.appendChild(optimizationLabel);
+      }
       actions.appendChild(versionControls);
     }
+    if (currentSource && safeVersions.length <= 1) showFailedGenerationActions(actions, historyIndex);
     content.appendChild(actions);
   } else if (Number.isInteger(historyIndex)) {
     const actions = document.createElement("div");
@@ -2143,14 +5481,18 @@ function addMessage({ role, name, text, avatarClass, historyIndex, mode, version
   messages.scrollTop = messages.scrollHeight;
   updateCount();
   filterConversationMessages();
+  if (syncHistory) renderConversationHistory();
   return {
     row,
     bubble,
     meta,
     truncated: currentTruncated,
     sourceReferenceLine,
-    renderSourceReferences: (references, query = sourceQuery, quality = sourceQuality) => renderSourceReferences(sourceReferenceLine, references, historyIndex, query, quality),
+    renderSourceReferences: (references, query = sourceQuery, quality = sourceQuality, answerCoverage = sourceAnswerCoverage) => renderSourceReferences(sourceReferenceLine, references, historyIndex, query, quality, answerCoverage, messageMode),
     sourceQuality,
+    sourceAnswerCoverage: normalizeSourceAnswerCoverage(sourceAnswerCoverage),
+    qualityReview: normalizeQualityReview(qualityReview),
+    qualityRetryCodes: normalizeQualityRetryCodes(qualityRetryCodes),
     actions,
     historyIndex,
   };
@@ -2176,6 +5518,163 @@ function filterConversationMessages() {
   conversationSearchCount.textContent = `${matched} / ${rows.length} 条工作区消息`;
 }
 
+function getConversationHistoryEntries() {
+  const project = getActiveProject();
+  if (!project) return [];
+  const currentTitle = conversationHistory.find((item) => item.role === "user")?.content
+    || messageInput?.value.trim()
+    || `${selectedMode} · 新会话`;
+  const current = {
+    id: project.activeConversationSessionId,
+    title: currentTitle,
+    mode: selectedMode,
+    updatedAt: project.updatedAt || Date.now(),
+    current: true,
+  };
+  const previous = (project.conversationSessions || [])
+    .slice()
+    .sort((left, right) => (right.updatedAt || 0) - (left.updatedAt || 0))
+    .map((session) => ({ ...session, current: false }));
+  return [current, ...previous];
+}
+
+function closeConversationHistoryPanel() {
+  conversationHistoryPanel?.classList.remove("is-open");
+  toggleConversationHistoryButton?.setAttribute("aria-expanded", "false");
+}
+
+function getCurrentConversationSessionMessages(project = getActiveProject()) {
+  return [
+    ...(Array.isArray(project?.conversationArchive) ? project.conversationArchive : []),
+    ...conversationHistory,
+  ].slice(-maxConversationSessionMessages);
+}
+
+function hasMeaningfulConversationSession(messages = getCurrentConversationSessionMessages(), draft = messageInput?.value || "") {
+  return messages.some((item) => item.role === "user" && String(item.content || "").trim()) || Boolean(String(draft).trim());
+}
+
+function storeCurrentConversationSession(project = getActiveProject()) {
+  if (!project) return false;
+  const sessionMessages = getCurrentConversationSessionMessages(project);
+  const draft = messageInput?.value || project.draft || "";
+  if (!hasMeaningfulConversationSession(sessionMessages, draft)) return false;
+  const firstUserMessage = sessionMessages.find((item) => item.role === "user")?.content || draft;
+  const session = normalizeConversationSession({
+    id: project.activeConversationSessionId,
+    mode: selectedMode,
+    title: firstUserMessage,
+    messages: sessionMessages,
+    draft,
+    createdAt: project.activeConversationSessionStartedAt,
+    updatedAt: Date.now(),
+  }, selectedCharacter.name);
+  const existing = Array.isArray(project.conversationSessions) ? project.conversationSessions : [];
+  project.conversationSessions = [
+    ...existing.filter((item) => item.id !== session.id),
+    session,
+  ].slice(-maxConversationSessions);
+  return true;
+}
+
+function beginConversationForMode(mode, { announce = true } = {}) {
+  const supportedModes = new Set(["续写", "问答", "改写", "独白"]);
+  const nextMode = supportedModes.has(mode) ? mode : "续写";
+  if (nextMode === selectedMode) {
+    setComposerMode(nextMode, { announce: false });
+    return false;
+  }
+  if (preventWorkspaceMutation("切换创作功能")) return false;
+  const project = getActiveProject();
+  if (!project) return false;
+  const saved = storeCurrentConversationSession(project);
+  project.conversation = [];
+  project.conversationArchive = [];
+  project.activeConversationSessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  project.activeConversationSessionStartedAt = Date.now();
+  project.draft = "";
+  conversationHistory = [];
+  messageInput.value = "";
+  draftStatus.textContent = "草稿自动保存";
+  if (conversationSearchInput) conversationSearchInput.value = "";
+  setConversationSearchOpen(false);
+  setComposerMode(nextMode, { announce: false });
+  renderConversation();
+  messages.scrollTop = 0;
+  if (announce) showToast(saved ? `已保存原会话，并新建「${nextMode}」会话` : `已新建「${nextMode}」会话`);
+  messageInput.focus();
+  return true;
+}
+
+function switchConversationSession(sessionId) {
+  const project = getActiveProject();
+  if (!project || sessionId === project.activeConversationSessionId) {
+    messages.scrollTop = messages.scrollHeight;
+    closeConversationHistoryPanel();
+    return;
+  }
+  if (preventWorkspaceMutation("切换历史会话")) return;
+  const target = (project.conversationSessions || []).find((session) => session.id === sessionId);
+  if (!target) return;
+  storeCurrentConversationSession(project);
+  project.conversationSessions = project.conversationSessions.filter((session) => session.id !== sessionId);
+  project.activeConversationSessionId = target.id;
+  project.activeConversationSessionStartedAt = target.createdAt || Date.now();
+  project.conversationArchive = [];
+  project.conversation = target.messages.map((item) => ({ ...item }));
+  project.draft = target.draft || "";
+  conversationHistory = project.conversation.map((item) => ({ ...item }));
+  messageInput.value = project.draft;
+  draftStatus.textContent = project.draft ? "草稿已恢复" : "草稿自动保存";
+  setComposerMode(target.mode, { announce: false });
+  renderConversation();
+  messages.scrollTop = messages.scrollHeight;
+  closeConversationHistoryPanel();
+  showToast(`已切换到「${target.title}」`);
+}
+
+function focusConversationHistoryEntry(sessionId, button) {
+  if (conversationSearchInput?.value) {
+    conversationSearchInput.value = "";
+    filterConversationMessages();
+  }
+  conversationHistoryList?.querySelectorAll(".conversation-history-item").forEach((item) => {
+    item.classList.toggle("is-active", item === button);
+  });
+  switchConversationSession(sessionId);
+}
+
+function renderConversationHistory() {
+  if (!conversationHistoryList || !conversationHistoryCount) return;
+  const entries = getConversationHistoryEntries();
+  conversationHistoryList.innerHTML = "";
+  conversationHistoryCount.textContent = String(entries.length);
+  entries.forEach((entry, entryIndex) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `conversation-history-item${entry.current ? " is-active" : ""}`;
+    button.setAttribute("aria-label", entry.current ? `当前${entry.mode}会话` : `打开${entry.mode}会话：${entry.title}`);
+    const meta = document.createElement("span");
+    meta.className = "conversation-history-item-meta";
+    const number = document.createElement("span");
+    number.textContent = entry.current ? "当前" : String(entryIndex).padStart(2, "0");
+    const mode = document.createElement("strong");
+    mode.textContent = entry.mode === "问答" ? "内容问答" : entry.mode;
+    meta.append(number, mode);
+    const preview = document.createElement("span");
+    preview.className = "conversation-history-item-preview";
+    preview.textContent = String(entry.title || "未命名会话").replace(/\s+/g, " ").trim();
+    button.append(meta, preview);
+    button.addEventListener("click", () => focusConversationHistoryEntry(entry.id, button));
+    conversationHistoryList.appendChild(button);
+  });
+  const archivedCount = getActiveProject()?.conversationArchive?.length || 0;
+  if (openArchiveFromHistoryButton) {
+    openArchiveFromHistoryButton.hidden = !archivedCount;
+    openArchiveFromHistoryButton.textContent = `更早记录 · ${archivedCount} 条`;
+  }
+}
+
 function switchMessageVersion(historyIndex, nextVersion) {
   if (preventWorkspaceMutation("切换回复版本")) return;
   const message = conversationHistory[historyIndex];
@@ -2197,6 +5696,11 @@ function switchMessageVersion(historyIndex, nextVersion) {
     if (quality) message.sourceQuality = quality;
     else delete message.sourceQuality;
   }
+  if (Array.isArray(message.sourceAnswerCoveragesByVersion)) {
+    const coverage = normalizeSourceAnswerCoverage(message.sourceAnswerCoveragesByVersion[nextVersion]);
+    if (coverage) message.sourceAnswerCoverage = coverage;
+    else delete message.sourceAnswerCoverage;
+  }
   if (message.sources?.[nextVersion] === "demo") message.source = "demo";
   else delete message.source;
   if (Array.isArray(message.truncations)) message.truncated = Boolean(message.truncations[nextVersion]);
@@ -2207,6 +5711,16 @@ function switchMessageVersion(historyIndex, nextVersion) {
       if (citations.length) message.sourceCitationsUnverified = citations;
       else delete message.sourceCitationsUnverified;
     }
+  }
+  if (Array.isArray(message.qualityReviewsByVersion)) {
+    const review = normalizeQualityReview(message.qualityReviewsByVersion[nextVersion]);
+    if (review) message.qualityReview = review;
+    else delete message.qualityReview;
+  }
+  if (Array.isArray(message.qualityRetryCodesByVersion)) {
+    const codes = normalizeQualityRetryCodes(message.qualityRetryCodesByVersion[nextVersion]);
+    if (codes.length) message.qualityRetryCodes = codes;
+    else delete message.qualityRetryCodes;
   }
   saveConversation();
   renderConversation();
@@ -2264,6 +5778,7 @@ async function copyConversation() {
 
 function formatProjectHandoff() {
   const project = getActiveProject();
+  const novelSpace = novelSpaceForProject(project);
   const context = getContext();
   const activeBeat = getActiveSceneBeat(project);
   const reference = context.reference || "";
@@ -2310,6 +5825,7 @@ function formatProjectHandoff() {
     "## 当前定位",
     "",
     `- **章节 / 场景**：${context.chapter || "未填写"}`,
+    `- **小说知识空间**：${novelSpace?.name || "未关联"}${novelSpace?.source?.available ? " · 可用" : " · 当前不可用"}`,
     `- **当前场景卡**：${activeBeat?.title || "未选择"}`,
     `- **本幕目标**：${activeBeat?.goal || "未填写"}`,
     `- **当前角色**：${project.selectedCharacterName || "未选择"}`,
@@ -2579,6 +6095,7 @@ function removeHighlight(highlightId) {
 
 function cloneProjectState(source) {
   return {
+    novelSpaceId: safeText(source.novelSpaceId, defaultNovelSpaceId, 100),
     context: { ...(source.context || {}) },
     conversation: (source.conversation || []).map((item) => ({
       ...item,
@@ -2594,6 +6111,16 @@ function cloneProjectState(source) {
       ...(Array.isArray(item.sourceQueriesByVersion) ? { sourceQueriesByVersion: [...item.sourceQueriesByVersion] } : {}),
       ...(Array.isArray(item.sourceQualitiesByVersion) ? { sourceQualitiesByVersion: [...item.sourceQualitiesByVersion] } : {}),
     })),
+    conversationSessions: (source.conversationSessions || []).map((session) => ({
+      ...session,
+      messages: (session.messages || []).map((item) => ({
+        ...item,
+        ...(Array.isArray(item.versions) ? { versions: [...item.versions] } : {}),
+        ...(Array.isArray(item.sourceRefsByVersion) ? { sourceRefsByVersion: item.sourceRefsByVersion.map((references) => [...references]) } : {}),
+      })),
+    })),
+    activeConversationSessionId: source.activeConversationSessionId,
+    activeConversationSessionStartedAt: source.activeConversationSessionStartedAt,
     service: {
       ...(source.service || {}),
       ...(source.service?.models && typeof source.service.models === "object"
@@ -2851,6 +6378,7 @@ function branchFromCheckpoint(checkpointId) {
   const state = cloneProjectState(checkpoint);
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    novelSpaceId: current.novelSpaceId,
     name: cleanName,
     branchSource: {
       type: "checkpoint",
@@ -2931,7 +6459,7 @@ function renderArchiveHistory() {
     const speaker = document.createElement("strong");
     speaker.textContent = item.name || (item.role === "assistant" ? selectedCharacter.name : "我");
     const role = document.createElement("span");
-    role.textContent = getMessageSourceLabel(item) ? "演示回复" : item.role === "assistant" ? "角色回复" : "我的提问";
+    role.textContent = getMessageSourceLabel(item) ? "未生成" : item.role === "assistant" ? "角色回复" : "我的提问";
     role.title = getMessageSourceLabel(item);
     meta.append(speaker, role);
     const content = document.createElement("p");
@@ -3016,6 +6544,7 @@ function branchFromArchiveMessage(item) {
   const cleanName = name.trim().slice(0, 80);
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    novelSpaceId: current.novelSpaceId,
     name: cleanName,
     branchSource: {
       type: "archive",
@@ -3139,25 +6668,35 @@ function renderConversation() {
       sourceRefs: item.sourceRefs,
       sourceQuery: item.sourceQuery,
       sourceQuality: item.sourceQuality,
+      sourceAnswerCoverage: item.sourceAnswerCoverage,
       sourceCitationStatus: item.sourceCitationStatus,
       sourceCitationsUnverified: item.sourceCitationsUnverified,
+      qualityReview: item.qualityReview,
+      qualityRetryCodes: item.qualityRetryCodes,
       truncated: item.truncated,
       truncations: item.truncations,
       versionIndex: item.versionIndex,
+      syncHistory: false,
     });
   });
   filterConversationMessages();
+  renderConversationHistory();
+  renderTaskStarters();
 }
 
 function resetCurrentConversation() {
   if (preventWorkspaceMutation("重新开始")) return;
   const project = getActiveProject();
   const hasConversation = getConversationMessageCount(project) > 1;
+  const hasSessions = Boolean(project.conversationSessions?.length);
   const hasDraft = Boolean(messageInput.value.trim());
   const hasSummary = Boolean(workSummary.value.trim());
-  if ((hasConversation || hasDraft || hasSummary) && !window.confirm("重新开始会清空当前工作区、归档历史、剧情摘要和草稿，但会保留作品设定、角色、场景计划、摘录与检查点。确定继续吗？")) return;
+  if ((hasConversation || hasSessions || hasDraft || hasSummary) && !window.confirm("重新开始会清空当前会话、会话历史、归档消息、剧情摘要和草稿，但会保留作品设定、角色、场景计划、摘录与检查点。确定继续吗？")) return;
 
   project.conversationArchive = [];
+  project.conversationSessions = [];
+  project.activeConversationSessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  project.activeConversationSessionStartedAt = Date.now();
   project.context.summary = "";
   project.summaryMessageCount = 0;
   project.summaryUpdatedAt = 0;
@@ -3244,7 +6783,7 @@ function getModelPreviewCharacter() {
     return {
       name: "InkEcho",
       tone: "清晰、克制、以证据为先，不进行角色扮演。",
-      details: "《蛊真人》原作资料助手：区分原作事实、合理推断与目前不确定内容；没有依据时明确说明。",
+      details: `${getCurrentNovelAssistantName()}原作资料助手：区分原作事实、合理推断与目前不确定内容；没有依据时明确说明。`,
     };
   }
   return selectedCharacter;
@@ -3334,6 +6873,18 @@ function exportProjectsBackup() {
   }
   flushDraft();
   persistActiveProject();
+  const novelSpaceBindings = Array.from(new Set(projects.map((project) => safeText(project?.novelSpaceId, "", 100)).filter(Boolean)))
+    .map((spaceId) => {
+      const space = novelSpaces.find((item) => item.id === spaceId);
+      const source = space?.source || {};
+      return {
+        id: spaceId,
+        name: safeText(space?.name, "未命名小说", 80),
+        kind: safeText(space?.kind, "unknown", 30),
+        available: Boolean(source.available),
+        format: safeText(source.format, "", 20),
+      };
+    });
   const backup = {
     format: "inkecho-projects",
     version: 4,
@@ -3343,6 +6894,8 @@ function exportProjectsBackup() {
     customTemplates,
     characterLibrary,
     promptLibrary,
+    novelSpaceBindings,
+    spaceConfigReminder: "小说原文、章节索引和空间记忆不包含在项目备份中",
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -3369,6 +6922,14 @@ function exportCurrentProjectBackup() {
     version: 1,
     exportedAt: new Date().toISOString(),
     project,
+    novelSpaceBinding: {
+      id: safeText(project?.novelSpaceId, "", 100),
+      name: safeText(getNovelSpaceForProject(project)?.name, "未命名小说", 80),
+      kind: safeText(getNovelSpaceForProject(project)?.kind, "unknown", 30),
+      available: Boolean(getNovelSpaceForProject(project)?.source?.available),
+      format: safeText(getNovelSpaceForProject(project)?.source?.format, "", 20),
+    },
+    spaceConfigReminder: "小说原文、章节索引和空间记忆不包含在项目备份中",
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -3432,6 +6993,11 @@ async function importProjectsBackup() {
       ? rawSourceProjects.filter((project) => project && typeof project === "object" && !Array.isArray(project))
       : null;
     const sourceActiveProjectId = backup?.format === "inkecho-projects" ? String(backup.activeProjectId || "") : "";
+    const sourceSpaceBindings = backup?.format === "inkecho-projects" && Array.isArray(backup.novelSpaceBindings)
+      ? backup.novelSpaceBindings.filter((binding) => binding && typeof binding === "object" && !Array.isArray(binding))
+      : backup?.format === "inkecho-project" && backup.novelSpaceBinding && typeof backup.novelSpaceBinding === "object"
+        ? [backup.novelSpaceBinding]
+        : [];
     const sourceTemplates = backup?.format === "inkecho-projects" && Array.isArray(backup.customTemplates)
       ? backup.customTemplates
       : [];
@@ -3446,6 +7012,35 @@ async function importProjectsBackup() {
     }
     const slots = Math.max(0, maxProjects - projects.length);
     const importCount = Math.min(sourceProjects.length, slots);
+    const fallbackNovelSpaceId = getActiveNovelSpace()?.id || defaultNovelSpaceId;
+    const importedSourceProjects = sourceProjects.slice(0, slots);
+    const normalizeSpaceBindingName = (value) => safeText(value, "", 80).trim().toLocaleLowerCase();
+    const findLocalNovelSpaceByBinding = (binding) => {
+      const sourceSpaceId = safeText(binding?.id, "", 100);
+      if (sourceSpaceId) {
+        const byId = novelSpaces.find((space) => space.id === sourceSpaceId);
+        if (byId) return byId;
+      }
+      const sourceName = normalizeSpaceBindingName(binding?.name);
+      if (!sourceName) return null;
+      return novelSpaces.find((space) => normalizeSpaceBindingName(space.name) === sourceName) || null;
+    };
+    const resolveImportedNovelSpaceId = (source) => {
+      const sourceSpaceId = safeText(source?.novelSpaceId, "", 100);
+      const matchedBinding = sourceSpaceBindings.find((binding) => safeText(binding?.id, "", 100) === sourceSpaceId);
+      const localSpace = findLocalNovelSpaceByBinding(matchedBinding || { id: sourceSpaceId });
+      return localSpace?.source?.available ? localSpace.id : fallbackNovelSpaceId;
+    };
+    const matchedByNameCount = importedSourceProjects.filter((source) => {
+      const sourceSpaceId = safeText(source?.novelSpaceId, "", 100);
+      if (!sourceSpaceId || novelSpaces.some((space) => space.id === sourceSpaceId)) return false;
+      const binding = sourceSpaceBindings.find((item) => safeText(item?.id, "", 100) === sourceSpaceId);
+      return Boolean(binding?.name && findLocalNovelSpaceByBinding(binding)?.source?.available);
+    }).length;
+    const reboundProjectCount = importedSourceProjects.filter((source) => {
+      const sourceSpaceId = safeText(source?.novelSpaceId, "", 100);
+      return sourceSpaceId && resolveImportedNovelSpaceId(source) === fallbackNovelSpaceId && sourceSpaceId !== fallbackNovelSpaceId;
+    }).length;
     const importedTemplates = sourceTemplates.slice(0, maxCustomTemplates).map((template, index) => normalizeTemplate({
       ...template,
       id: `template-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
@@ -3474,21 +7069,49 @@ async function importProjectsBackup() {
     const capacitySkippedProjects = Math.max(0, sourceProjects.length - slots);
     const skippedLabel = skippedProjects ? `\n另有 ${skippedProjects} 个无效项目条目，将跳过。` : "";
     const capacitySkippedLabel = capacitySkippedProjects ? `\n另有 ${capacitySkippedProjects} 个有效项目因本地项目上限，将跳过。` : "";
+    const sourceBindingNames = [...new Set(sourceSpaceBindings.map((binding) => safeText(binding?.name, "", 80).trim()).filter(Boolean))];
+    const unresolvedBindingNames = sourceSpaceBindings
+      .filter((binding) => {
+        const localSpace = findLocalNovelSpaceByBinding(binding);
+        return !localSpace || !localSpace.source?.available;
+      })
+      .map((binding) => safeText(binding?.name, "未命名小说", 80).trim())
+      .filter((name, index, list) => name && list.indexOf(name) === index);
+    const bindingLabel = sourceBindingNames.length
+      ? `\n备份引用小说空间：${sourceBindingNames.join("、")}。项目备份不包含小说原文、章节索引或空间记忆，请按需重新上传原文并导入空间配置。`
+      : "";
+    const unresolvedBindingLabel = unresolvedBindingNames.length
+      ? `\n当前设备未找到可用原文：${unresolvedBindingNames.join("、")}；相关项目会先绑定当前选中的小说空间，上传后自动恢复。`
+      : "";
+    const reboundLabel = reboundProjectCount
+      ? `\n其中 ${reboundProjectCount} 个项目引用的原小说空间在本机不存在，将重新关联到当前空间「${getActiveNovelSpace()?.name || "未命名小说"}」。`
+      : "";
+    const matchedByNameLabel = matchedByNameCount
+      ? `\n其中 ${matchedByNameCount} 个项目会按小说空间名称重新关联。`
+      : "";
     const versionLabel = backup?.format === "inkecho-projects"
       ? `\n备份格式：v${sourceBackupVersion}，会按当前版本可识别字段导入。`
       : "";
     const templateLabel = importedTemplates.length ? `\n另含 ${importedTemplates.length} 个自定义模板。` : "";
     const libraryLabel = importedLibraryCharacters.length ? `\n另含 ${importedLibraryCharacters.length} 个角色库条目。` : "";
     const promptLabel = importedLibraryPrompts.length ? `\n另含 ${importedLibraryPrompts.length} 个灵感库条目。` : "";
-    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${versionLabel}${activeLabel}${projectPreviewLabel}${skippedLabel}${capacitySkippedLabel}${templateLabel}${libraryLabel}${promptLabel}\n确定继续吗？`)) return;
-    const importedEntries = sourceProjects.slice(0, slots).map((project, index) => {
+    if (!window.confirm(`将导入 ${importCount} 个项目，现有项目不会被覆盖。${versionLabel}${activeLabel}${projectPreviewLabel}${skippedLabel}${capacitySkippedLabel}${bindingLabel}${unresolvedBindingLabel}${matchedByNameLabel}${reboundLabel}${templateLabel}${libraryLabel}${promptLabel}\n确定继续吗？`)) return;
+    const importedEntries = importedSourceProjects.map((project, index) => {
       const source = project && typeof project === "object" ? project : {};
+      const sourceSpaceId = safeText(source.novelSpaceId, "", 100);
+      const sourceSpaceName = safeText(
+        sourceSpaceBindings.find((binding) => safeText(binding?.id, "", 100) === sourceSpaceId)?.name,
+        "",
+        80,
+      ).trim();
       return {
         sourceId: String(source.id || ""),
+        sourceSpaceName,
         project: createProject({
           ...source,
           id: `project-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
           name: `${safeText(source.name, "未命名作品", 80)} · 导入`,
+          novelSpaceId: resolveImportedNovelSpaceId(source),
         }),
       };
     });
@@ -3508,6 +7131,9 @@ async function importProjectsBackup() {
     const selectedImported = importedEntries.find((entry) => entry.sourceId === sourceActiveProjectId);
     if (selectedImported?.project) activeProjectId = selectedImported.project.id;
     else if (imported[0]) activeProjectId = imported[0].id;
+    const recoveryProjectBindings = importedEntries
+      .filter((entry) => entry.sourceSpaceName && unresolvedBindingNames.some((name) => normalizeSpaceBindingName(name) === normalizeSpaceBindingName(entry.sourceSpaceName)))
+      .map((entry) => ({ projectId: entry.project.id, name: entry.sourceSpaceName }));
     persistProjects();
     persistCustomTemplates();
     persistCharacterLibrary();
@@ -3517,9 +7143,12 @@ async function importProjectsBackup() {
     renderCharacters();
     renderConversation();
     updateProviderUI();
+    setSpaceRecovery(sourceBindingNames, unresolvedBindingNames, recoveryProjectBindings);
     const skippedToast = skippedProjects ? `，跳过 ${skippedProjects} 个无效项目` : "";
     const capacityToast = capacitySkippedProjects ? `，因项目上限跳过 ${capacitySkippedProjects} 个有效项目` : "";
-    showToast(`已导入 ${imported.length} 个项目${skippedToast}${capacityToast}${importedTemplates.length ? `、${importedTemplates.length} 个模板` : ""}${importedLibraryCharacters.length ? `、${importedLibraryCharacters.length} 个角色` : ""}${importedLibraryPrompts.length ? `、${importedLibraryPrompts.length} 个灵感` : ""}`);
+    const reboundToast = reboundProjectCount ? `，${reboundProjectCount} 个项目已重绑定当前空间` : "";
+    const matchedByNameToast = matchedByNameCount ? `，${matchedByNameCount} 个项目按空间名称关联` : "";
+    showToast(`已导入 ${imported.length} 个项目${skippedToast}${capacityToast}${matchedByNameToast}${reboundToast}${importedTemplates.length ? `、${importedTemplates.length} 个模板` : ""}${importedLibraryCharacters.length ? `、${importedLibraryCharacters.length} 个角色` : ""}${importedLibraryPrompts.length ? `、${importedLibraryPrompts.length} 个灵感` : ""}`);
   } catch {
     showToast("备份文件无效，请选择 InkEcho 导出的 JSON");
   } finally {
@@ -3554,15 +7183,257 @@ function updateProviderUI() {
   providerMissingKeys = [];
   copyProviderConfigKeysButton.hidden = true;
   providerDescription.textContent = providerDescriptions[provider];
+  if (providerSetupHint) providerSetupHint.textContent = providerSetupHints[provider] || "";
+  if (providerDataBoundary) providerDataBoundary.textContent = providerDataBoundaries[provider] || "";
   if (!modelName.value.trim() || Object.values(providerDefaults).includes(modelName.value.trim())) {
     modelName.value = providerDefaults[provider];
   }
   setProviderBadge("检查中", "#a26b46");
-  checkProviderHealth(provider);
+  return checkProviderHealth(provider);
 }
 
 function getEffectiveCreativityLabel() {
   return selectedMode === "问答" ? "事实优先" : (creativityLabels[creativitySelect.value] || "平衡");
+}
+
+function updateModeGuide() {
+  const guide = modeGuides[selectedMode] || modeGuides.续写;
+  const description = guide.description.replaceAll("《蛊真人》", `「${getCurrentNovelDisplayName()}」`);
+  if (modeGuideIcon) modeGuideIcon.textContent = guide.icon;
+  if (modeGuideKicker) modeGuideKicker.textContent = guide.kicker;
+  if (modeGuideTitle) modeGuideTitle.textContent = guide.title;
+  if (modeGuideDescription) modeGuideDescription.textContent = description;
+  if (modeGuideAction) modeGuideAction.textContent = guide.action;
+}
+
+function syncWorkspacePage() {
+  renderWorkspaceNovelSelect();
+  const activeSpace = novelSpaceForProject();
+  const activeReadiness = getNovelSpaceReadiness(activeSpace);
+  if (atlasHomeNovelName) atlasHomeNovelName.textContent = getCurrentNovelDisplayName();
+  if (atlasHomeSourceStatus) {
+    atlasHomeSourceStatus.textContent = activeSpace
+      ? `${getCurrentNovelDisplayName()} · ${activeReadiness.capability}`
+      : "还没有小说知识空间，先上传一本小说";
+  }
+  if (atlasHomeSourceStats) {
+    atlasHomeSourceStats.textContent = activeReadiness.canQuery
+      ? "浏览章节并引用原文"
+      : activeReadiness.capability;
+  }
+  if (sourceReadinessText) {
+    sourceReadinessText.textContent = activeReadiness.canQuery ? "原作依据已就绪" : activeReadiness.label;
+  }
+  if (sourceReadinessButton) {
+    sourceReadinessButton.classList.toggle("is-warning", !activeReadiness.canQuery);
+    sourceReadinessButton.title = activeReadiness.canQuery
+      ? "查看当前小说的原作章节与检索依据"
+      : `${activeReadiness.capability}，点击前往原作资料处理`;
+  }
+  if (workspaceNovelName) {
+    const space = novelSpaceForProject();
+    const readiness = getNovelSpaceReadiness(space);
+    const needsAttention = readiness.filter !== "ready";
+    workspaceNovelName.textContent = `当前小说：${getCurrentNovelDisplayName()}${needsAttention ? ` · ${readiness.label}` : ""}`;
+    workspaceNovelName.classList.toggle("is-warning", needsAttention);
+    workspaceNovelName.title = needsAttention ? readiness.capability : "当前知识空间可用于续写与内容问答";
+  }
+  if (sourcePageStatus && sourceStatus) sourcePageStatus.textContent = sourceStatus.textContent;
+  if (sourcePageChapter) {
+    const workspaceChapter = normalizeChapterLocator(workChapter?.value);
+    sourcePageChapter.value = sourceOutlineTitles.includes(workspaceChapter) ? workspaceChapter : "";
+  }
+  renderSourcePageDiagnostics();
+  syncSourcePageActions();
+  const project = getActiveProject();
+  if (storyPageBeatCount) {
+    const beats = project?.beats || [];
+    const active = getActiveSceneBeat(project);
+    storyPageBeatCount.textContent = `${beats.length} 张场景卡 · ${active ? `当前进行中：${active.title}` : "尚未选择当前场景"}`;
+  }
+  syncWorkspaceGuide();
+}
+
+function renderWorkspaceNovelSelect() {
+  if (!workspaceNovelSelect) return;
+  const currentSpaceId = getCurrentNovelSpaceId();
+  workspaceNovelSelect.replaceChildren();
+  if (!novelSpaces.length) {
+    const loading = document.createElement("option");
+    loading.value = "";
+    loading.textContent = "正在读取小说空间……";
+    workspaceNovelSelect.appendChild(loading);
+    workspaceNovelSelect.disabled = true;
+    return;
+  }
+  const spaces = novelSpaces.slice().sort((left, right) => {
+    if (left.id === currentSpaceId) return -1;
+    if (right.id === currentSpaceId) return 1;
+    const lastAccessedDifference = (Number(right.lastAccessedAt) || 0) - (Number(left.lastAccessedAt) || 0);
+    if (lastAccessedDifference) return lastAccessedDifference;
+    return (Number(right.updated_at) || 0) - (Number(left.updated_at) || 0);
+  });
+  spaces.forEach((space) => {
+    const option = document.createElement("option");
+    const readiness = getNovelSpaceReadiness(space);
+    option.value = space.id;
+    option.textContent = `${space.name}${readiness.filter !== "ready" ? ` · ${readiness.label}` : ""}`;
+    workspaceNovelSelect.appendChild(option);
+  });
+  workspaceNovelSelect.value = spaces.some((space) => space.id === currentSpaceId)
+    ? currentSpaceId
+    : spaces[0].id;
+  workspaceNovelSelect.disabled = false;
+  workspaceNovelSelect.title = spaces.length > 1 ? "快速切换当前小说知识空间" : "如需切换，请先在小说库上传或选择其他小说";
+}
+
+function renderSourcePageDiagnostics() {
+  if (!sourcePageDiagnostics) return;
+  const space = novelSpaceForProject();
+  const source = space?.source || {};
+  const readiness = getNovelSpaceReadiness(space);
+  sourcePageDiagnostics.replaceChildren();
+  const warnings = Array.isArray(source.parseDiagnostics?.warnings)
+    ? source.parseDiagnostics.warnings.filter(Boolean).slice(0, 3)
+    : [];
+  if (warnings.length) {
+    const warning = document.createElement("small");
+    warning.textContent = `解析提醒：${warnings.join("；")}`;
+    sourcePageDiagnostics.appendChild(warning);
+  } else if (source.parseStatus === "partial" && source.parseMessage) {
+    const message = document.createElement("small");
+    message.textContent = source.parseMessage;
+    sourcePageDiagnostics.appendChild(message);
+  }
+  if (readiness.filter === "empty" || readiness.filter === "partial") {
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "text-button source-diagnostics-action";
+    if (space?.kind === "uploaded") {
+      action.textContent = "选择修正版原文并重新解析";
+      action.addEventListener("click", () => prepareNovelSpaceReparse(space.id));
+    } else {
+      action.textContent = "去小说库上传可读取原文";
+      action.addEventListener("click", () => setWorkspaceView("library", { announce: true, focus: true }));
+    }
+    sourcePageDiagnostics.appendChild(action);
+  } else if (readiness.filter === "unavailable") {
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "text-button source-diagnostics-action";
+    action.textContent = "去小说库恢复原文";
+    action.addEventListener("click", () => setWorkspaceView("library", { announce: true, focus: true }));
+    sourcePageDiagnostics.appendChild(action);
+  }
+}
+
+function syncSourceChapterSelection() {
+  if (!sourceChapterSelection) return;
+  const chapter = normalizeChapterLocator(sourcePageChapter?.value);
+  const label = sourceChapterSelection.querySelector("span");
+  if (label) label.textContent = chapter || "尚未选择章节";
+  sourceChapterSelection.classList.toggle("has-selection", Boolean(chapter));
+}
+
+function syncSourcePageActions() {
+  const readiness = getNovelSpaceReadiness(novelSpaceForProject());
+  const hasChapter = Boolean(normalizeChapterLocator(sourcePageChapter?.value));
+  const hasEvidenceQuery = Boolean(sourceEvidenceQueryInput?.value.trim());
+  const blockedTitle = readiness.canQuery
+    ? ""
+    : `${readiness.capability}，请先在小说库恢复或重新解析原文。`;
+  [
+    [sourcePageReadButton, "阅读所选章节"],
+    [sourcePageAskButton, "围绕所选章节提问"],
+  ].forEach(([button, label]) => {
+    if (!button) return;
+    const reading = button === sourcePageReadButton && button.dataset.reading === "true";
+    button.disabled = reading || !readiness.canQuery || !hasChapter;
+    button.title = !readiness.canQuery ? blockedTitle : hasChapter ? label : "先从章节列表选择一章";
+  });
+  if (sourcePagePreviewButton) {
+    sourcePagePreviewButton.disabled = !readiness.canQuery || !hasEvidenceQuery;
+    sourcePagePreviewButton.title = !readiness.canQuery
+      ? blockedTitle
+      : hasEvidenceQuery ? "查找可以核对的原文" : "先输入一个要查证的问题";
+  }
+  syncSourceChapterSelection();
+}
+
+function setWorkspaceView(view, { announce = false, focus = false } = {}) {
+  const nextView = workspaceGuides[view] ? view : "workbench";
+  const previousView = activeWorkspaceView;
+  if (nextView !== "workbench" && document.body.classList.contains("focus-mode")) setFocusMode(false);
+  activeWorkspaceView = nextView;
+  if (workspaceNavMore) workspaceNavMore.open = !["library", "workbench"].includes(nextView);
+  persistWorkspaceView(nextView);
+  document.body.dataset.workspaceView = nextView;
+  document.querySelectorAll(".workspace-page").forEach((page) => {
+    page.hidden = page.dataset.workspacePage !== nextView;
+  });
+  if (workspacePageWorkbench) workspacePageWorkbench.hidden = nextView !== "workbench";
+  if (nextView === "settings") {
+    if (settingsPageSlot && modelSettings && !settingsPageSlot.contains(modelSettings)) {
+      settingsPageSlot.appendChild(modelSettings);
+    }
+  } else {
+    if (settingsPageSlot?.contains(modelSettings) && sidebarFooter?.parentElement) {
+      sidebarFooter.parentElement.insertBefore(modelSettings, sidebarFooter);
+    }
+    if (nextView === "story") {
+      if (storyContextSlot && contextMore && !storyContextSlot.contains(contextMore)) {
+        storyContextSlot.appendChild(contextMore);
+      }
+      if (contextMore) contextMore.open = true;
+    } else if (storyContextSlot?.contains(contextMore) && characterSectionHeading?.parentElement) {
+      characterSectionHeading.parentElement.insertBefore(contextMore, characterSectionHeading);
+    }
+  }
+  syncWorkspacePage();
+  workspaceNavItems.forEach((item) => {
+    const active = item.dataset.workspaceView === nextView;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-selected", String(active));
+  });
+  syncWorkspaceGuide();
+
+  if (nextView !== previousView) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+  if (nextView === "home") {
+    if (announce) showToast("已返回故事星图");
+    if (focus) document.querySelector("[data-atlas-task]")?.focus();
+  } else if (nextView === "library") {
+    if (announce) showToast("小说库是进入知识空间和工作台的主入口");
+    if (focus) novelSpaceList?.querySelector(".novel-space-card.is-active .page-primary-button")?.focus();
+  } else if (nextView === "source") {
+    if (announce) showToast("已定位到原作资料区：章节、参考片段和知识库状态");
+    if (focus) sourceOutlineSearchInput?.focus();
+  } else if (nextView === "settings") {
+    if (modelSettings) modelSettings.open = true;
+    if (announce) showToast("已打开模型与数据设置");
+    if (focus) providerSelect?.focus();
+  } else if (nextView === "memory") {
+    setMemoryLayer(activeMemoryLayer, { focus });
+    if (announce) showToast("已打开空间记忆：原作知识用于问答，创作记忆用于续写");
+  } else if (nextView === "story") {
+    if (announce) showToast("故事管理集中在场景计划、角色卡和摘要");
+    if (focus) storyPageBeatsButton?.focus();
+  } else if (focus) {
+    messageInput?.focus();
+    messageInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
+function syncWorkspaceViewFromUrl() {
+  try {
+    const { view, spaceId } = readWorkspaceHashState();
+    if (spaceId) syncNovelSpaceFromUrl(spaceId);
+    if (workspaceGuides[view] && view !== activeWorkspaceView) {
+      setWorkspaceView(view, { announce: false, focus: true });
+    }
+  } catch {
+    // Ignore malformed URL fragments.
+  }
 }
 
 function syncModeControls() {
@@ -3571,67 +7442,464 @@ function syncModeControls() {
   creativitySelect.title = factualMode ? "问答模式固定为事实优先" : "";
   creativityValue.textContent = getEffectiveCreativityLabel();
   conversationTitle.textContent = getConversationTitle();
+  updateModeGuide();
 }
 
 function setProviderBadge(label, color) {
   providerBadge.textContent = label;
   providerBadge.style.color = color;
+  const connected = label === "已连接";
+  const configured = ["配置完整", "配置完成"].includes(label);
+  if (modelReadinessText) {
+    modelReadinessText.textContent = connected
+      ? "模型服务已连接"
+      : configured
+        ? "模型配置已完成"
+        : `模型服务：${label}`;
+  }
+  if (modelReadinessButton) {
+    modelReadinessButton.classList.toggle("is-pending", configured);
+    modelReadinessButton.classList.toggle("is-warning", !connected && !configured);
+    modelReadinessButton.title = connected
+      ? "模型连接已经验证，点击查看当前配置"
+      : configured
+        ? "配置字段完整，但连接尚未验证；点击前往设置测试连接"
+        : `模型服务${label}，点击前往设置处理`;
+  }
 }
 
 function renderSourceStatus(status) {
   if (!sourceStatus) return;
   if (!status) {
-    sourceStatus.textContent = "原作知识库：服务未连接";
+    sourceStatus.textContent = "原作暂不可用";
     sourceStatus.classList.add("is-warning");
+    syncWorkspacePage();
     return;
   }
   if (status.available) {
-    const encoding = String(status.encoding || "").toUpperCase();
-    sourceStatus.textContent = `原作知识库：${status.name || "蛊真人"} · 已加载 ${Number(status.chunks || 0).toLocaleString("zh-CN")} 个片段${encoding ? ` · ${encoding}` : ""}`;
-    sourceStatus.classList.remove("is-warning", "is-error");
+    if (status.parse_status === "empty" || Number(status.chunks || 0) <= 0 || Number(status.characters || 0) <= 0) {
+      sourceStatus.textContent = `${status.name || "当前小说"} · 没有可读取的正文`;
+      sourceStatus.classList.add("is-warning");
+      sourceStatus.classList.remove("is-error");
+      syncWorkspacePage();
+      return;
+    }
+    const parseHint = status.parse_status === "partial" ? " · 部分章节需要检查" : "";
+    sourceStatus.textContent = `${status.name || "蛊真人"} · 原作已就绪${parseHint}`;
+    sourceStatus.classList.toggle("is-warning", status.parse_status === "partial");
+    sourceStatus.classList.remove("is-error");
   } else if (status.configured) {
-    sourceStatus.textContent = `原作知识库：${status.error || "原文文件不可用"}`;
+    sourceStatus.textContent = status.error || "原文文件不可用";
     sourceStatus.classList.remove("is-error");
     sourceStatus.classList.add("is-warning");
   } else {
-    sourceStatus.textContent = "原作知识库：待配置 · 请补 INK_ECHO_SOURCE_FILE";
+    sourceStatus.textContent = "尚未添加原文";
     sourceStatus.classList.remove("is-error");
     sourceStatus.classList.add("is-warning");
   }
+  syncWorkspacePage();
 }
 
 async function loadSourceOutline(status) {
   if (!sourceChapterOptions || !sourceOutlineHint) return;
   if (!status?.available) {
     sourceOutlineLoadedKey = "";
+    sourceOutlineTitles = [];
+    resetSourceOutlineRemoteSearch();
+    if (sourceOutlineVolumeFilter) {
+      sourceOutlineVolumeFilter.value = "";
+      populateSourceOutlineVolumeFilter([]);
+    }
     sourceChapterOptions.replaceChildren();
     sourceOutlineHint.textContent = status?.configured
       ? "原作章节建议暂不可用，可以手动填写当前章节。"
       : "配置原作知识库后，可在当前章节输入框选择卷 / 节。";
+    renderSourceOutlineBrowser();
     return;
   }
-  const sourceKey = `${status.name || "蛊真人"}:${Number(status.chunks || 0)}`;
+  const sourceKey = `${getCurrentNovelSpaceId()}:${status.name || "蛊真人"}:${Number(status.chunks || 0)}`;
   if (sourceOutlineLoadedKey === sourceKey && sourceChapterOptions.options.length) return;
   const requestId = ++sourceOutlineRequestId;
+  const requestSpaceId = getCurrentNovelSpaceId();
+  sourceOutlineTitles = [];
+  resetSourceOutlineRemoteSearch();
+  if (sourceOutlineVolumeFilter) sourceOutlineVolumeFilter.value = "";
+  sourceChapterOptions.replaceChildren();
+  renderSourceOutlineBrowser();
   sourceOutlineHint.textContent = "原作章节建议读取中……";
   try {
-    const response = await fetchWithTimeout("/api/source/outline?limit=3000", {}, 15000);
+    const params = new URLSearchParams({ limit: "3000", novel_space_id: requestSpaceId });
+    const response = await fetchWithTimeout(`/api/source/outline?${params.toString()}`, {}, 15000);
     const payload = await response.json();
-    if (requestId !== sourceOutlineRequestId) return;
+    if (requestId !== sourceOutlineRequestId || getCurrentNovelSpaceId() !== requestSpaceId) return;
     if (!response.ok || !payload.ok) throw new Error(payload.error || "章节建议读取失败");
     const titles = Array.isArray(payload.titles) ? payload.titles.filter(Boolean) : [];
-    sourceChapterOptions.replaceChildren(...titles.map((title) => {
-      const option = document.createElement("option");
-      option.value = title;
-      return option;
-    }));
+    sourceOutlineTitles = titles;
+    if (sourcePageChapter && !titles.includes(normalizeChapterLocator(sourcePageChapter.value))) {
+      sourcePageChapter.value = "";
+    }
+    populateSourceChapterOptions(sourceOutlineTitles);
+    populateSourceOutlineVolumeFilter(sourceOutlineTitles);
     sourceOutlineLoadedKey = sourceKey;
     sourceOutlineHint.textContent = titles.length
       ? `原作章节建议已加载 · ${titles.length.toLocaleString("zh-CN")} 个卷 / 节，可输入关键词筛选`
       : "没有读取到章节标题，可以手动填写当前章节。";
+    renderSourceOutlineBrowser();
+    syncSourcePageActions();
   } catch {
-    if (requestId !== sourceOutlineRequestId) return;
+    if (requestId !== sourceOutlineRequestId || getCurrentNovelSpaceId() !== requestSpaceId) return;
     sourceOutlineHint.textContent = "原作章节建议暂不可用，可以手动填写当前章节。";
+  }
+}
+
+function populateSourceChapterOptions(titles) {
+  if (!sourceChapterOptions) return;
+  const uniqueTitles = [...new Set((Array.isArray(titles) ? titles : []).filter(Boolean))];
+  sourceChapterOptions.replaceChildren(...uniqueTitles.map((title) => {
+    const option = document.createElement("option");
+    option.value = title;
+    return option;
+  }));
+}
+
+function sourceOutlineVolumeTitle(title) {
+  const firstSegment = String(title || "").split(" · ")[0].trim();
+  return /^第[一二三四五六七八九十百千万零〇两0-9]+(?:卷|部)(?:[：:].*)?$/.test(firstSegment)
+    ? firstSegment
+    : "";
+}
+
+function populateSourceOutlineVolumeFilter(titles) {
+  if (!sourceOutlineVolumeFilter) return;
+  const current = sourceOutlineVolumeFilter.value;
+  const volumes = [...new Set(
+    (Array.isArray(titles) ? titles : []).map(sourceOutlineVolumeTitle).filter(Boolean),
+  )];
+  sourceOutlineVolumeFilter.replaceChildren();
+  const all = document.createElement("option");
+  all.value = "";
+  all.textContent = "全部卷 / 分卷";
+  sourceOutlineVolumeFilter.appendChild(all);
+  volumes.forEach((volume) => {
+    const option = document.createElement("option");
+    option.value = volume;
+    option.textContent = volume;
+    sourceOutlineVolumeFilter.appendChild(option);
+  });
+  sourceOutlineVolumeFilter.hidden = volumes.length < 2;
+  sourceOutlineVolumeFilter.value = volumes.includes(current) ? current : "";
+}
+
+function resetSourceOutlineRemoteSearch() {
+  sourceOutlineSearchRequestId += 1;
+  if (sourceOutlineSearchTimer) {
+    clearTimeout(sourceOutlineSearchTimer);
+    sourceOutlineSearchTimer = null;
+  }
+  sourceOutlineRemoteQuery = "";
+  sourceOutlineRemoteTitles = [];
+  sourceOutlineSearchPending = false;
+  sourceOutlineSearchError = false;
+  sourceOutlineVisibleLimit = sourceOutlineDisplayLimit;
+}
+
+function queueSourceOutlineSearch() {
+  const query = sourceOutlineSearchInput?.value.trim() || "";
+  resetSourceOutlineRemoteSearch();
+  populateSourceChapterOptions(sourceOutlineTitles);
+  if (query.length < 2) {
+    renderSourceOutlineBrowser();
+    return;
+  }
+  sourceOutlineSearchPending = true;
+  renderSourceOutlineBrowser();
+  const requestId = sourceOutlineSearchRequestId;
+  const requestSpaceId = getCurrentNovelSpaceId();
+  const normalizedQuery = query.toLocaleLowerCase();
+  sourceOutlineSearchTimer = window.setTimeout(async () => {
+    sourceOutlineSearchTimer = null;
+    try {
+      const params = new URLSearchParams({
+        query,
+        limit: "3000",
+        novel_space_id: requestSpaceId,
+      });
+      const response = await fetchWithTimeout(`/api/source/outline?${params.toString()}`, {}, 15000);
+      const payload = await response.json();
+      if (requestId !== sourceOutlineSearchRequestId || getCurrentNovelSpaceId() !== requestSpaceId || sourceOutlineSearchInput?.value.trim().toLocaleLowerCase() !== normalizedQuery) return;
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "章节检索失败");
+      sourceOutlineRemoteQuery = normalizedQuery;
+      sourceOutlineRemoteTitles = Array.isArray(payload.titles) ? payload.titles.filter(Boolean) : [];
+      sourceOutlineSearchPending = false;
+      sourceOutlineSearchError = false;
+      populateSourceChapterOptions([...sourceOutlineTitles, ...sourceOutlineRemoteTitles]);
+      populateSourceOutlineVolumeFilter([...sourceOutlineTitles, ...sourceOutlineRemoteTitles]);
+      renderSourceOutlineBrowser();
+    } catch {
+      if (requestId !== sourceOutlineSearchRequestId || getCurrentNovelSpaceId() !== requestSpaceId) return;
+      sourceOutlineRemoteQuery = normalizedQuery;
+      sourceOutlineRemoteTitles = [];
+      sourceOutlineSearchPending = false;
+      sourceOutlineSearchError = true;
+      renderSourceOutlineBrowser();
+    }
+  }, 240);
+}
+
+function renderSourceOutlineBrowser() {
+  if (!sourceOutlineList) return;
+  const query = sourceOutlineSearchInput?.value.trim().toLocaleLowerCase() || "";
+  const selectedVolume = sourceOutlineVolumeFilter?.value || "";
+  const remoteTitles = query && sourceOutlineRemoteQuery === query ? sourceOutlineRemoteTitles : [];
+  const candidates = [...new Set([...sourceOutlineTitles, ...remoteTitles])];
+  const filtered = candidates.filter((title) => (
+    (!selectedVolume || sourceOutlineVolumeTitle(title) === selectedVolume)
+    && (
+      !query
+      || title.toLocaleLowerCase().includes(query)
+      || (sourceOutlineRemoteQuery === query && remoteTitles.includes(title))
+    )
+  ));
+  if (sourceOutlineClearButton) sourceOutlineClearButton.hidden = !query && !selectedVolume;
+  const filterHint = selectedVolume ? ` · ${selectedVolume}` : "";
+  if (sourceOutlineBrowserStatus) {
+    if (query && sourceOutlineSearchPending) {
+      sourceOutlineBrowserStatus.textContent = "正在查找章节……";
+    } else if (query && sourceOutlineSearchError) {
+      sourceOutlineBrowserStatus.textContent = "章节查找暂不可用，可以直接输入标题";
+    } else if (!candidates.length) {
+      sourceOutlineBrowserStatus.textContent = "暂无可浏览章节，可以手动输入标题";
+    } else if (query) {
+      sourceOutlineBrowserStatus.textContent = filtered.length
+        ? `找到 ${filtered.length.toLocaleString("zh-CN")} 个匹配章节${filterHint}`
+        : sourceOutlineRemoteQuery === query ? "没有找到匹配章节" : "正在查找章节……";
+    } else {
+      sourceOutlineBrowserStatus.textContent = selectedVolume
+        ? `正在浏览${filterHint}`
+        : "选择一个章节开始阅读";
+    }
+  }
+  sourceOutlineList.replaceChildren();
+  if (!filtered.length) {
+    const empty = document.createElement("p");
+    empty.className = "source-outline-empty";
+    empty.textContent = sourceOutlineSearchError
+      ? "完整章节索引暂不可用，可以直接输入章节 / 场景定位。"
+      : sourceOutlineTitles.length ? "换一个关键词，或直接输入章节 / 场景定位。" : "章节导航暂不可用，可以直接输入章节 / 场景定位。";
+    sourceOutlineList.appendChild(empty);
+    return;
+  }
+  const current = sourcePageChapter?.value.trim() || "";
+  filtered.slice(0, sourceOutlineVisibleLimit).forEach((title) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "source-outline-item";
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(title === current));
+    button.textContent = title;
+    button.addEventListener("click", () => {
+      if (sourcePageChapter) sourcePageChapter.value = title;
+      workChapter.value = title;
+      workChapter.dispatchEvent(new Event("input", { bubbles: true }));
+      renderSourceOutlineBrowser();
+      syncSourcePageActions();
+      showToast(`已定位到「${title}」`);
+    });
+    sourceOutlineList.appendChild(button);
+  });
+  if (filtered.length > sourceOutlineVisibleLimit) {
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "source-outline-more";
+    more.textContent = "显示更多章节";
+    more.addEventListener("click", () => {
+      sourceOutlineVisibleLimit = Math.min(sourceOutlineVisibleLimit + sourceOutlineDisplayLimit, filtered.length);
+      renderSourceOutlineBrowser();
+      window.setTimeout(() => sourceOutlineList.querySelector(".source-outline-more")?.focus(), 0);
+    });
+    sourceOutlineList.appendChild(more);
+  }
+}
+
+let sourceChapterReaderRequestId = 0;
+let sourceChapterReaderPreview = null;
+let sourceChapterReaderIsSample = false;
+let pendingSourceChapterDigest = null;
+
+function syncSourceChapterReaderActions() {
+  if (!sourceChapterAskButton) return;
+  sourceChapterAskButton.textContent = sourceChapterReaderIsSample ? "围绕解析样本提问" : "围绕本章提问";
+  sourceChapterAskButton.title = sourceChapterReaderIsSample
+    ? "携带当前解析样本的定位进入内容问答"
+    : "携带当前章节的定位进入内容问答";
+}
+
+async function openSourceChapterReader(titleOverride = "", options = {}) {
+  const isSample = options?.sample === true;
+  const title = normalizeChapterLocator(titleOverride) || normalizeChapterLocator(sourcePageChapter?.value) || "";
+  if (!title && !isSample) {
+    showToast("先从章节列表选择一章");
+    sourceOutlineSearchInput?.focus();
+    return;
+  }
+  if (titleOverride && sourcePageChapter && sourcePageChapter.value.trim() !== title) {
+    sourcePageChapter.value = title;
+    sourcePageChapter.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  const requestId = ++sourceChapterReaderRequestId;
+  const requestSpaceId = getCurrentNovelSpaceId();
+  if (sourcePageReadButton) {
+    sourcePageReadButton.disabled = true;
+    sourcePageReadButton.dataset.reading = "true";
+    sourcePageReadButton.textContent = "读取中……";
+  }
+  if (sourceChapterReaderStats) sourceChapterReaderStats.textContent = isSample
+    ? "正在读取原文开篇……"
+    : "正在读取章节……";
+  if (sourceChapterReaderTitle) sourceChapterReaderTitle.textContent = isSample ? "检查原文内容" : "阅读原作";
+  if (sourceChapterReaderText) sourceChapterReaderText.textContent = "";
+  sourceChapterReaderPreview = null;
+  sourceChapterReaderIsSample = isSample;
+  syncSourceChapterReaderActions();
+  pendingSourceChapterDigest = null;
+  if (sourceChapterDigest) sourceChapterDigest.hidden = true;
+  if (sourceChapterDigestText) sourceChapterDigestText.textContent = "";
+  if (sourceChapterDigestStatus) sourceChapterDigestStatus.textContent = "先生成一份摘要，再决定是否写入空间记忆。";
+  if (saveSourceChapterDigestButton) saveSourceChapterDigestButton.hidden = true;
+  if (sourceChapterPreviousButton) {
+    sourceChapterPreviousButton.hidden = true;
+    sourceChapterPreviousButton.disabled = true;
+  }
+  if (sourceChapterNextButton) {
+    sourceChapterNextButton.hidden = true;
+    sourceChapterNextButton.disabled = true;
+  }
+  sourceChapterReaderDialog?.showModal();
+  try {
+    const params = new URLSearchParams({ limit: "12000", novel_space_id: requestSpaceId });
+    if (!isSample) params.set("title", title);
+    const endpoint = isSample
+      ? `/api/source/sample?${params.toString()}`
+      : `/api/source/chapter?${params.toString()}`;
+    const response = await fetchWithTimeout(endpoint, {}, 15000);
+    const payload = await response.json();
+    if (requestId !== sourceChapterReaderRequestId || getCurrentNovelSpaceId() !== requestSpaceId) return;
+    if (!response.ok || !payload.ok || !payload.preview) throw new Error(payload.error || "章节读取失败");
+    const preview = payload.preview;
+    if (sourceChapterReaderTitle) sourceChapterReaderTitle.textContent = preview.title || title || "阅读原作";
+    if (sourceChapterReaderStats) {
+      sourceChapterReaderStats.textContent = isSample
+        ? "原文开篇预览"
+        : (preview.truncated ? "章节节选" : "本章完整内容");
+    }
+    if (sourceChapterReaderText) sourceChapterReaderText.textContent = preview.text || "当前章节没有可显示的正文。";
+    sourceChapterReaderPreview = { ...preview, spaceId: requestSpaceId };
+    sourceChapterReaderIsSample = isSample || preview.sample === true;
+    syncSourceChapterReaderActions();
+    if (sourceChapterPreviousButton) {
+      sourceChapterPreviousButton.hidden = !preview.previous_title;
+      sourceChapterPreviousButton.disabled = !preview.previous_title;
+    }
+    if (sourceChapterNextButton) {
+      sourceChapterNextButton.hidden = !preview.next_title;
+      sourceChapterNextButton.disabled = !preview.next_title;
+    }
+  } catch (error) {
+    if (requestId !== sourceChapterReaderRequestId || getCurrentNovelSpaceId() !== requestSpaceId) return;
+    if (sourceChapterReaderTitle) sourceChapterReaderTitle.textContent = "暂时无法阅读本章";
+    if (sourceChapterReaderStats) sourceChapterReaderStats.textContent = "请重新选择章节后再试";
+    if (sourceChapterReaderText) sourceChapterReaderText.textContent = error?.name === "AbortError"
+      ? "读取超时，请检查本地 InkEcho 服务。"
+      : (error?.message || (isSample ? "解析样本读取失败，请检查当前小说文件。" : "找不到当前章节，请从章节导航重新选择。"));
+  } finally {
+    if (sourcePageReadButton) {
+      sourcePageReadButton.dataset.reading = "";
+      sourcePageReadButton.textContent = "阅读所选章节";
+      syncSourcePageActions();
+    }
+  }
+}
+
+async function generateSourceChapterDigest() {
+  const preview = sourceChapterReaderPreview;
+  if (!preview?.title) {
+    showToast("先读取一个章节，再生成摘要");
+    return;
+  }
+  if (!await ensureProviderReadyForRequest("生成章节摘要")) return;
+  if (!await ensureProviderDataConsent("生成章节摘要")) return;
+  const spaceId = getCurrentNovelSpaceId();
+  if (sourceChapterDigest) sourceChapterDigest.hidden = false;
+  if (sourceChapterDigestStatus) sourceChapterDigestStatus.textContent = "正在调用当前模型整理章节摘要……";
+  if (sourceChapterDigestText) sourceChapterDigestText.textContent = "";
+  if (saveSourceChapterDigestButton) saveSourceChapterDigestButton.hidden = true;
+  if (generateSourceChapterDigestButton) {
+    generateSourceChapterDigestButton.disabled = true;
+    generateSourceChapterDigestButton.textContent = "生成中……";
+  }
+  try {
+    const response = await fetchWithTimeout("/api/source/summarize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: preview.title,
+        novel_space_id: spaceId,
+        provider: providerSelect.value,
+        model: modelName.value.trim(),
+      }),
+    }, clientModelRequestTimeout());
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.summary?.summary) throw new Error(payload.error || "章节摘要生成失败");
+    if (spaceId !== getCurrentNovelSpaceId()) {
+      pendingSourceChapterDigest = null;
+      showToast("当前小说空间已切换，这份摘要没有写入");
+      return;
+    }
+    const summary = String(payload.summary.summary).trim();
+    pendingSourceChapterDigest = {
+      title: preview.title,
+      summary,
+      spaceId,
+      sourceRevision: String(preview.source_revision || "").trim(),
+    };
+    if (sourceChapterDigestText) sourceChapterDigestText.textContent = summary;
+    if (sourceChapterDigestStatus) sourceChapterDigestStatus.textContent = "请先核对这份草稿；它是模型整理结果，写入后仍会标记为需以原文为准。";
+    if (saveSourceChapterDigestButton) saveSourceChapterDigestButton.hidden = false;
+  } catch (error) {
+    pendingSourceChapterDigest = null;
+    if (sourceChapterDigestStatus) sourceChapterDigestStatus.textContent = error?.name === "AbortError"
+      ? "模型请求超时，请检查当前模型服务。"
+      : (error?.message || "章节摘要生成失败，请检查模型服务配置。");
+  } finally {
+    if (generateSourceChapterDigestButton) {
+      generateSourceChapterDigestButton.disabled = false;
+      generateSourceChapterDigestButton.textContent = "生成章节摘要";
+    }
+  }
+}
+
+async function saveSourceChapterDigest() {
+  const pending = pendingSourceChapterDigest;
+  if (!pending) return;
+  if (pending.spaceId !== getCurrentNovelSpaceId()) {
+    pendingSourceChapterDigest = null;
+    showToast("当前小说空间已切换，这份摘要没有写入");
+    return;
+  }
+  const saved = await saveGeneratedMemoryNote(
+    `原作章节摘要 · ${pending.title}`,
+    pending.summary,
+    saveSourceChapterDigestButton,
+    "原作章节摘要已写入空间记忆",
+    "source_summary",
+    pending.title,
+    pending.sourceRevision,
+    { chapterTitle: pending.title, chunkCount: Number(sourceChapterReaderPreview?.chunks || 0) },
+  );
+  if (saved) {
+    if (sourceChapterDigestStatus) sourceChapterDigestStatus.textContent = "已写入空间记忆 · 模型整理结果仍以章节原文为准。";
+    if (saveSourceChapterDigestButton) saveSourceChapterDigestButton.hidden = true;
+    pendingSourceChapterDigest = null;
   }
 }
 
@@ -3648,20 +7916,54 @@ function sourceQueryForHistoryIndex(historyIndex, modeOverride = "") {
   const latestUser = [...conversationHistory.slice(0, boundary)]
     .reverse()
     .find((item) => sourceQueryAllowsMessage(item, evidenceMode) && item.role === "user")?.content || "";
-  const contextParts = [project?.context?.chapter];
-  if (evidenceMode !== "问答") contextParts.push(activeBeat?.title, activeBeat?.goal);
+  // A knowledge question should search the whole novel from the user's words.
+  // Injecting the writing project's current chapter silently turns an open QA
+  // query into a chapter-scoped query and can hide the actual answer elsewhere.
+  const contextParts = evidenceMode === "问答"
+    ? []
+    : [project?.context?.chapter, activeBeat?.title, activeBeat?.goal];
   return [latestUser, ...contextParts]
     .filter(Boolean)
     .join(" ")
     .slice(0, 600);
 }
 
-function renderSourceEvidence(results, sourceName = "蛊真人", query = "", sourceQuality = "") {
+function renderSourceEvidence(results, sourceName = "蛊真人", query = "", sourceQuality = "", sourceAnswerCoverage = "", strategy = "balanced", historyIndex = null, mode = "") {
   sourceEvidenceList.replaceChildren();
   sourceEvidenceText = "";
   const quality = sourceQualityLabel(sourceQuality);
+  const answerCoverage = sourceAnswerCoverageLabel(sourceAnswerCoverage);
+  const questionMode = normalizeMessageMode(mode) === "问答";
+  const normalizedStrategy = normalizeRetrievalStrategy(strategy);
+  const strategyLabel = retrievalStrategyLabels[normalizedStrategy];
+  if (sourceEvidenceRecovery) {
+    sourceEvidenceRecovery.replaceChildren();
+    const answerNeedsRecovery = questionMode && ["related", "none"].includes(normalizeSourceAnswerCoverage(sourceAnswerCoverage));
+    const shouldSuggest = answerNeedsRecovery || ["partial", "limited", "none"].includes(normalizeSourceQuality(sourceQuality));
+    sourceEvidenceRecovery.hidden = !shouldSuggest;
+    if (shouldSuggest) {
+      const recoveryText = document.createElement("span");
+      recoveryText.textContent = results.length
+        ? (answerNeedsRecovery
+          ? "找到了相关片段，但还没有明确答案句；可以换一种策略继续核对："
+          : "命中较少，可以换一种检索策略复核同一个问题：")
+        : "暂时没有直接命中，可以尝试换一种检索策略：";
+      sourceEvidenceRecovery.appendChild(recoveryText);
+      Object.entries(retrievalStrategyLabels)
+        .filter(([key]) => key !== normalizedStrategy)
+        .forEach(([key, label]) => {
+          const retry = document.createElement("button");
+          retry.type = "button";
+          retry.className = "text-button source-evidence-retry";
+          retry.textContent = label;
+          retry.title = `使用“${label}”重新检索当前问题`;
+          retry.addEventListener("click", () => openSourceEvidence(historyIndex, query, key, mode));
+          sourceEvidenceRecovery.appendChild(retry);
+        });
+    }
+  }
   if (!results.length) {
-    sourceEvidenceStats.textContent = `${sourceName} · 检索强度：${quality || "未命中"} · 没有找到与当前问题直接相关的片段`;
+    sourceEvidenceStats.textContent = `暂时没有找到「${String(query || "当前问题").trim().slice(0, 80)}」的明确原文`;
     const empty = document.createElement("p");
     empty.className = "source-evidence-empty";
     empty.textContent = "可以换一种问法，或在左侧补充当前章节 / 场景。";
@@ -3669,50 +7971,181 @@ function renderSourceEvidence(results, sourceName = "蛊真人", query = "", sou
     copySourceEvidenceButton.disabled = true;
     return;
   }
-  sourceEvidenceStats.textContent = `${sourceName} · 检索强度：${quality || "未标注"} · ${results.length} 个检索片段 · 查询：${query}`;
-  const lines = [`${sourceName}原作检索依据`, `检索强度：${quality || "未标注"}（不代表模型答案的事实置信度）`, `查询：${query}`, ""];
+  const displayQuery = String(query || "当前问题").trim().slice(0, 80);
+  sourceEvidenceStats.textContent = questionMode
+    ? `正在核对「${displayQuery}」 · ${answerCoverage || "找到相关原文"}`
+    : `正在核对「${displayQuery}」`;
+  const lines = [
+    `${sourceName}原作检索依据`,
+    `检索策略：${strategyLabel}`,
+    questionMode ? `答案依据：${answerCoverage || "未标注"}` : "",
+    `检索相关性：${quality || "未标注"}（只说明召回相关度）`,
+    `查询：${query}`,
+    "",
+  ].filter(Boolean);
   results.forEach((result, index) => {
     const card = document.createElement("article");
     card.className = "source-evidence-card";
+    card.style.setProperty("--evidence-index", index);
+    const disclosure = document.createElement("details");
+    disclosure.className = "source-evidence-disclosure";
+    disclosure.open = index === 0;
+    const heading = document.createElement("summary");
+    heading.className = "source-evidence-card-heading source-evidence-summary";
+    const rank = document.createElement("span");
+    rank.className = "source-evidence-rank";
+    rank.textContent = String(index + 1).padStart(2, "0");
     const title = document.createElement("strong");
     title.textContent = result.title || `片段 ${index + 1}`;
+    heading.append(rank, title);
+    const explanation = document.createElement("div");
+    explanation.className = "source-evidence-explanation";
+    explanation.textContent = index === 0 && questionMode && ["answer", "direct"].includes(normalizeSourceAnswerCoverage(sourceAnswerCoverage))
+      ? "优先核对"
+      : "相关原文";
     const text = document.createElement("pre");
     text.className = "source-evidence-text";
     text.textContent = result.text || "暂无片段内容";
-    card.append(title, text);
+    const actions = document.createElement("div");
+    actions.className = "source-evidence-card-actions";
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "text-button source-evidence-save";
+    save.textContent = "保存到记忆";
+    save.title = "把已核对的原作片段保存到当前小说空间";
+    save.addEventListener("click", async () => {
+      const resultTitle = String(result.title || `片段 ${index + 1}`).trim();
+      const sourceChapterTitle = String(result.chapter_title || resultTitle).trim();
+      const resultText = String(result.text || "").trim();
+      const chunkCount = Math.max(0, Number(result.chapter_chunk_count) || 0);
+      const chunkIndex = Math.max(0, Number(result.chapter_chunk_index) || 0);
+      const chunkLabel = chunkCount > 1 ? ` · 分片 ${chunkIndex || 1}/${chunkCount}` : "";
+      const memoryTitle = `原作依据 · ${sourceChapterTitle}${chunkLabel}`.slice(0, 80);
+      const memoryContent = [
+        `来源小说：${sourceName}`,
+        `依据章节：${sourceChapterTitle}`,
+        resultTitle !== sourceChapterTitle ? `展示片段：${resultTitle}` : "",
+        chunkCount > 1 ? `原文分片：${chunkIndex || 1} / ${chunkCount}` : "",
+        `核对问题：${query}`,
+        "",
+        resultText,
+      ].filter(Boolean).join("\\n").slice(0, 4000);
+      const origin = `${sourceName} · ${resultTitle} · ${query}`.slice(0, 120);
+      const saved = await saveGeneratedMemoryNote(
+        memoryTitle,
+        memoryContent,
+        save,
+        "已将原作依据保存到空间记忆",
+        "source_evidence",
+        origin,
+        result.source_revision || "",
+        { chapterTitle: sourceChapterTitle, chunkIndex, chunkCount },
+      );
+      if (saved) {
+        save.textContent = "已保存";
+        save.disabled = true;
+      }
+    });
+    const ask = document.createElement("button");
+    ask.type = "button";
+    ask.className = "text-button source-evidence-ask";
+    ask.textContent = "围绕此处提问";
+    ask.title = "携带当前问题和这条原作定位进入内容问答";
+    ask.addEventListener("click", () => {
+      const resultTitle = String(result.title || "").trim();
+      beginSourceQuestion(query, resultTitle);
+    });
+    const read = document.createElement("button");
+    read.type = "button";
+    read.className = "text-button source-evidence-read";
+    read.textContent = "阅读整章";
+    read.title = "打开这条依据所属章节的本机原文预览";
+    read.addEventListener("click", () => {
+      const chapterTitle = String(result.chapter_title || result.title || "").trim();
+      if (sourceEvidenceDialog?.open) sourceEvidenceDialog.close();
+      openSourceChapterReader(chapterTitle);
+    });
+    actions.append(ask, read, save);
+    disclosure.append(heading, explanation, text, actions);
+    card.appendChild(disclosure);
     sourceEvidenceList.appendChild(card);
-    lines.push(`【${result.title || `片段 ${index + 1}`}】`, result.text || "", "");
+    lines.push(
+      `【${result.title || `片段 ${index + 1}`}】`,
+      result.text || "",
+      "",
+    );
   });
   sourceEvidenceText = lines.join("\n").trim();
   copySourceEvidenceButton.disabled = false;
 }
 
-async function openSourceEvidence(historyIndex, savedQuery = "") {
-  const evidenceMode = normalizeMessageMode(conversationHistory[historyIndex]?.mode) || selectedMode;
+function beginSourceQuestion(question = "", chapter = "") {
+  const space = novelSpaceForProject();
+  const readiness = getNovelSpaceReadiness(space);
+  if (!readiness.canQuery) {
+    showToast(`${getCurrentNovelDisplayName()}的原文尚未就绪，内容问答暂不可用`);
+    return;
+  }
+  if (sourceEvidenceDialog?.open) sourceEvidenceDialog.close();
+  const normalizedChapter = String(chapter || "").trim();
+  if (normalizedChapter) {
+    workChapter.value = normalizedChapter;
+    workChapter.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  const normalizedQuestion = String(question || "").trim();
+  beginConversationForMode("问答", { announce: false });
+  if (normalizedQuestion) {
+    messageInput.value = normalizedQuestion.slice(0, 10000);
+    messageInput.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  setWorkspaceView("workbench", { announce: true, focus: true });
+  messageInput?.focus();
+  if (normalizedQuestion) messageInput?.select();
+}
+
+async function openSourceEvidence(historyIndex, savedQuery = "", strategyOverride = "", modeOverride = "") {
+  const evidenceMode = normalizeMessageMode(modeOverride)
+    || normalizeMessageMode(conversationHistory[historyIndex]?.mode)
+    || selectedMode;
   const query = savedQuery || sourceQueryForHistoryIndex(historyIndex, evidenceMode);
+  const requestStrategy = normalizeRetrievalStrategy(strategyOverride || getRetrievalStrategy());
   const requestId = ++sourceEvidenceRequestId;
+  const requestSpaceId = getCurrentNovelSpaceId();
   sourceEvidenceStats.textContent = "正在读取本机知识库……";
+  if (sourceEvidenceRecovery) {
+    sourceEvidenceRecovery.hidden = true;
+    sourceEvidenceRecovery.replaceChildren();
+  }
   sourceEvidenceList.replaceChildren();
   sourceEvidenceText = "";
   copySourceEvidenceButton.disabled = true;
-  sourceEvidenceDialog.showModal();
+  if (!sourceEvidenceDialog.open) sourceEvidenceDialog.showModal();
   try {
     const response = await fetchWithTimeout("/api/source/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, mode: evidenceMode }),
+      body: JSON.stringify({
+        query,
+        mode: evidenceMode,
+        novel_space_id: requestSpaceId,
+        retrieval_strategy: requestStrategy,
+      }),
     }, 15000);
     const payload = await response.json();
-    if (requestId !== sourceEvidenceRequestId) return;
+    if (requestId !== sourceEvidenceRequestId || getCurrentNovelSpaceId() !== requestSpaceId) return;
     if (!response.ok || !payload.ok) throw new Error(payload.error || "原作依据读取失败");
     renderSourceEvidence(
       Array.isArray(payload.results) ? payload.results : [],
       payload.source?.name || "蛊真人",
       payload.query || query,
       payload.source_quality || "",
+      payload.source_answer_coverage || "",
+      payload.retrieval_strategy || requestStrategy,
+      historyIndex,
+      evidenceMode,
     );
   } catch (error) {
-    if (requestId !== sourceEvidenceRequestId) return;
+    if (requestId !== sourceEvidenceRequestId || getCurrentNovelSpaceId() !== requestSpaceId) return;
     sourceEvidenceStats.textContent = "原作知识库暂时不可用";
     const failure = document.createElement("p");
     failure.className = "source-evidence-empty is-error";
@@ -3724,12 +8157,17 @@ async function openSourceEvidence(historyIndex, savedQuery = "") {
 }
 
 async function fetchSourceMetadataForFallback(query, mode) {
-  if (!String(query || "").trim()) return { references: [], quality: "none" };
+  if (!String(query || "").trim()) return { references: [], quality: "none", answerCoverage: "none" };
   try {
     const response = await fetchWithTimeout("/api/source/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, mode }),
+      body: JSON.stringify({
+        query,
+        mode,
+        novel_space_id: getCurrentNovelSpaceId(),
+        retrieval_strategy: getRetrievalStrategy(),
+      }),
     }, 5000);
     const payload = await response.json();
     if (!response.ok || !payload.ok) throw new Error(payload.error || "原作依据读取失败");
@@ -3739,9 +8177,10 @@ async function fetchSourceMetadataForFallback(query, mode) {
     return {
       references,
       quality: normalizeSourceQuality(payload.source_quality) || (references.length ? "limited" : "none"),
+      answerCoverage: normalizeSourceAnswerCoverage(payload.source_answer_coverage) || (references.length ? "related" : "none"),
     };
   } catch {
-    return { references: [], quality: "none" };
+    return { references: [], quality: "none", answerCoverage: "none" };
   }
 }
 
@@ -3771,7 +8210,17 @@ async function copyProviderConfigKeys() {
     "",
     "仅包含环境变量名称，不包含任何密钥、端点或请求头值。",
   ].join("\n");
-  await copyText(text, "配置键名已复制");
+  await copyText(text, "缺少项已复制");
+}
+
+async function copyProviderConfigTemplate() {
+  const provider = providerSelect.value;
+  const template = providerConfigTemplates[provider];
+  if (!template) {
+    showToast("当前服务没有可用的配置模板");
+    return;
+  }
+  await copyText(`${template}\n\n# 请替换占位符；不要把真实密钥提交到 GitHub。`, "配置模板已复制");
 }
 
 function formatProviderDiagnostics(payload, provider, model) {
@@ -3815,7 +8264,7 @@ async function openProviderDiagnostics() {
   providerDiagnosticsText.textContent = "正在读取服务诊断……";
   providerDiagnosticsDialog.showModal();
   try {
-    const params = new URLSearchParams({ provider, model });
+    const params = new URLSearchParams({ provider, model, novel_space_id: getCurrentNovelSpaceId() });
     const response = await fetchWithTimeout(`/api/health?${params.toString()}`);
     const payload = await response.json();
     if (!response.ok || !payload.ok) throw new Error("诊断不可用");
@@ -3848,17 +8297,22 @@ function clientModelRequestTimeout(minimum = 30000) {
 async function checkProviderHealth(provider = providerSelect.value) {
   const requestId = ++providerHealthRequestId;
   try {
-    const params = new URLSearchParams({ provider, model: modelName.value.trim() });
+    const params = new URLSearchParams({ provider, model: modelName.value.trim(), novel_space_id: getCurrentNovelSpaceId() });
     const response = await fetchWithTimeout(`/api/health?${params.toString()}`);
     const payload = await response.json();
     if (!response.ok || !payload.ok) throw new Error("健康检查失败");
-    if (requestId !== providerHealthRequestId) return;
+    if (requestId !== providerHealthRequestId) return { stale: true };
     if (Number.isFinite(Number(payload.history_budget))) {
       serverHistoryBudget = Math.max(8000, Math.min(Number(payload.history_budget), 120000));
       updateContextUsage();
     }
     if (Number.isFinite(Number(payload.request_timeout))) {
       serverRequestTimeout = Math.max(5000, Math.min(Number(payload.request_timeout) * 1000, 120000));
+    }
+    const currentSpace = novelSpaces.find((space) => space.id === getCurrentNovelSpaceId());
+    if (currentSpace && payload.source) {
+      currentSpace.source = { ...currentSpace.source, ...payload.source };
+      renderNovelSpaceLibrary();
     }
     renderSourceStatus(payload.source);
     loadSourceOutline(payload.source);
@@ -3868,23 +8322,66 @@ async function checkProviderHealth(provider = providerSelect.value) {
     providerMissingKeys = Array.isArray(missingKeys) ? missingKeys : [];
     copyProviderConfigKeysButton.hidden = !providerMissingKeys.length;
     const missingFieldsText = Array.isArray(missing) && missing.length ? `缺少：${missing.join("、")}` : "";
-    const missingKeysText = Array.isArray(missingKeys) && missingKeys.length ? `请补：${missingKeys.join("、")}` : "";
-    const missingHint = [missingFieldsText, missingKeysText].filter(Boolean).join("；");
+    const missingHint = missingFieldsText;
     providerDescription.textContent = !configured && missingHint
       ? `${providerDescriptions[provider]} ${missingHint}`
       : providerDescriptions[provider];
+    if (providerSetupHint) {
+      providerSetupHint.textContent = configured
+        ? "配置已经准备好；点击“测试连接”验证当前模型是否可用。"
+        : providerSetupHints[provider] || "";
+    }
     setProviderBadge(configured ? "配置完整" : "待配置", configured ? "#6f8b6a" : "#a26b46");
+    return {
+      configured,
+      provider,
+      missing: Array.isArray(missing) ? missing : [],
+      missingKeys: Array.isArray(missingKeys) ? missingKeys : [],
+    };
   } catch (error) {
-    if (requestId !== providerHealthRequestId) return;
+    if (requestId !== providerHealthRequestId) return { stale: true };
     renderSourceStatus(null);
     loadSourceOutline(null);
     providerDescription.textContent = providerDescriptions[provider];
-    setProviderBadge(error?.name === "AbortError" ? "连接超时" : "离线演示", "#a26b46");
+    if (providerSetupHint) providerSetupHint.textContent = providerSetupHints[provider] || "";
+    setProviderBadge(error?.name === "AbortError" ? "连接超时" : "状态不可用", "#a26b46");
+    return { configured: false, provider, unavailable: true, missing: [], missingKeys: [] };
   }
 }
 
-async function refreshModels() {
+function providerRecoveryMessage(readiness, action = "继续") {
+  const provider = readiness?.provider || providerSelect.value;
+  if (readiness?.unavailable) return `${action}前无法确认模型服务状态，请确认 InkEcho 本地服务已启动。`;
+  const missing = Array.isArray(readiness?.missing) ? readiness.missing.filter(Boolean) : [];
+  return `${providerDisplayName(provider)}还没有准备好${missing.length ? `：缺少${missing.join("、")}` : ""}。请按下方三步修复指引完成设置。`;
+}
+
+async function ensureProviderReadyForRequest(purpose = "生成内容") {
   const provider = providerSelect.value;
+  let readiness = await checkProviderHealth(provider);
+  if (readiness?.stale) readiness = await checkProviderHealth(provider);
+  if (readiness?.configured) return true;
+  const missing = Array.isArray(readiness?.missing) ? readiness.missing.filter(Boolean) : [];
+  const message = readiness?.unavailable
+    ? `${purpose}前无法确认模型服务状态，草稿已保留，请先检查本地服务。`
+    : `${purpose}前请先完成${providerDisplayName(provider)}配置${missing.length ? `：缺少${missing.join("、")}` : ""}。草稿已保留。`;
+  showToast(message);
+  setWorkspaceView("settings", { announce: false, focus: true });
+  return false;
+}
+
+async function refreshModels(options = {}) {
+  const skipReadiness = options?.skipReadiness === true;
+  const provider = providerSelect.value;
+  if (!skipReadiness) {
+    let readiness = await checkProviderHealth(provider);
+    if (readiness?.stale) readiness = await checkProviderHealth(provider);
+    if (providerSelect.value !== provider) return;
+    if (!readiness?.configured) {
+      showToast(providerRecoveryMessage(readiness, "刷新模型"));
+      return;
+    }
+  }
   refreshModelsButton.disabled = true;
   refreshModelsButton.textContent = "读取中";
   setProviderBadge("检查中", "#a26b46");
@@ -3926,6 +8423,13 @@ async function testProviderConnection() {
   if (!model) {
     showToast("请先填写模型名称");
     modelName.focus();
+    return;
+  }
+  let readiness = await checkProviderHealth(provider);
+  if (readiness?.stale) readiness = await checkProviderHealth(provider);
+  if (providerSelect.value !== provider || modelName.value.trim() !== model) return;
+  if (!readiness?.configured) {
+    showToast(providerRecoveryMessage(readiness, "测试连接"));
     return;
   }
   saveServiceSettings();
@@ -3994,6 +8498,35 @@ function applySummaryPreview() {
   showToast("剧情摘要已更新");
 }
 
+async function saveSummaryPreviewToMemory() {
+  const pending = pendingSummaryPreview;
+  if (!pending) {
+    summaryPreviewDialog.close();
+    return;
+  }
+  const project = getActiveProject();
+  const currentMessageCount = getConversationMessageCount(project);
+  const currentMessageThrough = highlightKey(getConversationForDisplay(project).at(-1));
+  if (activeProjectId !== pending.projectId || currentMessageCount !== pending.messageCount || currentMessageThrough !== pending.messageThrough) {
+    pendingSummaryPreview = null;
+    summaryPreviewDialog.close();
+    showToast(activeProjectId !== pending.projectId ? "当前项目已切换，记忆未写入" : "预览生成后已有新剧情，记忆未写入；请重新提炼");
+    return;
+  }
+  const saved = await saveGeneratedMemoryNote(
+    `剧情摘要 · ${project.context.title || "当前项目"}`,
+   pending.summary,
+   saveSummaryToMemoryButton,
+   "剧情摘要已写入小说空间记忆",
+    "summary",
+    project.context.title || "当前项目",
+ );
+  if (saved) {
+    pendingSummaryPreview = null;
+    summaryPreviewDialog.close();
+  }
+}
+
 function openSceneOutcomePreview(outcome, projectId, beatId, outcomeThrough) {
   const project = getActiveProject();
   const beat = project?.beats.find((item) => item.id === beatId);
@@ -4040,6 +8573,35 @@ function applySceneOutcomePreview() {
   showToast("本幕结果已更新");
 }
 
+async function saveSceneOutcomePreviewToMemory() {
+  const pending = pendingSceneOutcomePreview;
+  if (!pending) {
+    sceneOutcomePreviewDialog.close();
+    return;
+  }
+  const project = getActiveProject();
+  const beat = project?.beats.find((item) => item.id === pending.beatId);
+  const currentMessageThrough = highlightKey(getConversationForDisplay(project).at(-1));
+  if (activeProjectId !== pending.projectId || !beat || currentMessageThrough !== pending.outcomeThrough) {
+    pendingSceneOutcomePreview = null;
+    sceneOutcomePreviewDialog.close();
+    showToast(activeProjectId !== pending.projectId ? "当前项目或场景已切换，记忆未写入" : "预览生成后已有新剧情，记忆未写入；请重新提炼");
+    return;
+  }
+  const saved = await saveGeneratedMemoryNote(
+    `本幕结果 · ${beat.title}`,
+   pending.outcome,
+   saveSceneOutcomeToMemoryButton,
+   "本幕结果已写入小说空间记忆",
+    "scene_outcome",
+    beat.title,
+ );
+  if (saved) {
+    pendingSceneOutcomePreview = null;
+    sceneOutcomePreviewDialog.close();
+  }
+}
+
 async function summarizeConversation() {
   if (isSummarizing) {
     showToast("摘要正在提炼中，请稍候");
@@ -4050,10 +8612,13 @@ async function summarizeConversation() {
     showToast("先完成一轮对话，再提炼剧情摘要");
     return;
   }
+  if (!await ensureProviderReadyForRequest("提炼剧情摘要")) return;
+  if (!await ensureProviderDataConsent("提炼剧情摘要")) return;
   saveServiceSettings();
   const provider = providerSelect.value;
   const model = modelName.value.trim();
   const projectId = activeProjectId;
+  const spaceId = getCurrentNovelSpaceId();
   isSummarizing = true;
   generateSummaryButton.disabled = true;
   generateSummaryButton.textContent = "提炼中";
@@ -4064,8 +8629,10 @@ async function summarizeConversation() {
       body: JSON.stringify({
         provider,
         model,
+        retrieval_strategy: getRetrievalStrategy(),
         context: getContext(),
         messages: getModelMessages({ fullHistory: true }),
+        novel_space_id: getCurrentNovelSpaceId(),
       }),
     }, clientModelRequestTimeout(summaryRequestTimeout));
     const payload = await response.json();
@@ -4074,7 +8641,7 @@ async function summarizeConversation() {
       error.userMessage = payload.error || "剧情摘要生成失败";
       throw error;
     }
-    if (activeProjectId !== projectId) {
+    if (!workspaceRequestStillCurrent(projectId, spaceId)) {
       showToast("当前项目已切换，摘要未写入");
       return;
     }
@@ -4111,8 +8678,11 @@ async function summarizeCurrentSceneOutcome() {
     showToast("先完成一轮对话，再提炼本幕结果");
     return;
   }
+  if (!await ensureProviderReadyForRequest("提炼本幕结果")) return;
+  if (!await ensureProviderDataConsent("提炼本幕结果")) return;
   saveServiceSettings();
   const projectId = activeProjectId;
+  const spaceId = getCurrentNovelSpaceId();
   const beatId = beat.id;
   const provider = providerSelect.value;
   const model = modelName.value.trim();
@@ -4127,8 +8697,10 @@ async function summarizeCurrentSceneOutcome() {
         provider,
         model,
         summary_target: "scene",
+        retrieval_strategy: getRetrievalStrategy(),
         context: getContext(),
         messages: getModelMessages({ fullHistory: true }),
+        novel_space_id: getCurrentNovelSpaceId(),
       }),
     }, clientModelRequestTimeout(summaryRequestTimeout));
     const payload = await response.json();
@@ -4139,7 +8711,7 @@ async function summarizeCurrentSceneOutcome() {
     }
     const currentProject = getActiveProject();
     const currentBeat = currentProject?.beats.find((item) => item.id === beatId);
-    if (activeProjectId !== projectId || !currentBeat) {
+    if (!workspaceRequestStillCurrent(projectId, spaceId) || !currentBeat) {
       showToast("当前项目或场景已切换，结果未写入");
       return;
     }
@@ -4170,6 +8742,8 @@ async function requestModelReply() {
       context: getContext(),
       messages: getModelMessages(),
       source_query: getSourceQuery(),
+      novel_space_id: getCurrentNovelSpaceId(),
+      retrieval_strategy: getRetrievalStrategy(),
     }),
   });
   const payload = await response.json();
@@ -4182,7 +8756,7 @@ async function requestModelReply() {
   return payload.text;
 }
 
-async function requestStreamReply(onDelta, character = selectedCharacter, onStart = null, sourceQuery = getSourceQuery(), onDone = null, responseLengthOverride = "", modeOverride = "") {
+async function requestStreamReply(onDelta, character = selectedCharacter, onStart = null, sourceQuery = getSourceQuery(), onDone = null, responseLengthOverride = "", modeOverride = "", qualityRetryCodes = []) {
   const controller = new AbortController();
   streamController = controller;
   const response = await withAbortTimeout(fetch("/api/chat/stream", {
@@ -4199,6 +8773,9 @@ async function requestStreamReply(onDelta, character = selectedCharacter, onStar
       context: getContext(),
       messages: getModelMessages(),
       source_query: sourceQuery,
+      novel_space_id: getCurrentNovelSpaceId(),
+      retrieval_strategy: getRetrievalStrategy(),
+      quality_retry_codes: Array.isArray(qualityRetryCodes) ? qualityRetryCodes.slice(0, 4) : [],
     }),
   }), controller, streamIdleTimeout, "模型长时间没有响应，请检查服务状态");
   if (!response.ok || !response.body) {
@@ -4259,8 +8836,8 @@ async function requestStreamReply(onDelta, character = selectedCharacter, onStar
 }
 
 function fallbackReply(mode = selectedMode) {
-  const list = replyTemplates[mode] || replyTemplates.续写;
-  return list[Math.floor(Math.random() * list.length)];
+  const task = mode === "问答" ? "原作回答" : mode === "改写" ? "改写内容" : mode === "独白" ? "角色独白" : "续写内容";
+  return `模型服务暂时不可用，本次${task}未生成。你的提问和本机原作检索依据已保留；请检查模型设置后点击“重试”。`;
 }
 
 const lowInformationSourceQueries = new Set([
@@ -4274,9 +8851,9 @@ function isLowInformationSourceQuery(value) {
 }
 
 function sourceQueryAllowsMessage(item, mode = selectedMode) {
-  if (mode !== "问答") return true;
   const itemMode = normalizeMessageMode(item?.mode);
-  return !itemMode || itemMode === "问答";
+  if (mode === "问答") return itemMode === "问答";
+  return itemMode !== "问答";
 }
 
 function getSourceUserQueries(primaryQuery = "", mode = selectedMode) {
@@ -4292,8 +8869,9 @@ function getSourceUserQueries(primaryQuery = "", mode = selectedMode) {
 function composeSourceQuery(primaryQuery = "", mode = selectedMode) {
   const project = getActiveProject();
   const activeBeat = getActiveSceneBeat(project);
-  const contextParts = [project?.context?.chapter];
-  if (mode !== "问答") contextParts.push(activeBeat?.title, activeBeat?.goal);
+  const contextParts = mode === "问答"
+    ? []
+    : [project?.context?.chapter, activeBeat?.title, activeBeat?.goal];
   return [
     ...getSourceUserQueries(primaryQuery, mode),
     ...contextParts,
@@ -4313,7 +8891,21 @@ function getDraftSourceQuery() {
   return sourceQueryForHistoryIndex(null);
 }
 
-async function generateAssistantReply(assistantMessage, character = selectedCharacter, responseLengthOverride = "", modeOverride = "") {
+function ensureSourceReadyForMode(mode = selectedMode) {
+  if (mode !== "问答") return true;
+  const space = novelSpaceForProject();
+  const readiness = getNovelSpaceReadiness(space);
+  if (readiness.canQuery) return true;
+  const novelName = getCurrentNovelDisplayName();
+  const message = readiness.filter === "empty"
+    ? `「${novelName}」还没有提取出可检索正文，请先检查原文件或重新上传。`
+    : `「${novelName}」原文暂不可用，请先在小说库恢复原文。`;
+  showToast(message);
+  setWorkspaceView("library", { announce: false, focus: true });
+  return false;
+}
+
+async function generateAssistantReply(assistantMessage, character = selectedCharacter, responseLengthOverride = "", modeOverride = "", qualityRetryCodes = []) {
   setSending(true);
   delete assistantMessage.bubble.dataset.source;
   const effectiveMode = normalizeMessageMode(modeOverride) || selectedMode;
@@ -4329,10 +8921,12 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
       const references = normalizeSourceReferences(metadata?.source_references);
       const effectiveSourceQuery = safeText(metadata?.source_query, sourceQuery, 600);
       const effectiveSourceQuality = normalizeSourceQuality(metadata?.source_quality);
+      const effectiveSourceAnswerCoverage = normalizeSourceAnswerCoverage(metadata?.source_answer_coverage);
       assistantMessage.sourceQuery = effectiveSourceQuery;
       assistantMessage.sourceQuality = effectiveSourceQuality;
+      assistantMessage.sourceAnswerCoverage = effectiveSourceAnswerCoverage;
       assistantMessage.sourceRefs = references;
-      assistantMessage.renderSourceReferences(references, effectiveSourceQuery, effectiveSourceQuality);
+      assistantMessage.renderSourceReferences(references, effectiveSourceQuery, effectiveSourceQuality, effectiveSourceAnswerCoverage);
     }, sourceQuery, (metadata) => {
       if (metadata?.truncated) {
         assistantMessage.truncated = true;
@@ -4350,8 +8944,16 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
         if (assistantMessage.sourceCitationStatus === "verified") {
           appendCitationVerifiedBadge(assistantMessage.meta);
         }
+        if (assistantMessage.sourceCitationStatus === "none" && effectiveMode === "问答") {
+          appendCitationMissingBadge(assistantMessage.meta);
+        }
       }
-    }, responseLengthOverride, modeOverride);
+      const qualityReview = normalizeQualityReview(metadata?.quality_review);
+      if (qualityReview) {
+        assistantMessage.qualityReview = qualityReview;
+        appendQualityReviewBadge(assistantMessage.meta, qualityReview, assistantMessage.historyIndex);
+      }
+    }, responseLengthOverride, modeOverride, qualityRetryCodes);
   } catch (error) {
     const timedOut = error?.name === "StreamTimeoutError";
     const stopped = error?.name === "AbortError" && !timedOut;
@@ -4364,9 +8966,11 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
       setAssistantBubbleText(assistantMessage.bubble, reply);
       const fallbackSource = await fetchSourceMetadataForFallback(sourceQuery, effectiveMode);
       assistantMessage.sourceQuality = fallbackSource.quality;
+      assistantMessage.sourceAnswerCoverage = fallbackSource.answerCoverage;
       assistantMessage.sourceRefs = fallbackSource.references;
-      assistantMessage.renderSourceReferences(fallbackSource.references, sourceQuery, fallbackSource.quality);
-      showToast(`${error?.userMessage || "模型服务暂不可用"}，当前使用演示回复`);
+      assistantMessage.renderSourceReferences(fallbackSource.references, sourceQuery, fallbackSource.quality, fallbackSource.answerCoverage);
+      showFailedGenerationActions(assistantMessage.actions, assistantMessage.historyIndex);
+      showToast(`${error?.userMessage || "模型服务暂不可用"}，本次内容未生成`);
     } else if (!stopped && reply) {
       showToast(`${error?.userMessage || "模型流式响应中断"}，已保留当前内容`);
     } else if (stopped && !reply) {
@@ -4381,17 +8985,21 @@ async function generateAssistantReply(assistantMessage, character = selectedChar
   return reply;
 }
 
-async function retryMessage(historyIndex, responseLengthOverride = "") {
+async function retryMessage(historyIndex, responseLengthOverride = "", qualityRetryCodes = []) {
   if (preventWorkspaceMutation("重试回复")) return;
+  if (!await ensureProviderReadyForRequest("重试模型回复")) return;
+  if (!await ensureProviderDataConsent("重试模型回复")) return;
   if (historyIndex !== conversationHistory.length - 1 || conversationHistory.at(-1)?.role !== "assistant") {
     showToast("请先重试最后一条回复");
     return;
   }
 
   const previousReply = conversationHistory.at(-1);
+  const requestProjectId = activeProjectId;
+  const requestSpaceId = getCurrentNovelSpaceId();
   const responseMode = normalizeMessageMode(previousReply.mode) || selectedMode;
   const speaker = previousReply.name || selectedCharacter.name;
-  const previousVersions = Array.isArray(previousReply.versions)
+  const rawPreviousVersions = Array.isArray(previousReply.versions)
     ? previousReply.versions.filter((version) => typeof version === "string" && version.trim())
     : [previousReply.content].filter(Boolean);
   const character = getActiveProject().characters.find((item) => item.name === speaker)
@@ -4408,38 +9016,77 @@ async function retryMessage(historyIndex, responseLengthOverride = "") {
     mode: responseMode,
     avatarClass: getAssistantAvatarClass(speaker),
   });
-  const reply = await generateAssistantReply(assistantMessage, character, responseLengthOverride, responseMode);
-  const versions = Array.from(new Set([...previousVersions, reply].filter(Boolean)));
+  const reply = await generateAssistantReply(assistantMessage, character, responseLengthOverride, responseMode, qualityRetryCodes);
+  if (!workspaceRequestStillCurrent(requestProjectId, requestSpaceId)) {
+    showToast("当前项目或小说空间已切换，重试结果未写入");
+    return;
+  }
   const currentSource = assistantMessage.bubble.dataset.source === "demo" ? "demo" : "";
-  const previousSources = Array.isArray(previousReply.sources)
+  let previousSources = Array.isArray(previousReply.sources)
     ? previousReply.sources
-    : previousVersions.map(() => previousReply.source === "demo" ? "demo" : "");
-  const previousTruncations = Array.isArray(previousReply.truncations)
+    : rawPreviousVersions.map(() => previousReply.source === "demo" ? "demo" : "");
+  if (currentSource === "demo" && previousSources.some((source) => source !== "demo")) {
+    conversationHistory.push(previousReply);
+    saveConversation();
+    renderConversation();
+    showToast("重试未成功，已保留原回复");
+    return;
+  }
+  const retainedPreviousIndexes = rawPreviousVersions
+    .map((_, index) => index)
+    .filter((index) => previousSources[index] !== "demo");
+  const retainPreviousMetadata = (values) => retainedPreviousIndexes.map((index) => values[index]);
+  const previousVersions = retainPreviousMetadata(rawPreviousVersions);
+  previousSources = retainPreviousMetadata(previousSources);
+  const rawPreviousTruncations = Array.isArray(previousReply.truncations)
     ? previousReply.truncations.map(Boolean)
-    : previousVersions.map(() => Boolean(previousReply.truncated));
-  const previousCitationStatuses = Array.isArray(previousReply.sourceCitationStatuses)
+    : rawPreviousVersions.map(() => Boolean(previousReply.truncated));
+  const previousTruncations = retainPreviousMetadata(rawPreviousTruncations);
+  const rawPreviousCitationStatuses = Array.isArray(previousReply.sourceCitationStatuses)
     ? previousReply.sourceCitationStatuses.map((value) => normalizeCitationStatus(value))
-    : previousVersions.map(() => normalizeCitationStatus(previousReply.sourceCitationStatus));
-  const previousCitationUnverifiedByVersion = Array.isArray(previousReply.sourceCitationsUnverifiedByVersion)
+    : rawPreviousVersions.map(() => normalizeCitationStatus(previousReply.sourceCitationStatus));
+  const previousCitationStatuses = retainPreviousMetadata(rawPreviousCitationStatuses);
+  const rawPreviousCitationUnverifiedByVersion = Array.isArray(previousReply.sourceCitationsUnverifiedByVersion)
     ? previousReply.sourceCitationsUnverifiedByVersion
-    : previousVersions.map(() => Array.isArray(previousReply.sourceCitationsUnverified)
+    : rawPreviousVersions.map(() => Array.isArray(previousReply.sourceCitationsUnverified)
       ? previousReply.sourceCitationsUnverified
       : []);
-  const previousSourceRefsByVersion = Array.isArray(previousReply.sourceRefsByVersion)
+  const previousCitationUnverifiedByVersion = retainPreviousMetadata(rawPreviousCitationUnverifiedByVersion);
+  const rawPreviousQualityReviewsByVersion = Array.isArray(previousReply.qualityReviewsByVersion)
+    ? previousReply.qualityReviewsByVersion.map((value) => normalizeQualityReview(value))
+    : rawPreviousVersions.map(() => normalizeQualityReview(previousReply.qualityReview));
+  const previousQualityReviewsByVersion = retainPreviousMetadata(rawPreviousQualityReviewsByVersion);
+  const rawPreviousQualityRetryCodesByVersion = Array.isArray(previousReply.qualityRetryCodesByVersion)
+    ? previousReply.qualityRetryCodesByVersion.map((value) => normalizeQualityRetryCodes(value))
+    : rawPreviousVersions.map((_, index) => index === (previousReply.versionIndex ?? rawPreviousVersions.length - 1)
+      ? normalizeQualityRetryCodes(previousReply.qualityRetryCodes)
+      : []);
+  const previousQualityRetryCodesByVersion = retainPreviousMetadata(rawPreviousQualityRetryCodesByVersion);
+  const rawPreviousSourceRefsByVersion = Array.isArray(previousReply.sourceRefsByVersion)
     ? previousReply.sourceRefsByVersion
-    : previousVersions.map((_, index) => index === (previousReply.versionIndex ?? previousVersions.length - 1)
+    : rawPreviousVersions.map((_, index) => index === (previousReply.versionIndex ?? rawPreviousVersions.length - 1)
       ? (previousReply.sourceRefs || [])
       : []);
-  const previousSourceQueriesByVersion = Array.isArray(previousReply.sourceQueriesByVersion)
+  const previousSourceRefsByVersion = retainPreviousMetadata(rawPreviousSourceRefsByVersion);
+  const rawPreviousSourceQueriesByVersion = Array.isArray(previousReply.sourceQueriesByVersion)
     ? previousReply.sourceQueriesByVersion
-    : previousVersions.map((_, index) => index === (previousReply.versionIndex ?? previousVersions.length - 1)
+    : rawPreviousVersions.map((_, index) => index === (previousReply.versionIndex ?? rawPreviousVersions.length - 1)
       ? (previousReply.sourceQuery || "")
       : "");
-  const previousSourceQualitiesByVersion = Array.isArray(previousReply.sourceQualitiesByVersion)
+  const previousSourceQueriesByVersion = retainPreviousMetadata(rawPreviousSourceQueriesByVersion);
+  const rawPreviousSourceQualitiesByVersion = Array.isArray(previousReply.sourceQualitiesByVersion)
     ? previousReply.sourceQualitiesByVersion
-    : previousVersions.map((_, index) => index === (previousReply.versionIndex ?? previousVersions.length - 1)
+    : rawPreviousVersions.map((_, index) => index === (previousReply.versionIndex ?? rawPreviousVersions.length - 1)
       ? (previousReply.sourceQuality || "")
       : "");
+  const previousSourceQualitiesByVersion = retainPreviousMetadata(rawPreviousSourceQualitiesByVersion);
+  const rawPreviousSourceAnswerCoveragesByVersion = Array.isArray(previousReply.sourceAnswerCoveragesByVersion)
+    ? previousReply.sourceAnswerCoveragesByVersion
+    : rawPreviousVersions.map((_, index) => index === (previousReply.versionIndex ?? rawPreviousVersions.length - 1)
+      ? (previousReply.sourceAnswerCoverage || "")
+      : "");
+  const previousSourceAnswerCoveragesByVersion = retainPreviousMetadata(rawPreviousSourceAnswerCoveragesByVersion);
+  const versions = Array.from(new Set([...previousVersions, reply].filter(Boolean)));
   const versionSources = versions.map((version) => {
     if (version === reply) return currentSource;
     const previousIndex = previousVersions.indexOf(version);
@@ -4460,6 +9107,17 @@ async function retryMessage(historyIndex, responseLengthOverride = "") {
     const previousIndex = previousVersions.indexOf(version);
     return previousIndex >= 0 ? previousCitationUnverifiedByVersion[previousIndex] || [] : [];
   });
+  const versionQualityReviewsByVersion = versions.map((version) => {
+    if (version === reply) return normalizeQualityReview(assistantMessage.qualityReview);
+    const previousIndex = previousVersions.indexOf(version);
+    return previousIndex >= 0 ? previousQualityReviewsByVersion[previousIndex] || null : null;
+  });
+  const normalizedRetryCodes = normalizeQualityRetryCodes(qualityRetryCodes);
+  const versionQualityRetryCodesByVersion = versions.map((version) => {
+    if (version === reply) return normalizedRetryCodes;
+    const previousIndex = previousVersions.indexOf(version);
+    return previousIndex >= 0 ? previousQualityRetryCodesByVersion[previousIndex] || [] : [];
+  });
   const versionSourceRefsByVersion = versions.map((version) => {
     if (version === reply) return assistantMessage.sourceRefs || [];
     const previousIndex = previousVersions.indexOf(version);
@@ -4475,6 +9133,11 @@ async function retryMessage(historyIndex, responseLengthOverride = "") {
     const previousIndex = previousVersions.indexOf(version);
     return previousIndex >= 0 ? previousSourceQualitiesByVersion[previousIndex] || "" : "";
   });
+  const versionSourceAnswerCoveragesByVersion = versions.map((version) => {
+    if (version === reply) return normalizeSourceAnswerCoverage(assistantMessage.sourceAnswerCoverage);
+    const previousIndex = previousVersions.indexOf(version);
+    return previousIndex >= 0 ? previousSourceAnswerCoveragesByVersion[previousIndex] || "" : "";
+  });
   conversationHistory.push({
     role: "assistant",
     name: speaker,
@@ -4484,18 +9147,26 @@ async function retryMessage(historyIndex, responseLengthOverride = "") {
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
     ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
     ...(assistantMessage.sourceQuality ? { sourceQuality: assistantMessage.sourceQuality } : {}),
+    ...(assistantMessage.sourceAnswerCoverage ? { sourceAnswerCoverage: assistantMessage.sourceAnswerCoverage } : {}),
     ...(assistantMessage.sourceCitationStatus ? { sourceCitationStatus: assistantMessage.sourceCitationStatus } : {}),
     ...(assistantMessage.sourceCitationsUnverified?.length ? { sourceCitationsUnverified: assistantMessage.sourceCitationsUnverified } : {}),
+    ...(assistantMessage.qualityReview ? { qualityReview: assistantMessage.qualityReview } : {}),
+    ...(normalizedRetryCodes.length ? { qualityRetryCodes: normalizedRetryCodes } : {}),
     ...(versionCitationStatuses.some(Boolean) ? { sourceCitationStatuses: versionCitationStatuses } : {}),
     ...(versionCitationUnverifiedByVersion.some((values) => values.length) ? { sourceCitationsUnverifiedByVersion: versionCitationUnverifiedByVersion } : {}),
+    ...(versionQualityReviewsByVersion.some(Boolean) ? { qualityReviewsByVersion: versionQualityReviewsByVersion } : {}),
+    ...(versionQualityRetryCodesByVersion.some((codes) => codes.length) ? { qualityRetryCodesByVersion: versionQualityRetryCodesByVersion } : {}),
     ...(versionSourceRefsByVersion.some((references) => references.length) ? { sourceRefsByVersion: versionSourceRefsByVersion } : {}),
     ...(versionSourceQueriesByVersion.some(Boolean) ? { sourceQueriesByVersion: versionSourceQueriesByVersion } : {}),
     ...(versionSourceQualitiesByVersion.some(Boolean) ? { sourceQualitiesByVersion: versionSourceQualitiesByVersion } : {}),
+    ...(versionSourceAnswerCoveragesByVersion.some(Boolean) ? { sourceAnswerCoveragesByVersion: versionSourceAnswerCoveragesByVersion } : {}),
     ...(versionTruncations.some(Boolean) ? { truncations: versionTruncations, truncated: Boolean(assistantMessage.truncated) } : {}),
     ...(versions.length > 1 ? { versions, sources: versionSources, versionIndex: versions.indexOf(reply) } : {}),
   });
   saveConversation();
   renderConversation();
+  const completedOptimization = qualityOptimizationStatus(normalizedRetryCodes, assistantMessage.qualityReview);
+  if (completedOptimization) showToast(`按建议优化完成 · ${completedOptimization.label}`);
 }
 
 function selectCharacter(card) {
@@ -4750,6 +9421,7 @@ function deleteLibraryCharacter(characterId) {
 
 function fillPrompt(text) {
   messageInput.value = text;
+  messageInput.dispatchEvent(new Event("input", { bubbles: true }));
   messageInput.focus();
   showToast("灵感已放入输入框");
 }
@@ -4803,7 +9475,7 @@ function renderCustomPrompts() {
 
 function renderModePrompts() {
   if (!promptList) return;
-  const prompts = modePromptSets[selectedMode] || modePromptSets.续写;
+  const prompts = getModePromptSet(selectedMode);
   const cards = Array.from(promptList.querySelectorAll(".prompt-card:not(.custom-prompt-card)"));
   cards.slice(0, prompts.length).forEach((card, index) => {
     const prompt = prompts[index];
@@ -4996,19 +9668,276 @@ function deleteLibraryPrompt(promptId) {
   showToast("灵感库条目已删除");
 }
 
+workspaceNavItems.forEach((item) => {
+  item.addEventListener("click", () => {
+    setWorkspaceView(item.dataset.workspaceView, { announce: true, focus: true });
+  });
+  item.addEventListener("keydown", (event) => {
+    const navigationKeys = new Set(["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"]);
+    if (!navigationKeys.has(event.key)) return;
+    event.preventDefault();
+    const currentIndex = workspaceNavItems.indexOf(item);
+    const nextIndex = event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? workspaceNavItems.length - 1
+        : (currentIndex + (event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1) + workspaceNavItems.length) % workspaceNavItems.length;
+    const nextItem = workspaceNavItems[nextIndex];
+    if (!nextItem) return;
+    setWorkspaceView(nextItem.dataset.workspaceView, { announce: true, focus: false });
+    nextItem.focus();
+  });
+});
+
+document.querySelectorAll("[data-atlas-task]").forEach((button) => {
+  button.addEventListener("click", () => openWorkspaceTask(button.dataset.atlasTask));
+});
+
+document.querySelectorAll("[data-atlas-view]").forEach((button) => {
+  button.addEventListener("click", () => setWorkspaceView(button.dataset.atlasView, { announce: true, focus: true }));
+});
+
+atlasMotionToggle?.addEventListener("click", () => {
+  const paused = document.body.classList.toggle("atlas-motion-paused");
+  atlasMotionToggle.textContent = paused ? "●" : "◌";
+  atlasMotionToggle.title = paused ? "恢复背景动效" : "暂停背景动效";
+  atlasMotionToggle.setAttribute("aria-label", atlasMotionToggle.title);
+  atlasMotionToggle.setAttribute("aria-pressed", String(paused));
+});
+
+workspaceGuideProgress?.addEventListener("click", (event) => {
+  const action = event.target.closest("[data-progress-key]");
+  if (!action || !workspaceGuideProgress.contains(action)) return;
+  openWorkspaceProgressStep(action.dataset.progressKey);
+});
+
+window.addEventListener("hashchange", syncWorkspaceViewFromUrl);
+window.addEventListener("popstate", syncWorkspaceViewFromUrl);
+
+document.querySelectorAll("[data-return-workbench]").forEach((button) => {
+  button.addEventListener("click", () => setWorkspaceView("workbench", { announce: true, focus: true }));
+});
+
+novelUploadInput?.addEventListener("change", () => {
+  novelUploadRetrySpaceId = "";
+  uploadNovelFile(novelUploadInput.files);
+});
+document.querySelectorAll("[data-novel-dropzone]").forEach((dropzone) => {
+  dropzone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    dropzone.classList.add("is-dragging");
+  });
+  dropzone.addEventListener("dragleave", (event) => {
+    if (!dropzone.contains(event.relatedTarget)) dropzone.classList.remove("is-dragging");
+  });
+  dropzone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    dropzone.classList.remove("is-dragging");
+    novelUploadRetrySpaceId = "";
+    uploadNovelFile(event.dataTransfer.files);
+  });
+});
+refreshNovelLibraryButton?.addEventListener("click", () => loadNovelSpacesFromServer({ announce: true }).finally(() => resumeNovelUploadJob()));
+novelLibrarySearchInput?.addEventListener("input", renderNovelSpaceLibrary);
+novelLibraryStatusFilter?.addEventListener("change", renderNovelSpaceLibrary);
+clearNovelLibraryFiltersButton?.addEventListener("click", () => {
+  if (novelLibrarySearchInput) novelLibrarySearchInput.value = "";
+  if (novelLibraryStatusFilter) novelLibraryStatusFilter.value = "all";
+  renderNovelSpaceLibrary();
+});
+exportNovelSpaceConfigButton?.addEventListener("click", exportNovelSpaceConfig);
+novelSpaceConfigInput?.addEventListener("change", importNovelSpaceConfig);
+saveNovelMemoryButton?.addEventListener("click", saveNovelMemory);
+previewNovelMemoryButton?.addEventListener("click", previewNovelMemory);
+memoryLayerTabs.forEach((button) => {
+  button.addEventListener("click", () => setMemoryLayer(button.dataset.memoryLayer, { focus: true }));
+});
+sourceKnowledgeSearchInput?.addEventListener("input", () => {
+  window.clearTimeout(sourceKnowledgeSearchTimer);
+  sourceKnowledgeSearchTimer = window.setTimeout(() => loadSourceKnowledge(getCurrentNovelSpaceId()), 260);
+});
+sourceKnowledgeSummary?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-source-knowledge-category]");
+  if (!button || !sourceKnowledgeSummary.contains(button)) return;
+  activeSourceKnowledgeCategory = button.dataset.sourceKnowledgeCategory || "all";
+  loadSourceKnowledge(getCurrentNovelSpaceId());
+});
+startReviewedMemoryBuildButton?.addEventListener("click", startReviewedMemoryBuild);
+cancelReviewedMemoryBuildButton?.addEventListener("click", cancelReviewedMemoryBuild);
+promoteReviewedMemoryBuildButton?.addEventListener("click", promoteReviewedMemoryBuild);
+openNovelMemoryComposerButton?.addEventListener("click", () => {
+  if (novelMemoryComposer?.hidden) {
+    if (!hasNovelMemoryDraft()) resetNovelMemoryEditor();
+    setNovelMemoryComposerOpen(true, { focus: true });
+    return;
+  }
+  closeNovelMemoryComposer();
+});
+closeNovelMemoryComposerButton?.addEventListener("click", () => closeNovelMemoryComposer());
+cancelNovelMemoryEditButton?.addEventListener("click", () => closeNovelMemoryComposer());
+novelMemorySearchInput?.addEventListener("input", renderNovelMemory);
+novelMemoryKindFilter?.addEventListener("change", renderNovelMemory);
+clearNovelMemoryFiltersButton?.addEventListener("click", () => {
+  if (novelMemorySearchInput) novelMemorySearchInput.value = "";
+  if (novelMemoryKindFilter) novelMemoryKindFilter.value = "all";
+  renderNovelMemory();
+  novelMemorySearchInput?.focus();
+});
+novelMemorySummary?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-memory-summary-kind]");
+  if (!button || !novelMemorySummary.contains(button) || !novelMemoryKindFilter) return;
+  novelMemoryKindFilter.value = button.dataset.memorySummaryKind || "all";
+  renderNovelMemory();
+});
+novelMemoryContentInput?.addEventListener("input", updateNovelMemoryContentCount);
+refreshNovelMemoryButton?.addEventListener("click", refreshNovelSpaceMemory);
+removeStaleNovelMemoryButton?.addEventListener("click", removeStaleNovelMemory);
+document.querySelectorAll("[data-memory-template-title]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const title = button.dataset.memoryTemplateTitle || "空间笔记";
+    const content = button.dataset.memoryTemplateContent || novelMemoryQuickTemplates[title] || "";
+    applyNovelMemoryTemplate(title, content);
+  });
+});
+novelUploadCancelButton?.addEventListener("click", cancelNovelUpload);
+novelUploadRetryButton?.addEventListener("click", () => {
+  if (pendingNovelUploadFile) uploadNovelFile(pendingNovelUploadFile);
+});
+
+sourcePageChapter?.addEventListener("input", () => {
+  workChapter.value = sourcePageChapter.value;
+  workChapter.dispatchEvent(new Event("input", { bubbles: true }));
+  renderSourceOutlineBrowser();
+  syncSourcePageActions();
+});
+sourceEvidenceQueryInput?.addEventListener("input", syncSourcePageActions);
+sourceEvidenceQueryInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.isComposing) return;
+  event.preventDefault();
+  if (!sourcePagePreviewButton?.disabled) sourcePagePreviewButton.click();
+});
+workspaceNovelSelect?.addEventListener("change", () => {
+  const nextSpaceId = workspaceNovelSelect.value;
+  if (nextSpaceId && !selectNovelSpace(nextSpaceId, false, true)) renderWorkspaceNovelSelect();
+});
+sourceOutlineSearchInput?.addEventListener("input", queueSourceOutlineSearch);
+sourceOutlineClearButton?.addEventListener("click", () => {
+  if (sourceOutlineSearchInput) sourceOutlineSearchInput.value = "";
+  if (sourceOutlineVolumeFilter) sourceOutlineVolumeFilter.value = "";
+  resetSourceOutlineRemoteSearch();
+  populateSourceChapterOptions(sourceOutlineTitles);
+  renderSourceOutlineBrowser();
+  sourceOutlineSearchInput?.focus();
+});
+sourceOutlineVolumeFilter?.addEventListener("change", () => {
+  sourceOutlineVisibleLimit = sourceOutlineDisplayLimit;
+  renderSourceOutlineBrowser();
+});
+retrievalStrategySelect?.addEventListener("change", () => {
+  retrievalStrategy = normalizeRetrievalStrategy(retrievalStrategySelect.value);
+  persistRetrievalStrategy();
+  showToast(`原作检索策略：${retrievalStrategyLabels[retrievalStrategy]}`);
+});
+sourcePagePreviewButton?.addEventListener("click", () => {
+  const query = sourceEvidenceQueryInput?.value.trim() || "";
+  if (!query) {
+    showToast("先输入一个要查证的问题");
+    sourceEvidenceQueryInput?.focus();
+    return;
+  }
+  openSourceEvidence(null, query, "", "问答");
+});
+sourcePageReadButton?.addEventListener("click", () => openSourceChapterReader());
+sourcePageAskButton?.addEventListener("click", () => {
+  const chapter = sourcePageChapter?.value.trim() || "";
+  beginSourceQuestion("", chapter);
+});
+memoryGuideSourceButton?.addEventListener("click", () => setWorkspaceView("source", { announce: true, focus: true }));
+storyPageBeatsButton?.addEventListener("click", openScenePlanner);
+storyPageCharactersButton?.addEventListener("click", () => openCharacterEditor(selectedCharacter));
+storyPageSummaryButton?.addEventListener("click", () => {
+  setWorkspaceView("story", { announce: false, focus: false });
+  contextMore.open = true;
+  workSummary.focus();
+});
+storyPageCheckpointsButton?.addEventListener("click", openCheckpointDialog);
+
+workspaceGuideAction?.addEventListener("click", () => {
+  const guide = getWorkspaceGuideState(activeWorkspaceView);
+  if (guide.actionView) {
+    setWorkspaceView(guide.actionView, { announce: true, focus: true });
+    return;
+  }
+  if (activeWorkspaceView === "library") {
+    const space = getActiveNovelSpace();
+    if (space) selectNovelSpace(space.id, true);
+    return;
+  }
+  if (activeWorkspaceView === "source") {
+    const query = getDraftSourceQuery();
+    if (query) previewSourceButton.click();
+    else {
+      showToast("先输入一个问题，或补充当前章节后查看原作依据");
+      messageInput.focus();
+    }
+    return;
+  }
+  if (activeWorkspaceView === "memory") {
+    setMemoryLayer("creative");
+    setNovelMemoryComposerOpen(true, { focus: true });
+    return;
+  }
+  if (activeWorkspaceView === "story") {
+    openScenePlanner();
+    return;
+  }
+  if (activeWorkspaceView === "settings") {
+    modelSettings.open = true;
+    modelSettings.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  messageInput.focus();
+  messageInput.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+workspaceGuideAskAction?.addEventListener("click", () => openWorkspaceTask("问答"));
+workspaceGuideWriteAction?.addEventListener("click", () => openWorkspaceTask("续写"));
+workspaceGuideSourceAction?.addEventListener("click", () => setWorkspaceView("source", { announce: true, focus: true }));
+toggleContextPanelButton?.addEventListener("click", () => {
+  setContextPanelOpen(!document.body.classList.contains("context-panel-open"));
+});
+sourceReadinessButton?.addEventListener("click", () => setWorkspaceView("source", { announce: true, focus: true }));
+modelReadinessButton?.addEventListener("click", () => setWorkspaceView("settings", { announce: true, focus: true }));
+
+modeGuideAction?.addEventListener("click", () => {
+  if (selectedMode === "续写") {
+    setContextPanelOpen(true);
+    workChapter.focus();
+    workChapter.scrollIntoView({ behavior: "smooth", block: "center" });
+  } else if (selectedMode === "问答") {
+    const query = getDraftSourceQuery();
+    if (query) previewSourceButton.click();
+    else {
+      showToast("先输入问题，再查看原作依据");
+      messageInput.focus();
+    }
+  } else if (selectedMode === "改写") {
+    setContextPanelOpen(true);
+    contextMore.open = true;
+    workReference.focus();
+    workReference.scrollIntoView({ behavior: "smooth", block: "center" });
+  } else {
+    setContextPanelOpen(true);
+    const activeCharacter = characterList?.querySelector(".character-card.active") || characterList?.querySelector(".character-card");
+    activeCharacter?.focus();
+    activeCharacter?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+});
+
 document.querySelectorAll(".mode-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
-    selectedMode = tab.dataset.mode;
-    document.querySelectorAll(".mode-tab").forEach((item) => {
-      const active = item === tab;
-      item.classList.toggle("active", active);
-      item.setAttribute("aria-selected", String(active));
-    });
-    composerHint.textContent = modeHints[selectedMode];
-    syncModeControls();
-    renderModePrompts();
-    persistActiveProject();
-    showToast(`已切换到「${selectedMode}」模式`);
+    beginConversationForMode(tab.dataset.mode, { announce: true });
   });
 });
 
@@ -5031,13 +9960,16 @@ previewSourceButton.addEventListener("click", () => {
   openSourceEvidence(null, query);
 });
 
-providerSelect.addEventListener("change", () => {
+providerSelect.addEventListener("change", async () => {
   const project = getActiveProject();
   const provider = providerSelect.value;
   modelName.value = project.service?.models?.[provider] || providerDefaults[provider];
   saveServiceSettings();
-  updateProviderUI();
-  if (["ollama", "openai", "compatible"].includes(provider)) refreshModels();
+  const readiness = await updateProviderUI();
+  if (providerSelect.value !== provider) return;
+  if (["ollama", "openai", "compatible"].includes(provider) && readiness?.configured) {
+    refreshModels({ skipReadiness: true });
+  }
   showToast(`已切换到 ${providerSelect.options[providerSelect.selectedIndex].text}`);
 });
 
@@ -5062,13 +9994,43 @@ refreshModelsButton.addEventListener("click", refreshModels);
 testProviderButton.addEventListener("click", testProviderConnection);
 openProviderDiagnosticsButton.addEventListener("click", openProviderDiagnostics);
 copyProviderConfigKeysButton.addEventListener("click", copyProviderConfigKeys);
+copyProviderConfigTemplateButton.addEventListener("click", copyProviderConfigTemplate);
 copyProviderDiagnosticsButton.addEventListener("click", () => copyText(providerDiagnosticsText.textContent, "连接诊断已复制"));
+cancelProviderDataConsentButton?.addEventListener("click", () => settleProviderDataConsent(false));
+confirmProviderDataConsentButton?.addEventListener("click", () => settleProviderDataConsent(true));
+providerDataConsentDialog?.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  settleProviderDataConsent(false);
+});
+providerDataConsentDialog?.addEventListener("close", () => {
+  if (providerDataConsentPending) settleProviderDataConsent(false);
+});
 providerDiagnosticsDialog.addEventListener("click", (event) => {
   if (event.target === providerDiagnosticsDialog) providerDiagnosticsDialog.close();
 });
 copySourceEvidenceButton.addEventListener("click", () => copyText(sourceEvidenceText, "检索依据已复制"));
 sourceEvidenceDialog.addEventListener("click", (event) => {
   if (event.target === sourceEvidenceDialog) sourceEvidenceDialog.close();
+});
+copySourceChapterButton?.addEventListener("click", () => copyText(sourceChapterReaderText?.textContent || "", "章节预览已复制"));
+sourceChapterPreviousButton?.addEventListener("click", () => {
+  const title = sourceChapterReaderPreview?.previous_title || "";
+  if (title) openSourceChapterReader(title);
+});
+sourceChapterNextButton?.addEventListener("click", () => {
+  const title = sourceChapterReaderPreview?.next_title || "";
+  if (title) openSourceChapterReader(title);
+});
+sourceChapterAskButton?.addEventListener("click", () => {
+  const title = sourceChapterReaderPreview?.title || sourcePageChapter?.value.trim() || "";
+  if (!title) return;
+  sourceChapterReaderDialog?.close();
+  beginSourceQuestion("", title);
+});
+generateSourceChapterDigestButton?.addEventListener("click", generateSourceChapterDigest);
+saveSourceChapterDigestButton?.addEventListener("click", saveSourceChapterDigest);
+sourceChapterReaderDialog?.addEventListener("click", (event) => {
+  if (event.target === sourceChapterReaderDialog) sourceChapterReaderDialog.close();
 });
 generateSummaryButton.addEventListener("click", summarizeConversation);
 toggleContextModeButton.addEventListener("click", toggleContextMode);
@@ -5078,6 +10040,7 @@ contextDialog.addEventListener("click", (event) => {
   if (event.target === contextDialog) contextDialog.close();
 });
 applySummaryPreviewButton.addEventListener("click", applySummaryPreview);
+saveSummaryToMemoryButton?.addEventListener("click", saveSummaryPreviewToMemory);
 summaryPreviewDialog.addEventListener("click", (event) => {
   if (event.target === summaryPreviewDialog) summaryPreviewDialog.close();
 });
@@ -5085,6 +10048,7 @@ summaryPreviewDialog.addEventListener("close", () => {
   pendingSummaryPreview = null;
 });
 applySceneOutcomePreviewButton.addEventListener("click", applySceneOutcomePreview);
+saveSceneOutcomeToMemoryButton?.addEventListener("click", saveSceneOutcomePreviewToMemory);
 sceneOutcomePreviewDialog.addEventListener("click", (event) => {
   if (event.target === sceneOutcomePreviewDialog) sceneOutcomePreviewDialog.close();
 });
@@ -5126,6 +10090,7 @@ workInstructions.addEventListener("input", () => {
 importReferenceButton.addEventListener("click", () => referenceFile.click());
 referenceFile.addEventListener("change", importReferenceFile);
 messageInput.addEventListener("input", saveDraft);
+messageInput.addEventListener("input", renderTaskStarters);
 
 composer.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -5143,6 +10108,9 @@ composer.addEventListener("submit", async (event) => {
     showToast("先写下一句话吧");
     return;
   }
+  if (!ensureSourceReadyForMode(selectedMode)) return;
+  if (!await ensureProviderReadyForRequest(selectedMode === "问答" ? "生成内容问答" : "生成创作回复")) return;
+  if (!await ensureProviderDataConsent(selectedMode === "问答" ? "生成内容问答" : "生成创作回复")) return;
 
   addMessage({ role: "user", name: "我", text, historyIndex: conversationHistory.length, mode: selectedMode, avatarClass: "user-avatar" });
   conversationHistory.push({ role: "user", name: "我", content: text, mode: selectedMode });
@@ -5150,6 +10118,9 @@ composer.addEventListener("submit", async (event) => {
   saveDraft();
   saveConversation();
   const character = { ...selectedCharacter };
+  const requestProjectId = activeProjectId;
+  const requestSpaceId = getCurrentNovelSpaceId();
+  const requestMode = selectedMode;
   const responseName = getAssistantDisplayName(character);
 
   const assistantMessage = addMessage({
@@ -5157,26 +10128,34 @@ composer.addEventListener("submit", async (event) => {
     name: responseName,
     text: "",
     historyIndex: conversationHistory.length,
-    mode: selectedMode,
+    mode: requestMode,
     avatarClass: getAssistantAvatarClass(responseName),
   });
-  const reply = await generateAssistantReply(assistantMessage, character);
+  const reply = await generateAssistantReply(assistantMessage, character, "", requestMode);
+  if (!workspaceRequestStillCurrent(requestProjectId, requestSpaceId)) {
+    showToast("当前项目或小说空间已切换，回复未写入");
+    return;
+  }
 
   const source = assistantMessage.bubble.dataset.source === "demo" ? "demo" : "";
   conversationHistory.push({
     role: "assistant",
     name: responseName,
     content: reply,
-    ...(selectedMode ? { mode: selectedMode } : {}),
+    ...(requestMode ? { mode: requestMode } : {}),
     ...(source ? { source } : {}),
     ...(assistantMessage.sourceRefs?.length ? { sourceRefs: assistantMessage.sourceRefs } : {}),
     ...(assistantMessage.sourceQuery ? { sourceQuery: assistantMessage.sourceQuery } : {}),
     ...(assistantMessage.sourceQuality ? { sourceQuality: assistantMessage.sourceQuality } : {}),
+    ...(assistantMessage.sourceAnswerCoverage ? { sourceAnswerCoverage: assistantMessage.sourceAnswerCoverage } : {}),
     ...(assistantMessage.sourceCitationStatus ? { sourceCitationStatus: assistantMessage.sourceCitationStatus } : {}),
     ...(assistantMessage.sourceCitationsUnverified?.length ? { sourceCitationsUnverified: assistantMessage.sourceCitationsUnverified } : {}),
+    ...(assistantMessage.qualityReview ? { qualityReview: assistantMessage.qualityReview } : {}),
     ...(assistantMessage.truncated ? { truncated: true } : {}),
   });
   saveConversation();
+  updateCount();
+  filterConversationMessages();
 });
 
 messageInput.addEventListener("keydown", (event) => {
@@ -5256,6 +10235,7 @@ openArchiveHistoryButton.addEventListener("click", () => {
   closeConversationMenu();
   openArchiveHistory();
 });
+openArchiveFromHistoryButton?.addEventListener("click", () => openArchiveHistory());
 archiveSearchInput.addEventListener("input", renderArchiveHistory);
 closeArchiveButton.addEventListener("click", closeArchiveHistory);
 clearArchiveButton.addEventListener("click", clearArchivedHistory);
@@ -5264,26 +10244,9 @@ archiveDialog.addEventListener("click", (event) => {
 });
 archiveDialog.querySelector("form").addEventListener("submit", (event) => event.preventDefault());
 
-document.addEventListener("pointermove", (event) => {
-  document.documentElement.style.setProperty("--pointer-x", `${event.clientX}px`);
-  document.documentElement.style.setProperty("--pointer-y", `${event.clientY}px`);
-});
-
-document.querySelectorAll(".magnetic").forEach((element) => {
-  element.addEventListener("pointermove", (event) => {
-    const rect = element.getBoundingClientRect();
-    const x = (event.clientX - rect.left - rect.width / 2) * 0.12;
-    const y = (event.clientY - rect.top - rect.height / 2) * 0.12;
-    element.style.transform = `translate(${x}px, ${y}px)`;
-  });
-  element.addEventListener("pointerleave", () => {
-    element.style.transform = "translate(0, 0)";
-  });
-});
-
 document.querySelector("#focusComposer").addEventListener("click", () => {
+  setWorkspaceView("workbench", { announce: false, focus: false });
   messageInput.focus();
-  document.querySelector(".conversation").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
 openCommandPaletteButton.addEventListener("click", openCommandPalette);
@@ -5309,6 +10272,11 @@ function closeConversationMenu() {
 
 searchConversationButton.addEventListener("click", () => {
   setConversationSearchOpen(conversationSearch.hidden);
+});
+toggleConversationHistoryButton?.addEventListener("click", () => {
+  const open = !conversationHistoryPanel?.classList.contains("is-open");
+  conversationHistoryPanel?.classList.toggle("is-open", open);
+  toggleConversationHistoryButton.setAttribute("aria-expanded", String(open));
 });
 conversationSearchInput.addEventListener("input", filterConversationMessages);
 searchArchivedMessagesButton.addEventListener("click", () => {
@@ -5407,14 +10375,40 @@ function switchProject(projectId) {
     projectSelect.value = activeProjectId;
     return;
   }
+  const nextProject = projects.find((project) => project.id === projectId);
+  if (!nextProject) {
+    projectSelect.value = activeProjectId;
+    return;
+  }
+  const nextSpaceId = nextProject.novelSpaceId || defaultNovelSpaceId;
+  if (!confirmNovelMemorySpaceSwitch(nextSpaceId)) {
+    projectSelect.value = activeProjectId;
+    return;
+  }
+  const currentSpaceId = getCurrentNovelSpaceId();
   persistActiveProject();
   activeProjectId = projectId;
+  activeNovelSpaceId = nextSpaceId;
+  if (currentSpaceId !== nextSpaceId) {
+    retrievalStrategy = loadRetrievalStrategy(nextSpaceId);
+    syncRetrievalStrategy();
+    resetNovelMemoryFilters();
+  }
+  persistNovelSpaces();
   persistProjects();
   hydrateActiveProject();
   renderProjectSelect();
   renderCharacters();
   renderConversation();
   updateProviderUI();
+  loadNovelSpaceMemory(nextSpaceId);
+  if (activeWorkspaceView === "memory") {
+    loadSourceKnowledge(nextSpaceId);
+    loadReviewedMemoryStatus(nextSpaceId);
+  }
+  renderNovelSpaceLibrary();
+  syncWorkspacePage();
+  persistWorkspaceView(activeWorkspaceView);
   showToast(`已切换到「${getActiveProject().name}」`);
 }
 
@@ -5539,6 +10533,7 @@ function applyTemplate(templateId) {
   }));
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    novelSpaceId: activeNovelSpaceId,
     name: cleanName,
     context: { ...template.context, title: cleanName },
     conversation: [{
@@ -5868,19 +10863,22 @@ function createNewProject() {
   const name = window.prompt("给新的创作项目取一个名字：", "未命名新章");
   if (!name || !name.trim()) return;
   const cleanName = name.trim();
+  const space = novelSpaceForProject();
+  const characters = getNovelCharacters(space);
   const project = createProject({
     id: `project-${Date.now()}`,
+    novelSpaceId: activeNovelSpaceId,
     name: cleanName,
-    context: { title: cleanName, era: "", world: "" },
-    conversation: [{ role: "assistant", name: "方源", content: `「${cleanName}」已经准备好。你可以指定《蛊真人》的章节位置，或先提出一个原作问题。` }],
+    context: { title: cleanName, era: "", world: space ? `基于「${space.name}」原作知识空间进行内容问答与续写。` : "" },
+    conversation: getNovelOpeningConversation(space),
     service: {
       provider: providerSelect.value,
       model: modelName.value.trim(),
       creativity: creativitySelect.value,
       responseLength: responseLengthSelect.value,
     },
-    characters: defaultCharacters,
-    selectedCharacterName: "方源",
+    characters,
+    selectedCharacterName: characters[0]?.name || "主角",
     mode: "续写",
   });
   projects.push(project);
@@ -5907,6 +10905,7 @@ function duplicateCurrentProject() {
   const cleanName = name.trim();
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    novelSpaceId: current.novelSpaceId,
     name: cleanName,
     branchSource: {
       type: "project",
@@ -5916,6 +10915,12 @@ function duplicateCurrentProject() {
     context: { ...current.context, title: cleanName },
     conversation: current.conversation.map((item) => ({ ...item })),
     conversationArchive: current.conversationArchive.map((item) => ({ ...item })),
+    conversationSessions: current.conversationSessions.map((session) => ({
+      ...session,
+      messages: session.messages.map((item) => ({ ...item })),
+    })),
+    activeConversationSessionId: current.activeConversationSessionId,
+    activeConversationSessionStartedAt: current.activeConversationSessionStartedAt,
     service: { ...current.service },
     characters: current.characters.map((item) => ({ ...item })),
     selectedCharacterName: current.selectedCharacterName,
@@ -5976,6 +10981,7 @@ function branchFromMessage(historyIndex) {
   const cleanName = name.trim();
   const project = createProject({
     id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    novelSpaceId: current.novelSpaceId,
     name: cleanName,
     branchSource: {
       type: "message",
@@ -6041,6 +11047,17 @@ exportProjectsButton.addEventListener("click", exportProjectsBackup);
 importProjectsButton.addEventListener("click", () => projectBackupFile.click());
 projectBackupFile.addEventListener("change", importProjectsBackup);
 deleteProjectButton.addEventListener("click", deleteCurrentProject);
+dismissSpaceRecoveryButton?.addEventListener("click", () => setSpaceRecovery());
+continuationQualityRetryButton?.addEventListener("click", async () => {
+  const retryRequest = pendingQualityRetry;
+  pendingQualityRetry = null;
+  continuationQualityDialog.close();
+  if (!retryRequest?.codes?.length) return;
+  await retryMessage(retryRequest.historyIndex, "", retryRequest.codes);
+});
+continuationQualityDialog?.addEventListener("close", () => {
+  pendingQualityRetry = null;
+});
 
 hydrateActiveProject();
 renderProjectSelect();
@@ -6050,3 +11067,9 @@ updateProviderUI();
 updateCount();
 updateStorageStatus();
 restoreFocusMode();
+syncRetrievalStrategy();
+renderNovelSpaceLibrary();
+renderSpaceRecoveryNotice();
+setContextPanelOpen(loadContextPanelOpen());
+setWorkspaceView(loadWorkspaceView());
+loadNovelSpacesFromServer().finally(() => resumeNovelUploadJob());

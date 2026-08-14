@@ -1,0 +1,11 @@
+{
+  "name": "gu-zhen-ren-v8-relation-1",
+  "description": "验证动态覆盖提示能补回有连续证据的人物关系。",
+  "cases": [
+    {
+      "title": "第一卷 · 第二节：逆光阴五百年觉悟",
+      "volume": "第一卷",
+      "tags": ["relationship_context", "dynamic_coverage"]
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "name": "gu-zhen-ren-cross-volume-20",
+  "description": "跨六卷的原作记忆影子评测，覆盖时间线、关系、设定、传闻、战斗、身份和卷末状态。",
+  "cases": [
+    {
+      "title": "第一卷 · 第一节：纵身亡魔心仍不悔",
+      "volume": "第一卷",
+      "tags": ["mixed_timeline", "battle", "rebirth"]
+    },
+    {
+      "title": "第一卷 · 第二节：逆光阴五百年觉悟",
+      "volume": "第一卷",
+      "tags": ["backstory", "relation", "uncertain_claim"]
+    },
+    {
+      "title": "第一卷 · 第七节：蛊师有九转，花酒留遗藏",
+      "volume": "第一卷",
+      "tags": ["setting", "rumor", "historical_event"]
+    },
+    {
+      "title": "第一卷 · 第一百九十九节：走向各自的命运",
+      "volume": "第一卷",
+      "tags": ["volume_end", "relationship_change", "state_change"]
+    },
+    {
+      "title": "第二卷 · 第五十一节：果然是魔道蛊师！",
+      "volume": "第二卷",
+      "tags": ["identity", "dialogue", "belief"]
+    },
+    {
+      "title": "第二卷 · 第一百零三节：铁若男",
+      "volume": "第二卷",
+      "tags": ["character", "relation", "investigation"]
+    },
+    {
+      "title": "第二卷 · 第二百零六节：",
+      "volume": "第二卷",
+      "tags": ["empty_heading", "long_chapter", "volume_end"]
+    },
+    {
+      "title": "第三卷 · 第六十一节：没有什么不能出卖的",
+      "volume": "第三卷",
+      "tags": ["dialogue", "belief", "negotiation"]
+    },
+    {
+      "title": "第三卷 · 第一百二十二节：一心求胜顾狼王",
+      "volume": "第三卷",
+      "tags": ["identity", "battle", "motivation"]
+    },
+    {
+      "title": "第三卷 · 第二百四十四节：双魔",
+      "volume": "第三卷",
+      "tags": ["relation", "alliance", "volume_end"]
+    },
+    {
+      "title": "第四卷 · 第九十三节：地沟黑油",
+      "volume": "第四卷",
+      "tags": ["setting", "location", "resource"]
+    },
+    {
+      "title": "第四卷 · 第一百八十六节：三件事情的约定",
+      "volume": "第四卷",
+      "tags": ["agreement", "relation", "future_plan"]
+    },
+    {
+      "title": "第四卷 · 第三百七十三节：还不归来？",
+      "volume": "第四卷",
+      "tags": ["cliffhanger", "dialogue", "volume_end"]
+    },
+    {
+      "title": "第五卷 · 第二百三十七节：剑蛟凶恶",
+      "volume": "第五卷",
+      "tags": ["battle", "ability", "transformation"]
+    },
+    {
+      "title": "第五卷 · 第四百七十四节：神秘的羊皮地图",
+      "volume": "第五卷",
+      "tags": ["artifact", "mystery", "uncertain_claim"]
+    },
+    {
+      "title": "第五卷 · 第七百一十四节：局势",
+      "volume": "第五卷",
+      "tags": ["multi_entity", "politics", "state_summary"]
+    },
+    {
+      "title": "第五卷 · 第九百五十一节：大时代！",
+      "volume": "第五卷",
+      "tags": ["long_chapter", "timeline", "volume_end"]
+    },
+    {
+      "title": "第六卷 · 第十二节：人道改运",
+      "volume": "第六卷",
+      "tags": ["setting", "ability", "causality"]
+    },
+    {
+      "title": "第六卷 · 第十八节：吴帅手腕",
+      "volume": "第六卷",
+      "tags": ["character_strategy", "dialogue", "multi_entity"]
+    },
+    {
+      "title": "第六卷 · 第二十四节：吴帅疗伤",
+      "volume": "第六卷",
+      "tags": ["state_change", "ability", "incomplete_arc"]
+    }
+  ]
+}

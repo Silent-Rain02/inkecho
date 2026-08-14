@@ -1,0 +1,21 @@
+{
+  "name": "gu-zhen-ren-v6-coverage-3",
+  "description": "针对固定召回评测暴露的地点、人物关系和具体机制缺口。",
+  "cases": [
+    {
+      "title": "第一卷 · 第一节：纵身亡魔心仍不悔",
+      "volume": "第一卷",
+      "tags": ["location_state", "rebirth_anchor"]
+    },
+    {
+      "title": "第一卷 · 第二节：逆光阴五百年觉悟",
+      "volume": "第一卷",
+      "tags": ["relationship_context", "mechanism_cost"]
+    },
+    {
+      "title": "第四卷 · 第九十三节：地沟黑油",
+      "volume": "第四卷",
+      "tags": ["specific_effect", "avoid_vague_summary"]
+    }
+  ]
+}

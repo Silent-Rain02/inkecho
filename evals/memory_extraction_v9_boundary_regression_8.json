@@ -1,0 +1,46 @@
+{
+  "name": "gu-zhen-ren-v9-boundary-regression-8",
+  "description": "针对跨卷 v8 暴露的关系词、普通位置、事件/设定边界、原子性与证据窗口问题进行回归。",
+  "cases": [
+    {
+      "title": "第一卷 · 第七节：蛊师有九转，花酒留遗藏",
+      "volume": "第一卷",
+      "tags": ["canonical_concept", "low_value_location", "setting"]
+    },
+    {
+      "title": "第二卷 · 第一百零三节：铁若男",
+      "volume": "第二卷",
+      "tags": ["parent_child_relation", "identity"]
+    },
+    {
+      "title": "第二卷 · 第二百零六节：",
+      "volume": "第二卷",
+      "tags": ["assistance_relation", "empty_heading"]
+    },
+    {
+      "title": "第三卷 · 第二百四十四节：双魔",
+      "volume": "第三卷",
+      "tags": ["leadership_relation", "belief_boundary"]
+    },
+    {
+      "title": "第五卷 · 第七百一十四节：局势",
+      "volume": "第五卷",
+      "tags": ["parent_child_relation", "politics"]
+    },
+    {
+      "title": "第五卷 · 第九百五十一节：大时代！",
+      "volume": "第五卷",
+      "tags": ["event_setting_boundary", "agreement"]
+    },
+    {
+      "title": "第六卷 · 第十二节：人道改运",
+      "volume": "第六卷",
+      "tags": ["atomicity", "causality"]
+    },
+    {
+      "title": "第六卷 · 第十八节：吴帅手腕",
+      "volume": "第六卷",
+      "tags": ["evidence_window", "review_adjudication"]
+    }
+  ]
+}

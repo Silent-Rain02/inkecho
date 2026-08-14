@@ -1,0 +1,31 @@
+{
+  "name": "gu-zhen-ren-v5-focused-regression-5",
+  "description": "针对 V4 人工审查发现的关系结构、主体错置、类别误判与证据不自足问题进行回归。",
+  "cases": [
+    {
+      "title": "第一卷 · 第二节：逆光阴五百年觉悟",
+      "volume": "第一卷",
+      "tags": ["relation_tuple", "pronoun_context"]
+    },
+    {
+      "title": "第二卷 · 第二百零六节：",
+      "volume": "第二卷",
+      "tags": ["subject_predicate_mismatch", "empty_heading"]
+    },
+    {
+      "title": "第四卷 · 第九十三节：地沟黑油",
+      "volume": "第四卷",
+      "tags": ["category_boundary", "setting"]
+    },
+    {
+      "title": "第五卷 · 第二百三十七节：剑蛟凶恶",
+      "volume": "第五卷",
+      "tags": ["evidence_self_contained", "battle"]
+    },
+    {
+      "title": "第五卷 · 第四百七十四节：神秘的羊皮地图",
+      "volume": "第五卷",
+      "tags": ["wrong_evidence_span", "artifact"]
+    }
+  ]
+}
