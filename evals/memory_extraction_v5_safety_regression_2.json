@@ -1,0 +1,16 @@
+{
+  "name": "gu-zhen-ren-v5-safety-regression-2",
+  "description": "验证普通移动过滤与未解析实体禁止修复。",
+  "cases": [
+    {
+      "title": "第二卷 · 第二百零六节：",
+      "volume": "第二卷",
+      "tags": ["low_value_movement", "empty_heading"]
+    },
+    {
+      "title": "第四卷 · 第九十三节：地沟黑油",
+      "volume": "第四卷",
+      "tags": ["repair_boundary", "unresolved_object"]
+    }
+  ]
+}

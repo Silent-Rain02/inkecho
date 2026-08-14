@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=27" />
   </head>
   <body>
     <div class="aurora-field" aria-hidden="true">
@@ -19,39 +19,510 @@
     </div>
     <div class="grain" aria-hidden="true"></div>
     <header class="topbar">
-      <a class="brand" href="#top" aria-label="InkEcho 首页">
-        <span class="brand-mark">IE</span>
-        <span>
-          <strong>InkEcho</strong>
-          <small>literary dialogue studio</small>
-        </span>
+      <a class="brand" href="#home" aria-label="InkEcho 首页">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span><strong>InkEcho</strong><small>STORY ATLAS</small></span>
       </a>
+      <div class="atlas-current-novel">
+        <span class="atlas-ready-dot" aria-hidden="true"></span>
+        <span class="workspace-novel-name" id="workspaceNovelName">当前小说：蛊真人</span>
+        <select class="workspace-novel-select" id="workspaceNovelSelect" aria-label="快速切换小说知识空间"></select>
+      </div>
       <div class="topbar-actions">
-        <span class="status-dot"><i></i>本地原型</span>
-        <button class="icon-button command-palette-button" id="openCommandPalette" type="button" title="打开命令面板 · ⌘ / Ctrl + K" aria-label="打开命令面板">⌘K</button>
+        <span class="status-dot"><i></i>本地服务</span>
+        <button class="icon-button command-palette-button" id="openCommandPalette" type="button" title="打开功能菜单 · ⌘ / Ctrl + K" aria-label="打开功能菜单">⌘ K</button>
         <button class="spark-button magnetic" id="focusComposer" type="button">进入创作 <span>↗</span></button>
-        <button class="icon-button" id="exportSession" type="button" title="导出当前创作" aria-label="导出当前创作">⇩</button>
-        <button class="icon-button" id="resetSession" type="button" title="重置当前对话" aria-label="重置当前对话">↺</button>
-        <button class="icon-button focus-mode-button" id="toggleFocusMode" type="button" title="进入专注模式" aria-label="进入专注模式" aria-pressed="false">◐</button>
-        <button class="avatar" type="button" aria-label="用户菜单">I</button>
+        <button class="icon-button atlas-motion-toggle" id="atlasMotionToggle" type="button" title="暂停背景动效" aria-label="暂停背景动效" aria-pressed="false">◌</button>
+        <button class="icon-button atlas-hidden-control" id="exportSession" type="button" title="导出当前创作" aria-label="导出当前创作">⇩</button>
+        <button class="icon-button atlas-hidden-control" id="resetSession" type="button" title="重置当前对话" aria-label="重置当前对话">↺</button>
+        <button class="icon-button theme-toggle-button" id="toggleTheme" type="button" title="切换到浅色主题" aria-label="切换到浅色主题" aria-pressed="true">☼</button>
+        <button class="icon-button focus-mode-button atlas-hidden-control" id="toggleFocusMode" type="button" title="进入专注模式" aria-label="进入专注模式" aria-pressed="false">◐</button>
+        <button class="avatar atlas-hidden-control" type="button" aria-label="用户菜单">I</button>
       </div>
     </header>
 
     <main id="top" class="shell">
       <section class="intro">
         <div>
-          <p class="eyebrow">WRITE BEYOND THE PAGE <span>✦</span></p>
-          <h1>让故事在<br /><em>下一页</em>继续回响。</h1>
-          <p class="intro-copy">把作品、角色与想象放在同一张桌上。和他们对话，沿着原作的气息，写出属于你的新章。</p>
+          <p class="eyebrow">INK ECHO / STORY WORKSPACE <span>✦</span></p>
+          <h1>从一个任务<br /><em>开始。</em></h1>
+          <p class="intro-copy">选择一本小说，然后直接问原作、查章节，或继续写下一幕。复杂的设定和管理工具会在需要时出现。</p>
         </div>
         <div class="intro-note">
           <span class="note-line"></span>
-          <p>每一次提问，<br />都是一条新的叙事支线。</p>
+          <p>当前小说<br /><strong>蛊真人</strong></p>
         </div>
       </section>
 
-      <section class="studio-grid" aria-label="InkEcho 创作台">
-        <aside class="sidebar panel">
+      <section class="workspace-switcher" aria-label="InkEcho 工作区">
+        <nav class="workspace-nav" role="tablist" aria-label="工作区导航">
+          <div class="workspace-nav-primary">
+            <button class="workspace-nav-item active" type="button" role="tab" aria-controls="workspacePageHome" aria-selected="true" data-workspace-view="home">
+              <span class="workspace-nav-icon">始</span><span><strong>首页</strong><small>故事星图</small></span>
+            </button>
+            <button class="workspace-nav-item" type="button" role="tab" aria-controls="workspacePageWorkbench" aria-selected="false" data-workspace-view="workbench">
+              <span class="workspace-nav-icon">写</span><span><strong>创作</strong><small>续写与问答</small></span>
+            </button>
+            <button class="workspace-nav-item" type="button" role="tab" aria-controls="workspacePageSource" aria-selected="false" data-workspace-view="source">
+              <span class="workspace-nav-icon">读</span><span><strong>原作</strong><small>章节与依据</small></span>
+            </button>
+            <button class="workspace-nav-item" type="button" role="tab" aria-controls="workspacePageMemory" aria-selected="false" data-workspace-view="memory">
+              <span class="workspace-nav-icon">忆</span><span><strong>记忆</strong><small>知识空间</small></span>
+            </button>
+            <button class="workspace-nav-item" type="button" role="tab" aria-controls="workspacePageLibrary" aria-selected="false" data-workspace-view="library">
+              <span class="workspace-nav-icon">库</span><span><strong>小说库</strong><small>上传与切换</small></span>
+            </button>
+            <button class="workspace-nav-item" type="button" role="tab" aria-controls="workspacePageSettings" aria-selected="false" data-workspace-view="settings">
+              <span class="workspace-nav-icon">设</span><span><strong>设置</strong><small>模型与数据</small></span>
+            </button>
+          </div>
+          <details class="workspace-nav-more atlas-secondary-navigation" id="workspaceNavMore">
+            <summary><span class="workspace-nav-icon">⋯</span><span><strong>更多工具</strong><small>故事管理</small></span></summary>
+            <div class="workspace-nav-secondary">
+              <button class="workspace-nav-item" type="button" role="tab" aria-controls="workspacePageStory" aria-selected="false" data-workspace-view="story">
+                <span class="workspace-nav-icon">章</span><span><strong>故事管理</strong><small>场景与角色</small></span>
+              </button>
+            </div>
+          </details>
+        </nav>
+        <div class="workspace-guide" id="workspaceGuide" aria-live="polite">
+          <div>
+            <span class="workspace-guide-kicker" id="workspaceGuideKicker">当前工作区 · NOVEL LIBRARY</span>
+            <strong id="workspaceGuideTitle">先选择一本小说，再开始创作</strong>
+            <p id="workspaceGuideDescription">每本小说都有独立的知识空间、原作记忆和创作项目。</p>
+            <details class="workspace-guide-status" id="workspaceGuideStatus">
+              <summary><span>空间状态</span><small id="workspaceGuideStatusSummary">读取中</small></summary>
+              <ol class="workspace-guide-progress" id="workspaceGuideProgress" aria-label="当前小说空间进度">
+                <li><button class="workspace-progress-action" type="button" data-progress-key="source"><span>01</span><strong>原文</strong><small>读取中</small></button></li>
+                <li><button class="workspace-progress-action" type="button" data-progress-key="parse"><span>02</span><strong>解析</strong><small>读取中</small></button></li>
+                <li><button class="workspace-progress-action" type="button" data-progress-key="memory"><span>03</span><strong>记忆</strong><small>可选</small></button></li>
+                <li><button class="workspace-progress-action" type="button" data-progress-key="create"><span>04</span><strong>创作</strong><small>准备开始</small></button></li>
+              </ol>
+            </details>
+          </div>
+          <div class="workspace-guide-actions">
+            <button class="workspace-guide-action" id="workspaceGuideAction" type="button">进入创作 →</button>
+            <button class="workspace-guide-task workspace-guide-task-ask" id="workspaceGuideAskAction" type="button" hidden>内容问答</button>
+            <button class="workspace-guide-task workspace-guide-task-write" id="workspaceGuideWriteAction" type="button" hidden>开始续写</button>
+            <button class="workspace-guide-task workspace-guide-task-source" id="workspaceGuideSourceAction" type="button" hidden>查找原作</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace-pages" id="workspacePages" aria-live="polite">
+        <section class="workspace-page atlas-home-page" id="workspacePageHome" role="tabpanel" data-workspace-page="home" aria-labelledby="atlasHomeTitle">
+          <div class="atlas-home-copy">
+            <span class="section-kicker">STORY ATLAS / <span id="atlasHomeNovelName">蛊真人</span></span>
+            <h2 id="atlasHomeTitle"><span>让故事、</span> <span>原作与记忆，</span><br /><span>在同一片星图中流动。</span></h2>
+            <p>选择此刻最想完成的任务。模型配置、解析细节与项目管理会在需要时出现。</p>
+          </div>
+          <div class="atlas-bento" aria-label="开始使用 InkEcho">
+            <button class="atlas-bento-card atlas-bento-primary" type="button" data-atlas-task="续写">
+              <span class="atlas-card-kicker">PRIMARY / CONTINUE</span><span class="atlas-card-arrow">↗</span>
+              <strong>续写下一幕</strong>
+              <small>承接当前项目、场景线索和最近对话继续创作。</small>
+            </button>
+            <button class="atlas-bento-card" type="button" data-atlas-task="问答">
+              <span class="atlas-card-kicker">SOURCE</span><span class="atlas-card-arrow">↗</span>
+              <strong>内容问答</strong>
+              <small>查人物、设定、势力与剧情依据。</small>
+            </button>
+            <button class="atlas-bento-card" type="button" data-atlas-view="source">
+              <span class="atlas-card-kicker">READER</span><span class="atlas-card-arrow">↗</span>
+              <strong>章节浏览</strong>
+              <small id="atlasHomeSourceStats">正在读取原作章节……</small>
+            </button>
+            <button class="atlas-bento-card atlas-bento-memory" type="button" data-atlas-view="memory">
+              <span class="atlas-card-kicker">KNOWLEDGE SPACE</span><span class="atlas-card-arrow">↗</span>
+              <strong>小说知识空间</strong>
+              <small>人物关系、世界规则、关键事件和二创约定集中维护。</small>
+            </button>
+          </div>
+          <div class="atlas-home-status">
+            <span class="atlas-ready-dot" aria-hidden="true"></span>
+            <span id="atlasHomeSourceStatus">正在检查当前小说空间</span>
+            <button type="button" data-atlas-view="library">切换或上传小说 →</button>
+          </div>
+        </section>
+        <section class="workspace-page" id="workspacePageLibrary" role="tabpanel" data-workspace-page="library" aria-labelledby="libraryPageTitle">
+          <div class="page-heading library-page-heading">
+            <div>
+              <span class="section-kicker">NOVEL LIBRARY / 小说库</span>
+              <h2 id="libraryPageTitle">先选择一本小说，再开始创作</h2>
+              <p>每本小说都有独立的知识空间、原作记忆和创作项目。可以上传单文件，也可以一次选择多个分卷文件合并；原始文件默认只保存在本机。</p>
+            </div>
+            <div class="library-heading-actions">
+              <label class="novel-upload-name-field" for="novelUploadName">
+                <span>空间名称 <small>可选</small></span>
+                <input id="novelUploadName" type="text" maxlength="80" placeholder="默认使用文件名" autocomplete="off" />
+              </label>
+              <label class="page-primary-button upload-novel-button" for="novelUploadInput" data-novel-dropzone="true">＋ 上传小说 / 多卷合并 · 也可拖入</label>
+              <input id="novelUploadInput" type="file" multiple accept=".txt,.md,.markdown,.html,.htm,.docx,.epub,.pdf,.fb2,text/plain,text/markdown,text/html,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip,application/pdf,application/x-fictionbook+xml" hidden />
+            </div>
+          </div>
+          <details class="library-management" id="libraryManagement">
+            <summary><span>管理小说空间</span><small>搜索、筛选、导入与导出</small></summary>
+            <div class="library-management-body">
+              <div class="library-toolbar">
+                <div>
+                  <strong>我的小说知识空间</strong>
+                  <span id="novelLibraryCount">正在读取……</span>
+                  <span id="novelLibraryStatusSummary" class="library-status-summary"></span>
+                </div>
+                <div class="library-toolbar-actions">
+                  <button class="page-secondary-button" id="exportNovelSpaceConfig" type="button">导出空间配置</button>
+                  <label class="page-secondary-button upload-config-button" for="novelSpaceConfigInput">导入空间配置</label>
+                  <input id="novelSpaceConfigInput" type="file" accept="application/json,.json" hidden />
+                  <button class="page-secondary-button" id="refreshNovelLibrary" type="button">刷新状态</button>
+                </div>
+              </div>
+              <p class="library-data-note"><strong>交接边界</strong> 项目 JSON 只备份创作项目与编辑数据；小说原文、章节索引和空间记忆仍保存在本机。换设备时，请重新上传原小说后再导入项目备份。</p>
+              <div class="library-filters" aria-label="筛选小说知识空间">
+                <label class="library-filter-field" for="novelLibrarySearch">
+                  <span>搜索小说</span>
+                  <input id="novelLibrarySearch" type="search" placeholder="按名称、文件名或解析提示搜索" />
+                </label>
+                <label class="library-filter-field library-status-filter" for="novelLibraryStatus">
+                  <span>空间状态</span>
+                  <select id="novelLibraryStatus">
+                    <option value="all">全部状态</option>
+                    <option value="ready">可检索</option>
+                    <option value="partial">解析提醒</option>
+                    <option value="empty">正文为空</option>
+                    <option value="unavailable">待恢复</option>
+                  </select>
+                </label>
+                <button class="text-button library-clear-filters" id="clearNovelLibraryFilters" type="button" hidden>清除筛选</button>
+              </div>
+            </div>
+          </details>
+          <aside class="space-recovery-notice" id="spaceRecoveryNotice" hidden>
+            <div>
+              <span class="space-recovery-kicker">SPACE RECOVERY / 空间恢复</span>
+              <strong id="spaceRecoveryTitle">项目已导入，小说空间还需要恢复</strong>
+              <p id="spaceRecoveryDescription"></p>
+            </div>
+            <label class="space-recovery-target" id="spaceRecoveryTargetField" hidden>
+              <span>恢复对象</span>
+              <select id="spaceRecoveryTarget" aria-label="选择待恢复小说空间"></select>
+            </label>
+            <div class="space-recovery-actions">
+              <label class="page-secondary-button upload-novel-button" for="novelUploadInput" data-novel-dropzone="true">上传原文 · 或拖入文件</label>
+              <button class="text-button" id="dismissSpaceRecovery" type="button">知道了</button>
+            </div>
+          </aside>
+          <div class="novel-upload-feedback" id="novelUploadFeedback" hidden>
+            <span id="novelUploadFeedbackText"></span>
+            <button class="text-button" id="novelUploadCancel" type="button" hidden>取消解析</button>
+            <button class="text-button" id="novelUploadRetry" type="button" hidden>重试解析</button>
+          </div>
+          <div class="novel-space-list" id="novelSpaceList"></div>
+          <article class="library-filter-empty" id="novelLibraryNoResults" hidden>
+            <strong>没有符合条件的小说空间</strong>
+            <p>可以换一个关键词，或清除状态筛选后再试。</p>
+            <label class="page-secondary-button upload-novel-button" for="novelUploadInput" data-novel-dropzone="true">上传新小说 · 或拖入文件</label>
+          </article>
+          <article class="library-empty-state" id="novelLibraryEmpty" hidden>
+            <span class="page-card-icon">▦</span>
+            <strong>还没有小说知识空间</strong>
+            <p>上传 TXT、Markdown、HTML、DOCX、EPUB、FB2 或 PDF 小说，也可以选择多个分卷文件；InkEcho 会为它们建立统一的章节索引和原作检索空间。</p>
+            <label class="page-primary-button upload-novel-button" for="novelUploadInput" data-novel-dropzone="true">上传第一本小说 · 或拖入文件</label>
+          </article>
+        </section>
+        <section class="workspace-page" id="workspacePageSource" role="tabpanel" data-workspace-page="source" aria-labelledby="sourcePageTitle" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="section-kicker">原作资料</span>
+              <h2 id="sourcePageTitle">阅读与核对原作</h2>
+              <p>选择章节直接阅读，或输入问题核对相关原文。</p>
+            </div>
+            <button class="page-back-button" type="button" data-return-workbench>返回工作台 →</button>
+          </div>
+          <div class="page-grid source-page-grid">
+            <article class="page-card source-page-primary">
+              <div class="page-card-label">当前小说</div>
+              <strong id="sourcePageStatus">原作知识库：检查中……</strong>
+              <div class="source-page-diagnostics" id="sourcePageDiagnostics" aria-live="polite"></div>
+              <input id="sourcePageChapter" type="hidden" />
+
+              <section class="source-task-block source-reader-task" aria-labelledby="sourceReaderTaskTitle">
+                <div class="source-task-heading">
+                  <div>
+                    <span class="source-task-number">01</span>
+                    <h3 id="sourceReaderTaskTitle">阅读章节</h3>
+                    <p>搜索或浏览章节，选择后直接打开原文。</p>
+                  </div>
+                </div>
+                <div class="source-outline-browser" aria-label="原作章节导航">
+                  <div class="source-outline-browser-heading">
+                    <small id="sourceOutlineBrowserStatus" aria-live="polite">正在读取章节标题……</small>
+                    <button class="text-button" id="sourceOutlineClear" type="button" hidden>清除筛选</button>
+                  </div>
+                  <div class="source-outline-filters">
+                    <input id="sourceOutlineSearch" type="search" placeholder="搜索章节标题……" aria-label="搜索原作章节" autocomplete="off" />
+                    <select id="sourceOutlineVolumeFilter" aria-label="按卷筛选原作章节" hidden>
+                      <option value="">全部卷 / 分卷</option>
+                    </select>
+                  </div>
+                  <div class="source-outline-list" id="sourceOutlineList" role="listbox" aria-label="原作章节列表"></div>
+                </div>
+                <div class="source-chapter-selection" id="sourceChapterSelection" aria-live="polite">
+                  <span>尚未选择章节</span>
+                  <div>
+                    <button class="page-primary-button" id="sourcePageRead" type="button" disabled>阅读所选章节</button>
+                    <button class="page-secondary-button" id="sourcePageAsk" type="button" disabled>用本章提问</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="source-task-block source-evidence-task" aria-labelledby="sourceEvidenceTaskTitle">
+                <div class="source-task-heading">
+                  <div>
+                    <span class="source-task-number">02</span>
+                    <h3 id="sourceEvidenceTaskTitle">查证原作</h3>
+                    <p>输入一个具体问题，InkEcho 会找出可以直接核对的原文。</p>
+                  </div>
+                </div>
+                <div class="source-evidence-search">
+                  <input id="sourceEvidenceQuery" type="search" placeholder="例如：方源为什么能够重生？" aria-label="输入要查证的原作问题" autocomplete="off" />
+                  <button class="page-primary-button" id="sourcePagePreview" type="button" disabled>查找原文</button>
+                </div>
+                <details class="source-search-options">
+                  <summary>调整查找范围</summary>
+                  <div class="page-form-row source-strategy-row">
+                    <label class="page-field" for="retrievalStrategy">查找方式</label>
+                    <select id="retrievalStrategy">
+                      <option value="balanced">综合查找</option>
+                      <option value="chapter_first">优先按章节</option>
+                      <option value="entity_first">优先按人物与设定</option>
+                      <option value="broad">扩大查找范围</option>
+                    </select>
+                  </div>
+                </details>
+              </section>
+            </article>
+          </div>
+        </section>
+
+        <section class="workspace-page" id="workspacePageMemory" role="tabpanel" data-workspace-page="memory" aria-labelledby="memoryPageTitle" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="section-kicker">STORY MEMORY / 空间记忆</span>
+              <h2 id="memoryPageTitle">空间记忆</h2>
+              <p>从原文整理可追溯的知识，也保存后续创作需要长期保持的设定。</p>
+            </div>
+            <button class="page-back-button" type="button" data-return-workbench>返回工作台 →</button>
+          </div>
+          <div class="page-grid memory-page-grid">
+            <article class="page-card source-memory-card">
+              <div class="memory-library-heading">
+                <div>
+                  <div class="page-card-label">当前小说</div>
+                  <strong class="memory-space-name" id="novelMemorySpaceName">蛊真人</strong>
+                </div>
+                <button class="page-primary-button memory-add-button" id="openNovelMemoryComposer" type="button" aria-expanded="false" aria-controls="novelMemoryComposer" hidden>＋ 新增创作记忆</button>
+              </div>
+              <div class="memory-boundary" role="note">
+                <span aria-hidden="true">✦</span>
+                <p><strong>原作知识和创作记忆分开管理</strong><small>问答使用带章节出处的原作知识；续写还会参考你的创作设定。</small></p>
+              </div>
+
+              <div class="memory-layer-tabs" role="tablist" aria-label="空间记忆类型">
+                <button class="memory-layer-tab is-active" id="sourceKnowledgeTab" type="button" role="tab" aria-selected="true" aria-controls="sourceKnowledgePanel" data-memory-layer="source">原作知识</button>
+                <button class="memory-layer-tab" id="creativeMemoryTab" type="button" role="tab" aria-selected="false" aria-controls="creativeMemoryPanel" data-memory-layer="creative">创作记忆</button>
+              </div>
+
+              <section class="source-knowledge-panel" id="sourceKnowledgePanel" role="tabpanel" aria-labelledby="sourceKnowledgeTab">
+                <div class="source-knowledge-heading">
+                  <div>
+                    <strong>模型记忆</strong>
+                    <p>优先展示模型从原文中提取并核对过的事实；全文构建时会随后台进度逐步更新。</p>
+                  </div>
+                </div>
+                <div class="reviewed-memory-build" id="reviewedMemoryBuild" data-state="idle">
+                  <div class="reviewed-memory-build-copy">
+                    <span class="reviewed-memory-build-mark" aria-hidden="true">◎</span>
+                    <p><strong id="reviewedMemoryBuildTitle">增强人物与设定理解</strong><small id="reviewedMemoryBuildDescription">原文问答已经可用。完成审核后，复杂关系与世界规则才会形成可复用记忆。</small></p>
+                  </div>
+                  <div class="reviewed-memory-progress" id="reviewedMemoryProgress" role="progressbar" aria-label="深度记忆构建进度" aria-valuemin="0" aria-valuemax="100" hidden><span id="reviewedMemoryProgressBar"></span></div>
+                  <div class="reviewed-memory-metrics" id="reviewedMemoryMetrics" aria-live="polite">
+                    <span><strong id="memoryTokensSpent">—</strong><small id="memoryTokensSpentLabel">已用 token</small></span>
+                    <span><strong id="memoryElapsedTime">—</strong><small>已用时间</small></span>
+                    <span><strong id="memoryEstimatedTokens">—</strong><small>预计总 token</small></span>
+                    <span><strong id="memoryTokensPerMinute">—</strong><small>token / min</small></span>
+                    <span><strong id="memoryEstimatedFinish">—</strong><small>预计完成</small></span>
+                  </div>
+                  <div class="reviewed-memory-build-actions">
+                    <button class="page-primary-button" id="startReviewedMemoryBuild" type="button">开始构建</button>
+                    <button class="page-secondary-button" id="startFullReviewedMemoryBuild" type="button" hidden>构建全文记忆</button>
+                    <button class="page-secondary-button" id="promoteReviewedMemoryBuild" type="button" hidden>启用记忆</button>
+                    <button class="text-button" id="cancelReviewedMemoryBuild" type="button" hidden>暂停</button>
+                  </div>
+                </div>
+                <div class="model-memory-toolbar">
+                  <span class="memory-count" id="modelMemoryCount">正在读取模型记忆…</span>
+                  <span class="model-memory-live" id="modelMemoryLive" aria-live="polite">● 实时更新</span>
+                </div>
+                <small class="model-memory-hint" id="modelMemoryHint" aria-live="polite">正在读取模型提取结果……</small>
+                <div class="model-memory-list" id="modelMemoryList" aria-live="polite"></div>
+                <details class="source-index-disclosure" id="sourceKnowledgeDisclosure">
+                  <summary><span>原文线索</span><small>规则筛选，仅用于核对原文</small></summary>
+                  <div class="source-index-disclosure-body">
+                <div class="source-knowledge-toolbar">
+                  <div class="memory-search-wrap">
+                    <span aria-hidden="true">⌕</span>
+                    <input id="sourceKnowledgeSearch" type="search" maxlength="120" placeholder="搜索原文线索" aria-label="搜索原文依据" />
+                  </div>
+                  <span class="memory-count" id="sourceKnowledgeCount">正在读取原文线索…</span>
+                </div>
+                <div class="memory-summary source-knowledge-summary" id="sourceKnowledgeSummary" aria-label="原文线索分类">
+                  <button class="memory-summary-item is-active" type="button" data-source-knowledge-category="all" aria-pressed="true"><span>全部</span><strong data-source-knowledge-count="all">0</strong></button>
+                  <button class="memory-summary-item" type="button" data-source-knowledge-category="character" aria-pressed="false"><span>人物线索</span><strong data-source-knowledge-count="character">0</strong></button>
+                  <button class="memory-summary-item" type="button" data-source-knowledge-category="relation" aria-pressed="false"><span>关系线索</span><strong data-source-knowledge-count="relation">0</strong></button>
+                  <button class="memory-summary-item" type="button" data-source-knowledge-category="setting" aria-pressed="false"><span>设定线索</span><strong data-source-knowledge-count="setting">0</strong></button>
+                  <button class="memory-summary-item" type="button" data-source-knowledge-category="event" aria-pressed="false"><span>事件线索</span><strong data-source-knowledge-count="event">0</strong></button>
+                </div>
+                <small class="source-knowledge-hint" id="sourceKnowledgeHint" aria-live="polite">这些内容直接来自原文，是用于定位依据的线索，不等于结构化记忆。</small>
+                <div class="source-knowledge-list" id="sourceKnowledgeList" aria-live="polite"></div>
+                  </div>
+                </details>
+              </section>
+
+              <section class="creative-memory-panel" id="creativeMemoryPanel" role="tabpanel" aria-labelledby="creativeMemoryTab" hidden>
+
+              <section class="memory-composer" id="novelMemoryComposer" aria-labelledby="novelMemoryComposerTitle" hidden>
+                <div class="memory-composer-heading">
+                  <div>
+                    <span class="page-card-label">新增到空间记忆</span>
+                    <strong id="novelMemoryComposerTitle">记住一条创作设定</strong>
+                  </div>
+                  <button class="memory-composer-close" id="closeNovelMemoryComposer" type="button" aria-label="关闭新增记忆">×</button>
+                </div>
+                <p class="memory-composer-description">只记录未来创作需要反复保持的内容，不必摘录整段原文。</p>
+                <div class="memory-quick-actions" aria-label="空间记忆快速模板">
+                  <span>从模板开始</span>
+                  <button class="text-button memory-template-button" type="button" data-memory-template-title="人物关系" data-memory-template-content="人物 / 势力：\n关系变化：\n已确认依据：\n创作时需要保持：">人物关系</button>
+                  <button class="text-button memory-template-button" type="button" data-memory-template-title="世界规则" data-memory-template-content="规则名称：\n作用与限制：\n代价 / 例外：\n创作时需要保持：">世界规则</button>
+                  <button class="text-button memory-template-button" type="button" data-memory-template-title="二创约定" data-memory-template-content="本项目约定：\n必须保留：\n禁止改变：\n允许探索：">二创约定</button>
+                </div>
+                <div class="memory-editor">
+                  <input id="novelMemoryTitle" type="text" maxlength="80" placeholder="标题，例如：白凝冰与方源的合作边界" />
+                  <textarea id="novelMemoryContent" rows="5" maxlength="4000" placeholder="写下需要在后续创作中保持的关系、规则或约定……"></textarea>
+                  <small class="memory-content-count" id="novelMemoryContentCount">0 / 4000 字</small>
+                </div>
+                <div class="page-actions memory-composer-actions">
+                  <button class="page-primary-button" id="saveNovelMemory" type="button">保存记忆</button>
+                  <button class="text-button" id="cancelNovelMemoryEdit" type="button">取消</button>
+                </div>
+              </section>
+
+              <div class="memory-toolbar">
+                <div class="memory-search-wrap">
+                  <span aria-hidden="true">⌕</span>
+                  <input id="novelMemorySearch" type="search" maxlength="80" placeholder="搜索人物、规则或设定" aria-label="搜索空间记忆" />
+                </div>
+                <span class="memory-count" id="novelMemoryCount">0 条记忆</span>
+                <button class="text-button memory-preview-button" id="previewNovelMemory" type="button">查看本次会使用哪些</button>
+                <button class="text-button memory-refresh-button" id="refreshNovelMemory" type="button" aria-label="刷新空间记忆">刷新</button>
+                <button class="text-button memory-clean-stale-button" id="removeStaleNovelMemory" type="button" hidden>清理待核对</button>
+              </div>
+              <div class="memory-filters" hidden>
+                <select id="novelMemoryKindFilter" aria-label="筛选空间记忆来源">
+                  <option value="all">全部来源</option>
+                  <option value="source">已核对原作</option>
+                  <option value="continuity">创作设定</option>
+                  <option value="manual">手动记录</option>
+                  <option value="summary">剧情摘要</option>
+                  <option value="scene_outcome">本幕结果</option>
+                  <option value="source_evidence">原作依据</option>
+                  <option value="source_summary">原作章节摘要</option>
+                  <option value="stale">待核对原文</option>
+                </select>
+              </div>
+              <div class="memory-filter-actions">
+                <button class="text-button" id="clearNovelMemoryFilters" type="button" hidden>清除筛选</button>
+              </div>
+              <div class="memory-summary" id="novelMemorySummary" aria-label="空间记忆构成">
+                <button class="memory-summary-item is-active" type="button" data-memory-summary-kind="all" aria-pressed="true"><span>全部</span><strong data-memory-summary-count="all">0</strong></button>
+                <button class="memory-summary-item" type="button" data-memory-summary-kind="source" aria-pressed="false"><span>已核对原作</span><strong data-memory-summary-count="source">0</strong></button>
+                <button class="memory-summary-item" type="button" data-memory-summary-kind="continuity" aria-pressed="false"><span>创作设定</span><strong data-memory-summary-count="continuity">0</strong></button>
+                <button class="memory-summary-item" type="button" data-memory-summary-kind="stale" aria-pressed="false"><span>待核对</span><strong data-memory-summary-count="stale">0</strong></button>
+              </div>
+              <small class="memory-context-hint" id="novelMemoryContextHint" aria-live="polite">续写会自动选取相关记忆；内容问答只依据原作。</small>
+              <div class="novel-memory-preview" id="novelMemoryPreview" hidden aria-live="polite">
+                <div class="novel-memory-preview-heading">
+                  <strong id="novelMemoryPreviewTitle">本次创作会参考</strong>
+                  <small id="novelMemoryPreviewStatus"></small>
+                </div>
+                <div class="novel-memory-preview-list" id="novelMemoryPreviewList"></div>
+              </div>
+              <div class="novel-memory-list" id="novelMemoryList"></div>
+              <details class="memory-help">
+                <summary>空间记忆如何参与创作？</summary>
+                <div class="memory-help-body">
+                  <p><strong>写续作时：</strong>系统会根据当前章节和写作要求，自动挑选相关记忆。</p>
+                  <p><strong>问原作时：</strong>系统使用原文和自动整理的原作知识，不使用这里的创作记忆。</p>
+                  <button class="page-secondary-button" id="memoryGuideSource" type="button">去原作资料核对</button>
+                </div>
+              </details>
+              </section>
+            </article>
+          </div>
+        </section>
+
+        <section class="workspace-page" id="workspacePageStory" role="tabpanel" data-workspace-page="story" aria-labelledby="storyPageTitle" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="section-kicker">STORY MANAGER / 故事管理</span>
+              <h2 id="storyPageTitle">把灵感变成可推进的场景</h2>
+              <p>管理场景、角色、摘要和版本节点，工作台只保留当前创作需要的内容。</p>
+            </div>
+            <button class="page-back-button" type="button" data-return-workbench>返回工作台 →</button>
+          </div>
+          <div class="page-grid story-page-grid">
+            <article class="page-card story-action-card">
+              <span class="page-card-icon">§</span>
+              <strong>场景计划</strong>
+              <small id="storyPageBeatCount">管理当前项目的场景卡和推进状态。</small>
+              <button class="page-secondary-button" id="storyPageBeats" type="button">打开场景计划</button>
+            </article>
+            <article class="page-card story-action-card">
+              <span class="page-card-icon">◎</span>
+              <strong>角色与关系</strong>
+              <small>编辑角色语气、人物设定和可复用角色库。</small>
+              <button class="page-secondary-button" id="storyPageCharacters" type="button">管理角色</button>
+            </article>
+            <article class="page-card story-action-card">
+              <span class="page-card-icon">✦</span>
+              <strong>摘要与灵感</strong>
+              <small>整理剧情摘要、灵感摘录和当前悬念。</small>
+              <button class="page-secondary-button" id="storyPageSummary" type="button">回到工作台摘要</button>
+            </article>
+            <article class="page-card story-action-card">
+              <span class="page-card-icon">◌</span>
+              <strong>版本与归档</strong>
+              <small>保存检查点，回看归档消息或创建剧情支线。</small>
+              <button class="page-secondary-button" id="storyPageCheckpoints" type="button">查看检查点</button>
+            </article>
+          </div>
+          <div class="story-context-slot" id="storyContextSlot"></div>
+        </section>
+
+        <section class="workspace-page" id="workspacePageSettings" role="tabpanel" data-workspace-page="settings" aria-labelledby="settingsPageTitle" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="section-kicker">MODEL & DATA / 模型与数据</span>
+              <h2 id="settingsPageTitle">模型与本地资料只需设置一次</h2>
+              <p>这里负责连接模型和检查知识库；原始文件留在本机，生成时仅把命中的有限片段与必要上下文交给所选模型服务。</p>
+            </div>
+            <button class="page-back-button" type="button" data-return-workbench>返回工作台 →</button>
+          </div>
+          <div class="settings-page-card" id="settingsPageSlot"></div>
+        </section>
+      </section>
+
+      <section class="studio-grid" id="workspacePageWorkbench" role="tabpanel" aria-label="InkEcho 创作台" hidden>
+        <aside class="sidebar panel" id="workspaceContextPanel">
           <div class="panel-heading">
             <div>
               <span class="section-kicker">01 / CONTEXT</span>
@@ -101,7 +572,7 @@
           </div>
           <div class="field-input has-icon">
             <span>§</span>
-            <input id="workChapter" type="text" maxlength="120" list="sourceChapterOptions" placeholder="例如：第一卷 · 第一节：纵身亡魔心仍不悔" />
+            <input id="workChapter" type="text" maxlength="120" list="sourceChapterOptions" placeholder="例如：第一卷 · 当前章节或场景" />
           </div>
           <datalist id="sourceChapterOptions"></datalist>
           <p class="source-outline-hint" id="sourceOutlineHint" aria-live="polite">原作章节建议加载中……</p>
@@ -112,38 +583,45 @@
             <button class="text-button scene-advance" id="advanceBeat" type="button" disabled>推进下一幕 →</button>
           </div>
 
-          <label class="field-label" for="workEra">时代 / 氛围</label>
-          <div class="field-input has-icon">
-            <span>◷</span>
-            <input id="workEra" type="text" maxlength="120" value="蛊界 · 青茅山" />
-          </div>
+          <details class="context-more" id="contextMore">
+            <summary>
+              <span><strong>更多上下文</strong><small>时代、世界观、参考与摘要</small></span>
+              <span class="details-chevron">⌄</span>
+            </summary>
 
-          <label class="field-label" for="workWorld">世界观备注</label>
-          <textarea id="workWorld" rows="3" maxlength="800">以《蛊真人》原作为本地知识库，围绕方源、蛊道体系和原作剧情进行续写与内容问答。</textarea>
+            <label class="field-label" for="workEra">时代 / 氛围</label>
+            <div class="field-input has-icon">
+              <span>◷</span>
+              <input id="workEra" type="text" maxlength="120" value="蛊界 · 青茅山" />
+            </div>
 
-          <label class="field-label" for="workReference">参考片段</label>
-          <textarea id="workReference" rows="4" placeholder="粘贴原文、人物关系或本章要点……"></textarea>
-          <div class="reference-meta">
-            <span id="referenceCount">0 / 4000 字</span>
-            <button class="text-button" id="importReference" type="button">导入 .txt / .md</button>
-          </div>
-          <div class="source-status" id="sourceStatus" aria-live="polite">原作知识库：检查中……</div>
-          <input id="referenceFile" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" hidden />
+            <label class="field-label" for="workWorld">世界观备注</label>
+            <textarea id="workWorld" rows="3" maxlength="800">以《蛊真人》原作为本地知识库，围绕方源、蛊道体系和原作剧情进行续写与内容问答。</textarea>
 
-          <div class="field-label-row">
-            <label class="field-label" for="workSummary">剧情摘要</label>
-            <span class="summary-actions">
-              <button class="text-button" id="generateSummary" type="button">提炼摘要</button>
-              <button class="text-button" id="toggleContextMode" type="button">只发摘要 + 最近两轮</button>
-            </span>
-          </div>
-          <textarea id="workSummary" rows="3" maxlength="2000" placeholder="记录关键事件、人物关系和当前悬念……"></textarea>
-          <div class="summary-meta"><span id="summaryFreshness">暂无摘要</span></div>
+            <label class="field-label" for="workReference">参考片段</label>
+            <textarea id="workReference" rows="4" placeholder="粘贴原文、人物关系或本章要点……"></textarea>
+            <div class="reference-meta">
+              <span id="referenceCount">0 / 4000 字</span>
+              <button class="text-button" id="importReference" type="button">导入 .txt / .md</button>
+            </div>
+            <div class="source-status" id="sourceStatus" aria-live="polite">原作知识库：检查中……</div>
+            <input id="referenceFile" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" hidden />
 
-          <label class="field-label" for="workInstructions">本次创作要求</label>
-          <textarea id="workInstructions" rows="3" maxlength="1200" placeholder="例如：保持古典语感，用第三人称，不改变人物结局……"></textarea>
+            <div class="field-label-row">
+              <label class="field-label" for="workSummary">剧情摘要</label>
+              <span class="summary-actions">
+                <button class="text-button" id="generateSummary" type="button">提炼摘要</button>
+                <button class="text-button" id="toggleContextMode" type="button">只发摘要 + 最近两轮</button>
+              </span>
+            </div>
+            <textarea id="workSummary" rows="3" maxlength="2000" placeholder="记录关键事件、人物关系和当前悬念……"></textarea>
+            <div class="summary-meta"><span id="summaryFreshness">暂无摘要</span></div>
 
-            <div class="subheading-row">
+            <label class="field-label" for="workInstructions">本次创作要求</label>
+            <textarea id="workInstructions" rows="3" maxlength="1200" placeholder="例如：保持古典语感，用第三人称，不改变人物结局……"></textarea>
+          </details>
+
+            <div class="subheading-row" id="characterSectionHeading">
               <span class="field-label">角色卡</span>
               <span class="character-actions">
                 <button class="text-button" id="manageCharacter" type="button">管理</button>
@@ -164,17 +642,24 @@
             </button>
           </div>
 
-          <div class="model-settings">
+          <details class="model-settings advanced-settings" id="modelSettings">
+            <summary class="settings-summary">
+              <span><strong>模型与数据</strong><small>服务、模型与生成偏好</small></span>
+              <span class="details-chevron">⌄</span>
+            </summary>
             <div class="subheading-row">
               <span class="field-label">模型服务</span>
               <span>
                 <button class="text-button" id="testProvider" type="button">测试连接</button>
                 <button class="text-button" id="refreshModels" type="button">刷新模型</button>
                 <button class="text-button" id="openProviderDiagnostics" type="button">连接诊断</button>
-                <button class="text-button" id="copyProviderConfigKeys" type="button" hidden>复制配置键名</button>
+                <button class="text-button" id="copyProviderConfigKeys" type="button" hidden>复制缺少项</button>
+                <button class="text-button" id="copyProviderConfigTemplate" type="button">复制配置模板</button>
+                <button class="text-button model-save-button" id="saveModelConfig" type="button">保存配置</button>
                 <span class="service-badge" id="providerBadge">未连接</span>
               </span>
             </div>
+            <p class="model-settings-note">先选择服务，再确认模型名称；修改会自动保存在当前项目。</p>
             <select id="providerSelect" aria-label="选择模型服务">
               <option value="custom_azure">办公网 · 自定义 Azure</option>
               <option value="ollama">Ollama · 本地模型</option>
@@ -188,6 +673,8 @@
             </div>
             <datalist id="modelOptions"></datalist>
             <p class="provider-description" id="providerDescription">读取 .env 中的办公网自定义端点和密钥。</p>
+            <p class="provider-setup-hint" id="providerSetupHint"></p>
+            <p class="provider-data-boundary" id="providerDataBoundary">数据去向：生成问答、续写或摘要时，命中的有限原作片段会发送到当前模型服务；原始小说文件不会发送。</p>
             <div class="creativity-control">
               <div class="subheading-row">
                 <label class="field-label" for="creativitySelect">创作倾向</label>
@@ -210,7 +697,7 @@
                 <option value="expanded">展开 · 充分铺陈</option>
               </select>
             </div>
-          </div>
+          </details>
 
           <div class="sidebar-footer">
             <span>
@@ -229,14 +716,21 @@
                 <span class="section-kicker">02 / CONVERSATION</span>
                 <h2 id="conversationTitle">与方源对话</h2>
                 <span class="conversation-context" id="conversationContext">未选择场景</span>
+                <div class="conversation-readiness" aria-label="创作环境状态">
+                  <button id="sourceReadinessButton" type="button"><i></i><span id="sourceReadinessText">原作依据检查中</span></button>
+                  <button id="modelReadinessButton" type="button"><i></i><span id="modelReadinessText">模型连接检查中</span></button>
+                </div>
               </div>
             </div>
             <div class="conversation-tools">
               <div class="conversation-tool-buttons">
-                <button class="more-button search-button" id="searchConversationButton" type="button" aria-label="搜索当前对话" aria-expanded="false" aria-controls="conversationSearch">⌕</button>
-                <button class="more-button" id="conversationMenuButton" type="button" aria-label="更多选项" aria-expanded="false" aria-controls="conversationMenu">•••</button>
+                <button class="context-panel-toggle" id="toggleContextPanel" type="button" aria-expanded="false" aria-controls="workspaceContextPanel">上下文</button>
+                <button class="context-panel-toggle history-panel-toggle" id="toggleConversationHistory" type="button" aria-expanded="false" aria-controls="conversationHistoryPanel">历史</button>
+                <button class="conversation-utility-button search-button" id="searchConversationButton" type="button" aria-label="搜索当前对话" aria-expanded="false" aria-controls="conversationSearch"><span aria-hidden="true">⌕</span><span>搜索</span></button>
+                <button class="conversation-actions-button" id="conversationMenuButton" type="button" aria-label="展开更多功能" aria-expanded="false" aria-controls="conversationMenu"><span class="conversation-actions-icon" aria-hidden="true">•••</span><span>更多功能</span><span class="conversation-actions-chevron" aria-hidden="true">⌄</span></button>
               </div>
               <div class="conversation-menu" id="conversationMenu" hidden>
+                <span class="conversation-menu-label">对话与项目</span>
                 <button type="button" id="copyConversation">复制当前对话</button>
                 <button type="button" id="exportFromMenu">导出 Markdown · 含备选回复</button>
                 <button type="button" id="exportProjectJson">导出项目 JSON</button>
@@ -250,19 +744,51 @@
             </div>
           </div>
 
-          <div class="conversation-search" id="conversationSearch" hidden>
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input id="conversationSearchInput" type="search" placeholder="搜索当前对话……" aria-label="搜索当前对话" autocomplete="off" />
-            <span class="search-count" id="conversationSearchCount">全部消息</span>
-            <button class="search-archive-button" id="searchArchivedMessages" type="button">搜归档</button>
-            <button class="search-clear" id="clearConversationSearch" type="button" aria-label="清除搜索">×</button>
+          <div class="conversation-layout">
+            <aside class="conversation-history" id="conversationHistoryPanel" aria-label="会话历史">
+              <div class="conversation-history-heading">
+                <div>
+                  <span>HISTORY</span>
+                  <strong>会话历史</strong>
+                </div>
+                <span class="conversation-history-count" id="conversationHistoryCount">0</span>
+              </div>
+              <p class="conversation-history-hint">不同创作功能使用独立会话，点击可随时切回。</p>
+              <nav class="conversation-history-list" id="conversationHistoryList" aria-label="项目会话历史"></nav>
+              <button class="conversation-history-archive" id="openArchiveFromHistory" type="button" hidden>查看更早记录</button>
+            </aside>
+
+            <div class="conversation-main">
+              <div class="conversation-search" id="conversationSearch" hidden>
+                <span class="search-icon" aria-hidden="true">⌕</span>
+                <input id="conversationSearchInput" type="search" placeholder="搜索当前对话……" aria-label="搜索当前对话" autocomplete="off" />
+                <span class="search-count" id="conversationSearchCount">全部消息</span>
+                <button class="search-archive-button" id="searchArchivedMessages" type="button">搜归档</button>
+                <button class="search-clear" id="clearConversationSearch" type="button" aria-label="清除搜索">×</button>
+              </div>
+
+              <div class="mode-tabs" role="tablist" aria-label="创作模式">
+                <button class="mode-tab active" type="button" data-mode="续写" role="tab" aria-selected="true">续写 <span>↗</span></button>
+                <button class="mode-tab" type="button" data-mode="问答" role="tab" aria-selected="false">内容问答 <span>?</span></button>
+                <div class="mode-more-options mode-inline-options" id="advancedModeDisclosure" role="group" aria-label="其他创作模式">
+                <button class="mode-tab" type="button" data-mode="改写" role="tab" aria-selected="false">改写 <span>↗</span></button>
+                <button class="mode-tab" type="button" data-mode="独白" role="tab" aria-selected="false">角色独白 <span>↗</span></button>
+                </div>
+              </div>
+
+          <div class="mode-guide" id="modeGuide" aria-live="polite">
+            <span class="mode-guide-icon" id="modeGuideIcon">↗</span>
+            <div>
+              <span class="mode-guide-kicker" id="modeGuideKicker">续写流程 · 01</span>
+              <strong id="modeGuideTitle">先确定承接位置，再写下一幕</strong>
+              <p id="modeGuideDescription">选择章节或场景，补充你希望故事如何继续；角色卡和场景计划会帮助保持连续。</p>
+            </div>
+            <button class="mode-guide-action" id="modeGuideAction" type="button">设置承接位置</button>
           </div>
 
-          <div class="mode-tabs" role="tablist" aria-label="创作模式">
-            <button class="mode-tab active" type="button" data-mode="续写" role="tab" aria-selected="true">续写 <span>↗</span></button>
-            <button class="mode-tab" type="button" data-mode="问答" role="tab" aria-selected="false">内容问答 <span>?</span></button>
-            <button class="mode-tab" type="button" data-mode="改写" role="tab" aria-selected="false">改写 <span>↗</span></button>
-            <button class="mode-tab" type="button" data-mode="独白" role="tab" aria-selected="false">角色独白 <span>↗</span></button>
+          <div class="task-starters" id="taskStarters" aria-label="快捷开始" hidden>
+            <span class="task-starters-label">试试</span>
+            <div class="task-starter-list" id="taskStarterList"></div>
           </div>
 
           <div class="messages" id="messages" aria-live="polite">
@@ -289,7 +815,7 @@
             </div>
           </div>
 
-          <form class="composer" id="composer">
+              <form class="composer" id="composer">
             <div class="composer-tools">
               <button type="button" aria-label="添加参考内容" title="添加参考内容">⊕</button>
               <button type="button" id="previewSource" aria-label="先检索原作依据" title="先检索原作依据">⌕</button>
@@ -301,7 +827,9 @@
               <span class="draft-status" id="draftStatus">草稿自动保存</span>
               <button class="send-button" type="submit" aria-label="发送消息">↑</button>
             </div>
-          </form>
+              </form>
+            </div>
+          </div>
         </section>
 
         <aside class="rightbar panel">
@@ -355,7 +883,6 @@
 
       <footer class="footer">
         <span>INK<span class="footer-accent">ECHO</span> / 2026</span>
-        <span>让每一页，都有回声。</span>
       </footer>
     </main>
     <dialog class="character-dialog" id="characterDialog" aria-labelledby="characterDialogTitle">
@@ -494,7 +1021,7 @@
       <form method="dialog">
         <span class="section-kicker">MODEL CONTEXT</span>
         <h2 id="contextDialogTitle">本次发送给模型的内容</h2>
-        <p class="template-description">这里展示的是当前页面准备发送的作品设定和对话范围。精简模式下，较早的完整历史仍会保存在本地。</p>
+        <p class="template-description">这里展示页面准备发送的设定和对话；服务端动态检索的有限原作片段会在请求时一并交给当前模型服务。精简模式下，较早的完整历史仍保存在本地。</p>
         <div class="context-preview-stats" id="contextPreviewStats"></div>
         <pre class="context-preview-text" id="contextPreviewText"></pre>
         <div class="dialog-actions context-dialog-actions">
@@ -502,6 +1029,24 @@
           <span></span>
           <span></span>
           <button class="dialog-cancel" type="submit">关闭</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog context-dialog provider-data-consent-dialog" id="providerDataConsentDialog" aria-labelledby="providerDataConsentTitle">
+      <form method="dialog">
+        <span class="section-kicker">DATA DESTINATION / 数据去向</span>
+        <h2 id="providerDataConsentTitle">确认后再发送小说片段</h2>
+        <p class="template-description" id="providerDataConsentDescription">InkEcho 只会发送完成当前任务所需的有限片段和上下文，不会发送原始小说文件或完整索引。</p>
+        <div class="provider-data-consent-summary">
+          <span>当前模型服务</span>
+          <strong id="providerDataConsentService">尚未选择</strong>
+          <small id="providerDataConsentDetail"></small>
+        </div>
+        <p class="provider-data-consent-note">确认只在当前标签页内记忆。你可以取消并切换到 Ollama 等本地模型。</p>
+        <div class="dialog-actions context-dialog-actions provider-data-consent-actions">
+          <button class="dialog-cancel" id="cancelProviderDataConsent" type="button">取消，留在本机</button>
+          <span></span>
+          <button class="dialog-copy" id="confirmProviderDataConsent" type="button">继续并发送</button>
         </div>
       </form>
     </dialog>
@@ -522,16 +1067,60 @@
     </dialog>
     <dialog class="character-dialog context-dialog source-evidence-dialog" id="sourceEvidenceDialog" aria-labelledby="sourceEvidenceTitle">
       <form method="dialog">
-        <span class="section-kicker">LOCAL SOURCE EVIDENCE</span>
-        <h2 id="sourceEvidenceTitle">原作检索依据</h2>
-        <p class="template-description">以下内容来自本机知识库的临时检索结果，不会写入项目记录或上传到 GitHub。</p>
+        <span class="section-kicker">原作依据</span>
+        <h2 id="sourceEvidenceTitle">查看原文依据</h2>
+        <p class="template-description">核对这些原文后，可以阅读整章、继续提问或保存为记忆。</p>
         <div class="context-preview-stats" id="sourceEvidenceStats"></div>
+        <div class="source-evidence-recovery" id="sourceEvidenceRecovery" hidden aria-live="polite"></div>
         <div class="source-evidence-list" id="sourceEvidenceList"></div>
         <div class="dialog-actions context-dialog-actions">
           <button class="dialog-copy" id="copySourceEvidence" type="button">复制依据</button>
           <span></span>
           <span></span>
           <button class="dialog-cancel" type="submit">关闭</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog context-dialog continuation-quality-dialog" id="continuationQualityDialog" aria-labelledby="continuationQualityTitle">
+      <form method="dialog">
+        <span class="section-kicker">CONTINUATION REVIEW</span>
+        <h2 id="continuationQualityTitle">续写质量检查</h2>
+        <p class="template-description" id="continuationQualitySummary"></p>
+        <div class="quality-review-list" id="continuationQualityList"></div>
+        <div class="dialog-actions context-dialog-actions">
+          <span></span>
+          <span></span>
+          <button class="dialog-copy" id="continuationQualityRetry" type="button">按建议优化</button>
+          <button class="dialog-cancel" type="submit">关闭</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="character-dialog context-dialog source-reader-dialog" id="sourceChapterReaderDialog" aria-labelledby="sourceChapterReaderTitle">
+      <form method="dialog">
+        <span class="section-kicker">原作阅读</span>
+        <h2 id="sourceChapterReaderTitle">阅读原作</h2>
+        <p class="template-description">从当前小说知识空间读取，不会改动原文件。</p>
+        <div class="context-preview-stats" id="sourceChapterReaderStats"></div>
+        <pre class="source-chapter-reader-text" id="sourceChapterReaderText"></pre>
+        <section class="source-chapter-digest" id="sourceChapterDigest" hidden>
+          <div class="source-chapter-digest-heading">
+            <strong>原作章节摘要草稿</strong>
+            <small id="sourceChapterDigestStatus">先生成一份摘要，再决定是否写入空间记忆。</small>
+          </div>
+          <pre class="source-chapter-digest-text" id="sourceChapterDigestText"></pre>
+        </section>
+        <div class="source-reader-toolbar">
+          <div class="source-reader-navigation" aria-label="章节切换">
+            <button class="dialog-copy" id="sourceChapterPrevious" type="button" hidden>← 上一章</button>
+            <button class="dialog-copy" id="sourceChapterNext" type="button" hidden>下一章 →</button>
+          </div>
+          <div class="source-reader-actions">
+            <button class="dialog-copy source-chapter-ask" id="sourceChapterAsk" type="button">围绕本章提问</button>
+            <button class="dialog-copy" id="copySourceChapter" type="button">复制</button>
+            <button class="dialog-copy" id="generateSourceChapterDigest" type="button">生成摘要</button>
+            <button class="dialog-copy" id="saveSourceChapterDigest" type="button" hidden>保存摘要</button>
+            <button class="dialog-cancel" type="submit">关闭</button>
+          </div>
         </div>
       </form>
     </dialog>
@@ -552,6 +1141,7 @@
           </section>
         </div>
         <div class="dialog-actions context-dialog-actions">
+          <button class="dialog-copy" id="saveSceneOutcomeToMemory" type="button">写入空间记忆</button>
           <button class="dialog-copy" id="applySceneOutcomePreview" type="button">替换结果</button>
           <span></span>
           <span></span>
@@ -576,6 +1166,7 @@
           </section>
         </div>
         <div class="dialog-actions context-dialog-actions">
+          <button class="dialog-copy" id="saveSummaryToMemory" type="button">写入空间记忆</button>
           <button class="dialog-copy" id="applySummaryPreview" type="button">替换摘要</button>
           <span></span>
           <span></span>
@@ -639,17 +1230,17 @@
         <div class="command-palette-head">
           <div>
             <span class="section-kicker">QUICK ACTIONS</span>
-            <h2 id="commandPaletteTitle">命令面板</h2>
+            <h2 id="commandPaletteTitle">功能菜单</h2>
           </div>
           <button class="command-palette-close" type="submit" aria-label="关闭命令面板">×</button>
         </div>
-        <p class="template-description">搜索一个操作，或用键盘快速跳转。按 ⌘ / Ctrl + K 随时打开。</p>
-        <input class="command-palette-search" id="commandPaletteSearch" type="search" placeholder="搜索操作……" aria-label="搜索命令面板操作" autocomplete="off" />
+        <p class="template-description">按任务查找功能，也可以直接搜索关键词。按 ⌘ / Ctrl + K 随时打开。</p>
+        <input class="command-palette-search" id="commandPaletteSearch" type="search" placeholder="例如：续写、章节、记忆……" aria-label="搜索功能菜单" autocomplete="off" />
         <div class="command-palette-list" id="commandPaletteList" role="listbox"></div>
         <p class="command-palette-hint" id="commandPaletteHint">按 Esc 关闭</p>
       </form>
     </dialog>
     <div class="toast" id="toast" role="status"></div>
-    <script src="app.js"></script>
+  <script src="app.js?v=41"></script>
   </body>
 </html>

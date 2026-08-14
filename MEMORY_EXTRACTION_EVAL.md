@@ -1,0 +1,80 @@
+# 原作记忆跨卷审查
+
+日期：2026-08-14
+状态：跨卷版本已通过门禁并启用为 production
+
+## 当前方案
+
+原作记忆默认采用 `v9-strict-boundaries` 抽取与仓库内生关联检索：
+
+1. 模型从指定章节提取原子事实。
+2. 服务端核验实体、三元组、陈述和逐字证据，过滤瞬时动作、模糊对象、错误关系方向与不确定陈述。
+3. 独立审查检查依据、原子性、实体、类别、时间和用途。
+4. 构建前用当前确定性规则重放历史报告，防止旧事实绕过新安全规则。
+5. pilot 全量事实再接受第二次独立审计；可修复问题只能复用原证据，并在修复后接受第三次复核。
+6. 只有全部通过的事实才构建实体记忆痕迹和共现图，并保留全书章节位置。
+7. 问答通过关键词、实体、意图过滤和最多两跳关联召回；续写可按章节截止位置过滤未来事实。
+
+## 当前 production
+
+当前版本由 20 章跨卷抽取、8 章 v9 边界回归、关系/地点/持有物缺口补偿、整库二审与修复复核组合而成。
+
+- 已覆盖章节：20 章，横跨第一至第六卷
+- 已核准事实：97 条
+- 实体记忆痕迹：147 个
+- 原文版本：`1786265207370656281:23261819`
+- 记忆版本：`d8d351d9443d45242e48cff8`
+- 状态：`production`
+- 正式问答是否启用：是
+
+已验证：
+
+- 固定召回集共 24 题，覆盖机制、代价、地点、关系、身份、持有物、跨卷设定、事件结果、未知实体负例、两跳关联和两类未来信息截止，结果为 24/24。
+- 整库二审覆盖 97/97 条事实；3 条原子性或类别问题在复用原证据后修复，并全部通过独立复核。
+- 真实模型端到端烟测为 3/3，回答正文、引用核验和非截断状态全部通过。
+- “方源重生后醒来时身处什么地方”直接返回古月山寨，不会把“五百年前”误判成地点。
+- “郑山川的师父交给方源什么”返回舌尖血，并保留“郑山川 → 岐山老人”的两跳解释链。
+- “得到/获得什么”等直接问题只向模型提供最窄充分的已审核证据，不再混入同章水源、环境等周边事实。
+- 原文版本变化、索引未推广或版本不匹配时，产品仍会回退全文检索。
+
+## 当前边界
+
+- production 是经审查事实层，不等同于全书所有章节都已模型化；未覆盖问题仍会回退全文检索。
+- 任意上传小说现已支持显式启动通用后台任务：默认抽取 6 个代表章节，逐章保存检查点，通过同一套本地校验与独立审查后生成待启用 pilot。系统刻意不在上传时自动调用模型，也不会自动推广；这条通用路径仍是小样本增强，不等同于全书模型化。
+- 语义 scorer 仍是可选接口，尚未对本地 embedding 与词项基线做 A/B。
+- 后续固定集仍可增加别名变化、跨时段关系变化、角色认知与客观事实、传闻和前世回溯。
+
+## 推广门槛
+
+- 晋级事实的逐字证据准确率必须为 100%。
+- 关系、地点、人物、设定、事件和时间问题都必须有固定评测覆盖。
+- 有答案问题需由答案正文命中正确 claim，不能因为证据窗口碰巧出现答案而假通过。
+- 无答案问题不能用相邻事实硬凑；两跳问题必须返回正确关联路径。
+- 章节截止后的事实泄漏必须为 0。
+- 当前原文 revision、评测过的 memory revision 与推广命令三者必须完全一致。
+
+## 本地运行
+
+从二审修复报告重建隔离 pilot：
+
+```bash
+python3 scripts/reviewed_memory_harness.py build \
+  --report .inkecho-data/evals/memory-extraction/pilot-d3bfb2161c9eeb8e2fa5c91d-second-audit-repaired.json
+```
+
+运行确定性召回与真实模型问答门禁：
+
+```bash
+python3 scripts/reviewed_memory_eval.py
+python3 scripts/reviewed_memory_qa_smoke.py
+```
+
+只有评测与人工审查均通过后，才可使用带精确版本号的 `promote` 命令。新构建版本默认始终是 pilot。
+
+## 验证
+
+```bash
+node --check app.js
+python3 -m unittest -q test_ecphory_memory.py test_memory_extraction_harness.py test_reviewed_memory_pipeline.py test_server.py test_frontend_contract.py
+python3 -m py_compile ecphory_memory.py memory_extraction.py reviewed_memory_pipeline.py server.py scripts/memory_extraction_harness.py scripts/reviewed_memory_harness.py scripts/reviewed_memory_eval.py scripts/memory_revalidation_harness.py scripts/reviewed_memory_audit.py scripts/reviewed_memory_audit_repair.py scripts/reviewed_memory_qa_smoke.py
+```
