@@ -1814,6 +1814,64 @@ function normalizeNovelSpace(item) {
   };
 }
 
+function normalizeNovelSpaceName(value) {
+  return String(value || "")
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/\s+/g, "");
+}
+
+function getRedundantConfiguredNovelSpaceIds(spaces = novelSpaces) {
+  const uploadedNames = new Set(
+    spaces
+      .filter((space) => space?.kind === "uploaded" && space.source?.available)
+      .map((space) => normalizeNovelSpaceName(space.name))
+      .filter(Boolean),
+  );
+  return new Set(
+    spaces
+      .filter((space) => (
+        space?.id === defaultNovelSpaceId
+        && space.kind === "configured"
+        && !space.source?.available
+        && uploadedNames.has(normalizeNovelSpaceName(space.name))
+      ))
+      .map((space) => space.id),
+  );
+}
+
+function getVisibleNovelSpaces(spaces = novelSpaces) {
+  const redundantIds = getRedundantConfiguredNovelSpaceIds(spaces);
+  return spaces.filter((space) => !redundantIds.has(space.id));
+}
+
+function repairRedundantConfiguredNovelSpaceBinding() {
+  const redundantIds = getRedundantConfiguredNovelSpaceIds(novelSpaces);
+  if (!redundantIds.size) return null;
+  const replacement = novelSpaces.find((space) => (
+    space.kind === "uploaded"
+    && space.source?.available
+    && normalizeNovelSpaceName(space.name) === normalizeNovelSpaceName(
+      novelSpaces.find((candidate) => redundantIds.has(candidate.id))?.name,
+    )
+  ));
+  if (!replacement) return null;
+
+  let projectsChanged = false;
+  projects.forEach((project) => {
+    if (!redundantIds.has(project.novelSpaceId)) return;
+    project.novelSpaceId = replacement.id;
+    project.checkpoints = (project.checkpoints || []).map((checkpoint) => ({
+      ...checkpoint,
+      novelSpaceId: replacement.id,
+    }));
+    projectsChanged = true;
+  });
+  if (projectsChanged) persistProjects();
+  if (redundantIds.has(activeNovelSpaceId)) activeNovelSpaceId = replacement.id;
+  return replacement;
+}
+
 function loadNovelSpaces() {
   try {
     const saved = JSON.parse(localStorage.getItem(novelSpacesStorageKey) || "null");
@@ -3154,6 +3212,7 @@ async function loadNovelSpacesFromServer({ announce = false } = {}) {
       .filter((local) => !serverSpaces.some((server) => server.id === local.id))
       .map((local) => local.kind === "uploaded" ? markNovelSpaceUnavailable(local) : local);
     novelSpaces = [...serverSpaces, ...localOnly];
+    const repairedSpace = repairRedundantConfiguredNovelSpaceBinding();
     const projectSpaceId = getActiveProject()?.novelSpaceId;
     const requestedSpaceId = readWorkspaceHashState().spaceId;
     if (requestedSpaceId && novelSpaces.some((space) => space.id === requestedSpaceId)) {
@@ -3161,7 +3220,7 @@ async function loadNovelSpacesFromServer({ announce = false } = {}) {
     } else if (projectSpaceId && novelSpaces.some((space) => space.id === projectSpaceId)) {
       activeNovelSpaceId = projectSpaceId;
     } else if (!novelSpaces.some((space) => space.id === activeNovelSpaceId)) {
-      activeNovelSpaceId = defaultNovelSpaceId;
+      activeNovelSpaceId = repairedSpace?.id || defaultNovelSpaceId;
     }
     novelSpacesLoaded = true;
     novelSpacesLoadError = false;
@@ -3424,9 +3483,10 @@ function renderNovelSpaceLibrary() {
     if (novelLibraryNoResults) novelLibraryNoResults.hidden = true;
     return;
   }
-  const spaces = novelSpaces.slice().sort((a, b) => {
-    if (a.id === activeNovelSpaceId) return -1;
-    if (b.id === activeNovelSpaceId) return 1;
+  const currentSpaceId = getCurrentNovelSpaceId();
+  const spaces = getVisibleNovelSpaces().slice().sort((a, b) => {
+    if (a.id === currentSpaceId) return -1;
+    if (b.id === currentSpaceId) return 1;
     const lastAccessedDifference = (Number(b.lastAccessedAt) || 0) - (Number(a.lastAccessedAt) || 0);
     if (lastAccessedDifference) return lastAccessedDifference;
     return (Number(b.updated_at) || 0) - (Number(a.updated_at) || 0);
@@ -3482,7 +3542,8 @@ function renderNovelSpaceLibrary() {
     const source = space.source || {};
     const card = document.createElement("article");
     card.className = "novel-space-card";
-    card.classList.toggle("is-active", space.id === activeNovelSpaceId);
+    const isCurrentSpace = space.id === currentSpaceId;
+    card.classList.toggle("is-active", isCurrentSpace);
     const label = document.createElement("div");
     label.className = "page-card-label";
     label.textContent = space.kind === "uploaded" ? "UPLOADED NOVEL" : "LOCAL CONFIGURATION";
@@ -3578,8 +3639,15 @@ function renderNovelSpaceLibrary() {
     details.textContent = "查看资料";
     details.setAttribute("aria-label", `查看资料「${space.name}」`);
     details.addEventListener("click", () => selectNovelSpace(space.id, false));
+    const selectButton = document.createElement("button");
+    selectButton.type = "button";
+    selectButton.className = isCurrentSpace ? "page-secondary-button is-selected-space" : "page-primary-button";
+    selectButton.textContent = isCurrentSpace ? "当前空间" : "选择空间";
+    selectButton.disabled = isCurrentSpace;
+    selectButton.setAttribute("aria-label", `${selectButton.textContent}「${space.name}」`);
+    selectButton.addEventListener("click", () => selectNovelSpace(space.id, false, true));
     if (recoveryIsPrimary && recoveryButton) actions.appendChild(recoveryButton);
-    actions.append(continueWriting, askQuestion, details);
+    actions.append(selectButton, continueWriting, askQuestion, details);
     if (!recoveryIsPrimary && recoveryButton) actions.appendChild(recoveryButton);
     card.append(label, title, filename, ...(sourceFileDetails ? [sourceFileDetails] : []), projectHint, meta, status);
     if (parseDetail.textContent) card.appendChild(parseDetail);
@@ -7545,7 +7613,8 @@ function renderWorkspaceNovelSelect() {
   if (!workspaceNovelSelect) return;
   const currentSpaceId = getCurrentNovelSpaceId();
   workspaceNovelSelect.replaceChildren();
-  if (!novelSpaces.length) {
+  const visibleSpaces = getVisibleNovelSpaces();
+  if (!visibleSpaces.length) {
     const loading = document.createElement("option");
     loading.value = "";
     loading.textContent = "正在读取小说空间……";
@@ -7553,7 +7622,7 @@ function renderWorkspaceNovelSelect() {
     workspaceNovelSelect.disabled = true;
     return;
   }
-  const spaces = novelSpaces.slice().sort((left, right) => {
+  const spaces = visibleSpaces.slice().sort((left, right) => {
     if (left.id === currentSpaceId) return -1;
     if (right.id === currentSpaceId) return 1;
     const lastAccessedDifference = (Number(right.lastAccessedAt) || 0) - (Number(left.lastAccessedAt) || 0);

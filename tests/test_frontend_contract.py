@@ -48,7 +48,7 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_runtime_assets_are_present_and_expected_controls_are_wired(self) -> None:
         self.assertIn('<link rel="stylesheet" href="styles.css?v=27"', self.html)
-        self.assertIn('<script src="app.js?v=41"></script>', self.html)
+        self.assertIn('<script src="app.js?v=42"></script>', self.html)
         self.assertIn("overflow-wrap: anywhere", (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8"))
         ids = set(re.findall(r'\bid=["\']([^"\']+)["\']', self.html))
         required = {
@@ -256,6 +256,14 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("sourceActiveProjectId", self.javascript)
         self.assertIn("selectedImported", self.javascript)
         self.assertIn("summarizeCurrentSceneOutcome", self.javascript)
+
+    def test_novel_space_switching_hides_duplicate_placeholder_and_exposes_selection(self) -> None:
+        self.assertIn("function normalizeNovelSpaceName(value)", self.javascript)
+        self.assertIn("function getRedundantConfiguredNovelSpaceIds", self.javascript)
+        self.assertIn("function repairRedundantConfiguredNovelSpaceBinding", self.javascript)
+        self.assertIn("function getVisibleNovelSpaces", self.javascript)
+        self.assertIn('selectButton.textContent = isCurrentSpace ? "当前空间" : "选择空间"', self.javascript)
+        self.assertIn('selectNovelSpace(space.id, false, true)', self.javascript)
 
     def test_remote_provider_consent_precedes_local_message_mutation(self) -> None:
         submit_handler = self.javascript.split(
