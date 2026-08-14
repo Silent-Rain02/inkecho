@@ -324,6 +324,10 @@ const sourceKnowledgeList = document.querySelector("#sourceKnowledgeList");
 const modelMemoryCount = document.querySelector("#modelMemoryCount");
 const modelMemoryLive = document.querySelector("#modelMemoryLive");
 const modelMemoryHint = document.querySelector("#modelMemoryHint");
+const modelMemoryCategory = document.querySelector("#modelMemoryCategory");
+const modelMemoryChapter = document.querySelector("#modelMemoryChapter");
+const modelMemoryChapterOptions = document.querySelector("#modelMemoryChapterOptions");
+const clearModelMemoryFiltersButton = document.querySelector("#clearModelMemoryFilters");
 const modelMemoryList = document.querySelector("#modelMemoryList");
 const sourceKnowledgeDisclosure = document.querySelector("#sourceKnowledgeDisclosure");
 const reviewedMemoryBuild = document.querySelector("#reviewedMemoryBuild");
@@ -1136,9 +1140,12 @@ let activeMemoryLayer = "source";
 let activeSourceKnowledgeCategory = "all";
 let activeSourceKnowledge = { spaceId: "", count: 0, counts: {}, items: [], knowledgeLayer: "source_index", isReviewed: false, isTemporary: true };
 let activeModelMemory = { spaceId: "", count: 0, items: [], knowledgeLayer: "model_memory_preview", isReviewed: false, isTemporary: true, streaming: false, memoryBuild: {} };
+let activeModelMemoryCategory = "all";
+let activeModelMemoryChapter = "";
 let sourceKnowledgeRequestId = 0;
 let sourceKnowledgeSearchTimer = null;
 let modelMemoryRequestId = 0;
+let modelMemoryFilterTimer = null;
 let reviewedMemoryBuildState = { spaceId: "", status: "idle", progress: 0, memoryRevision: "" };
 let reviewedMemoryStatusTimer = null;
 function normalizeSpaceRecovery(value) {
@@ -1921,11 +1928,17 @@ function normalizeModelMemory(payload, spaceId) {
   return {
     spaceId,
     count: Math.max(0, Number(source.count) || 0),
+    filteredCount: Math.max(0, Number(source.filtered_count ?? source.count) || 0),
     knowledgeLayer,
     isReviewed: source.is_reviewed === true || knowledgeLayer === "reviewed_graph",
     isTemporary: source.is_temporary !== false && knowledgeLayer !== "reviewed_graph",
     streaming: source.streaming === true,
     memoryBuild: source.memory_build && typeof source.memory_build === "object" ? source.memory_build : {},
+    categoryCounts: source.category_counts && typeof source.category_counts === "object" ? source.category_counts : {},
+    chapters: (Array.isArray(source.available_chapters) ? source.available_chapters : [])
+      .map((item) => ({ title: safeText(item?.title, "", 160), count: Math.max(0, Number(item?.count) || 0) }))
+      .filter((item) => item.title),
+    filters: source.filters && typeof source.filters === "object" ? source.filters : {},
     items: (Array.isArray(source.items) ? source.items : []).map((item) => ({
       id: safeText(item?.id, "", 80),
       category: safeText(item?.category, "event", 20),
@@ -1938,6 +1951,17 @@ function normalizeModelMemory(payload, spaceId) {
   };
 }
 
+function renderModelMemoryChapterOptions(current) {
+  if (!modelMemoryChapterOptions) return;
+  modelMemoryChapterOptions.replaceChildren();
+  (Array.isArray(current?.chapters) ? current.chapters : []).forEach((chapter) => {
+    const option = document.createElement("option");
+    option.value = chapter.title;
+    option.label = `${chapter.title} · ${chapter.count} 条`;
+    modelMemoryChapterOptions.appendChild(option);
+  });
+}
+
 function renderModelMemory() {
   if (!modelMemoryList) return;
   const currentSpaceId = getCurrentNovelSpaceId();
@@ -1948,9 +1972,13 @@ function renderModelMemory() {
   const build = current.memoryBuild || {};
   const completed = Math.max(0, Number(build.completed_chapters) || 0);
   const total = Math.max(0, Number(build.total_chapters) || 0);
+  const filteredCount = Math.max(0, Number(current.filteredCount ?? current.count) || 0);
+  const hasFilters = activeModelMemoryCategory !== "all" || Boolean(activeModelMemoryChapter.trim());
   if (modelMemoryCount) {
     modelMemoryCount.textContent = current.count
-      ? `${current.count.toLocaleString("zh-CN")} 条${reviewed ? "已审核记忆" : "模型记忆"}`
+      ? hasFilters
+        ? `显示 ${filteredCount.toLocaleString("zh-CN")} / ${current.count.toLocaleString("zh-CN")} 条${reviewed ? "已审核记忆" : "模型记忆"}`
+        : `${current.count.toLocaleString("zh-CN")} 条${reviewed ? "已审核记忆" : "模型记忆"}`
       : reviewed ? "尚未形成记忆" : "模型记忆正在生成";
   }
   if (modelMemoryLive) {
@@ -1964,11 +1992,17 @@ function renderModelMemory() {
         ? "这些记忆已通过原文证据审查，并保留可回查的章节出处。"
         : "全文记忆尚未产出可展示的模型结果；下方原文线索已收起，仅用于手动核对。";
   }
+  if (modelMemoryCategory && modelMemoryCategory.value !== activeModelMemoryCategory) modelMemoryCategory.value = activeModelMemoryCategory;
+  if (modelMemoryChapter && modelMemoryChapter.value !== activeModelMemoryChapter) modelMemoryChapter.value = activeModelMemoryChapter;
+  if (clearModelMemoryFiltersButton) clearModelMemoryFiltersButton.hidden = !hasFilters;
+  renderModelMemoryChapterOptions(current);
   modelMemoryList.replaceChildren();
   if (!current.items.length) {
     const empty = document.createElement("p");
     empty.className = "memory-empty model-memory-empty";
-    empty.textContent = current.streaming ? "模型正在提取第一批记忆……" : "暂时没有可展示的模型记忆。";
+    empty.textContent = hasFilters
+      ? "没有符合当前筛选条件的模型记忆。"
+      : current.streaming ? "模型正在提取第一批记忆……" : "暂时没有可展示的模型记忆。";
     modelMemoryList.appendChild(empty);
     return;
   }
@@ -1998,9 +2032,15 @@ function renderModelMemory() {
 async function loadReviewedMemoryPreview(spaceId = getCurrentNovelSpaceId()) {
   if (!modelMemoryList) return;
   const normalizedSpaceId = safeText(spaceId, defaultNovelSpaceId, 100);
+  if (activeModelMemory.spaceId !== normalizedSpaceId) activeModelMemoryChapter = "";
   const requestId = ++modelMemoryRequestId;
   try {
-    const query = new URLSearchParams({ novel_space_id: normalizedSpaceId, limit: "80" });
+    const query = new URLSearchParams({
+      novel_space_id: normalizedSpaceId,
+      category: activeModelMemoryCategory,
+      chapter: activeModelMemoryChapter,
+      limit: "80",
+    });
     const response = await fetchWithTimeout(`/api/novels/reviewed-memory/preview?${query}`, {}, 15000);
     const payload = await response.json();
     if (!response.ok || !payload.ok || !payload.memory_preview) throw new Error(payload.error || "模型记忆读取失败");
@@ -10003,6 +10043,22 @@ memoryLayerTabs.forEach((button) => {
 sourceKnowledgeSearchInput?.addEventListener("input", () => {
   window.clearTimeout(sourceKnowledgeSearchTimer);
   sourceKnowledgeSearchTimer = window.setTimeout(() => loadSourceKnowledge(getCurrentNovelSpaceId()), 260);
+});
+modelMemoryCategory?.addEventListener("change", () => {
+  activeModelMemoryCategory = modelMemoryCategory.value || "all";
+  loadReviewedMemoryPreview(getCurrentNovelSpaceId());
+});
+modelMemoryChapter?.addEventListener("input", () => {
+  activeModelMemoryChapter = modelMemoryChapter.value.trim().slice(0, 160);
+  window.clearTimeout(modelMemoryFilterTimer);
+  modelMemoryFilterTimer = window.setTimeout(() => loadReviewedMemoryPreview(getCurrentNovelSpaceId()), 260);
+});
+clearModelMemoryFiltersButton?.addEventListener("click", () => {
+  activeModelMemoryCategory = "all";
+  activeModelMemoryChapter = "";
+  if (modelMemoryCategory) modelMemoryCategory.value = "all";
+  if (modelMemoryChapter) modelMemoryChapter.value = "";
+  loadReviewedMemoryPreview(getCurrentNovelSpaceId());
 });
 sourceKnowledgeSummary?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-source-knowledge-category]");

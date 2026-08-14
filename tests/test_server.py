@@ -2064,6 +2064,17 @@ class ServerConfigTests(unittest.TestCase):
             self.assertEqual(preview["count"], 1)
             self.assertEqual(preview["items"][0]["memory_backend"], "model_memory_preview")
             self.assertEqual(preview["items"][0]["chapter"], "第一章：开局")
+            self.assertEqual(preview["filtered_count"], 1)
+            self.assertEqual(preview["category_counts"]["relation"], 1)
+            self.assertEqual(preview["available_chapters"][0]["title"], "第一章：开局")
+            self.assertEqual(
+                server.reviewed_memory_preview(space["id"], category="setting")["filtered_count"],
+                0,
+            )
+            self.assertEqual(
+                server.reviewed_memory_preview(space["id"], chapter="开局")["filtered_count"],
+                1,
+            )
 
     def test_source_knowledge_prefers_promoted_reviewed_memory(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

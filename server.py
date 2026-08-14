@@ -1560,7 +1560,7 @@ def reviewed_memory_status(space_id: str = "") -> dict[str, Any]:
     }, revision)
 
 
-def reviewed_memory_preview(space_id: str = "", query: str = "", category: str = "all", limit: int = 40) -> dict[str, Any]:
+def reviewed_memory_preview(space_id: str = "", query: str = "", category: str = "all", limit: int = 40, chapter: str = "") -> dict[str, Any]:
     """Expose incrementally completed model facts without promoting them.
 
     The full build writes a checkpoint after every chapter. This read-only
@@ -1576,6 +1576,8 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
     if normalized_category not in SOURCE_KNOWLEDGE_CATEGORIES:
         normalized_category = "all"
     normalized_query = normalize_chapter_markers(re.sub(r"\s+", " ", str(query or "").strip().lower()))
+    requested_chapter = re.sub(r"\s+", " ", str(chapter or "").strip())[:160]
+    normalized_chapter = normalize_chapter_markers(requested_chapter.lower())
     status = reviewed_memory_status(normalized_space_id)
     revision = source_revision(normalized_space_id)
     claims: list[dict[str, Any]] = []
@@ -1599,6 +1601,17 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
                     continue
                 claims.append({**fact, "chapter": chapter_title, "chunk_index": chunk_index})
 
+    chapter_counts: dict[str, int] = {}
+    category_counts = {category_name: 0 for category_name in SOURCE_KNOWLEDGE_CATEGORIES}
+    for claim in claims:
+        claim_category = str(claim.get("category") or "event")
+        if claim_category not in category_counts:
+            claim_category = "event"
+        evidence = claim.get("evidence") if isinstance(claim.get("evidence"), dict) else {}
+        chapter = re.sub(r"\s+", " ", str(claim.get("chapter") or evidence.get("chapter") or "未知章节")).strip()
+        category_counts[claim_category] += 1
+        chapter_counts[chapter] = chapter_counts.get(chapter, 0) + 1
+
     filtered: list[tuple[float, dict[str, Any]]] = []
     for claim in claims:
         claim_category = str(claim.get("category") or "event")
@@ -1608,6 +1621,8 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
         evidence = claim.get("evidence") if isinstance(claim.get("evidence"), dict) else {}
         quote = re.sub(r"\s+", " ", str(claim.get("evidence_quote") or evidence.get("quote") or "")).strip()
         chapter = re.sub(r"\s+", " ", str(claim.get("chapter") or evidence.get("chapter") or "未知章节")).strip()
+        if normalized_chapter and normalized_chapter not in normalize_chapter_markers(chapter).lower():
+            continue
         haystack = normalize_chapter_markers(f"{statement}\n{quote}\n{chapter}").lower()
         score = 0.0
         if normalized_query:
@@ -1647,6 +1662,13 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
             "total_chapters": int(status.get("total_chapters") or 0),
         },
         "count": len(claims),
+        "filtered_count": len(filtered),
+        "category_counts": category_counts,
+        "available_chapters": [
+            {"title": title, "count": count}
+            for title, count in chapter_counts.items()
+        ],
+        "filters": {"category": normalized_category, "chapter": requested_chapter},
         "items": [item for _, item in filtered[:bounded_limit]],
     }
 
@@ -4752,9 +4774,10 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             space_id = query.get("novel_space_id", [DEFAULT_SOURCE_ID])[0][:100]
             search_query = query.get("query", [""])[0][:120]
             category = query.get("category", ["all"])[0][:20]
+            chapter = query.get("chapter", [""])[0][:160]
             try:
                 limit = max(1, min(int(query.get("limit", ["40"])[0]), 120))
-                preview = reviewed_memory_preview(space_id, search_query, category, limit)
+                preview = reviewed_memory_preview(space_id, search_query, category, limit, chapter)
                 self.send_json({"ok": True, "memory_preview": preview})
             except (TypeError, ValueError) as exc:
                 self.send_json({"ok": False, "error": public_error(exc)}, status=HTTPStatus.NOT_FOUND)
