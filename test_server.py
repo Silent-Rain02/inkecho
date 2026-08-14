@@ -2152,6 +2152,23 @@ class ServerConfigTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "找不到对应章节"):
                 server.source_chapter_preview("第二章：不存在")
 
+    def test_source_chapter_previews_builds_many_chapters_in_one_scan(self) -> None:
+        chunks = [
+            {"title": "第一章：开局", "text": "正文一。"},
+            {"title": "第一章：开局", "text": "正文二。"},
+            {"title": "第二章：转折", "text": "正文三。"},
+            {"title": "第三章：结局", "text": "正文四。"},
+        ]
+        with patch("server.source_chunks", return_value=chunks) as source_chunks_mock, patch(
+            "server.source_revision", return_value="rev-1"
+        ):
+            previews = server.source_chapter_previews(["第一章：开局", "第三章：结局"], limit=500)
+        self.assertEqual(source_chunks_mock.call_count, 1)
+        self.assertEqual([item["title"] for item in previews], ["第一章：开局", "第三章：结局"])
+        self.assertEqual(previews[0]["chunks"], 2)
+        self.assertEqual(previews[0]["next_title"], "第二章：转折")
+        self.assertEqual(previews[1]["previous_title"], "第二章：转折")
+
     def test_source_sample_preview_supports_headingless_source(self) -> None:
         chunks = [
             {"title": "作品开篇", "text": "无标题正文第一段。"},
@@ -2854,6 +2871,17 @@ class ServerConfigTests(unittest.TestCase):
             self.assertEqual(removed["name"], "失效空间")
             self.assertEqual(server.read_novel_registry(), [])
 
+    def test_delete_novel_space_is_idempotent_for_browser_only_ghost(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "server.novel_space_root", return_value=Path(directory)
+        ), patch(
+            "server._reviewed_memory_backend",
+            PersistentEcphoryMemoryBackend(Path(directory) / "reviewed"),
+        ), patch("server._reviewed_memory_jobs", {}), patch("server._reviewed_memory_jobs_loaded", True):
+            removed = delete_novel_space("novel-browser-only")
+            self.assertTrue(removed["already_missing"])
+            self.assertEqual(removed["id"], "novel-browser-only")
+
     def test_upload_job_prunes_old_terminal_records(self) -> None:
         old = time.time() - server.NOVEL_UPLOAD_JOB_RETENTION_SECONDS - 1
         with patch("server._novel_upload_jobs", {
@@ -3110,6 +3138,47 @@ class ServerConfigTests(unittest.TestCase):
             })
             self.assertEqual(promoted["status"], "production")
             self.assertTrue(backend.is_product_ready(novel["id"], server.source_revision(novel["id"])))
+
+    def test_reviewed_memory_full_scope_keeps_every_chapter(self) -> None:
+        class ImmediateThread:
+            def __init__(self, target, **_kwargs):
+                self.target = target
+
+            def start(self):
+                self.target()
+
+        captured = {}
+
+        def pipeline(previews, *_args, **_kwargs):
+            captured["titles"] = [item["title"] for item in previews]
+            return {"chapters": [], "score": {"passed": False}, "claims": []}
+
+        settings = SimpleNamespace(provider="compatible", model="memory-test")
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "server.novel_space_root", return_value=Path(directory)
+        ), patch(
+            "server._reviewed_memory_backend",
+            PersistentEcphoryMemoryBackend(Path(directory) / "reviewed"),
+        ), patch("server._reviewed_memory_jobs", {}), patch(
+            "server._reviewed_memory_jobs_loaded", True
+        ), patch("server.configured_provider_settings", return_value=settings), patch(
+            "server.build_client", return_value=object()
+        ), patch("server.run_reviewed_memory_pipeline", side_effect=pipeline), patch(
+            "server.Thread", ImmediateThread
+        ):
+            novel = upload_novel_space({
+                "name": "全文记忆测试",
+                "filename": "全文记忆测试.txt",
+                "text": "\n".join(f"第{index}章：章节{index}\n正文{index}。" for index in range(1, 5)),
+            })
+            built = server.start_reviewed_memory_job({
+                "novel_space_id": novel["id"],
+                "provider": "compatible",
+                "model": "memory-test",
+                "scope": "full",
+            })
+            self.assertEqual(captured["titles"], [f"第{index}章：章节{index}" for index in range(1, 5)])
+            self.assertEqual(built["scope"], "full")
 
     def test_quality_retry_discards_failed_checkpoint_instead_of_reusing_it(self) -> None:
         class ImmediateThread:

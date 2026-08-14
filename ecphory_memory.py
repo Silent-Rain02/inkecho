@@ -5,6 +5,7 @@ import json
 import math
 import os
 import re
+import shutil
 from collections import Counter, defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -75,6 +76,8 @@ class EcphoryMemoryBackend(Protocol):
     ) -> dict[str, Any]: ...
 
     def export_space(self, space_id: str) -> dict[str, Any]: ...
+
+    def delete_space(self, space_id: str) -> bool: ...
 
 
 def normalize_entity(value: Any) -> str:
@@ -201,6 +204,15 @@ class LocalEcphoryMemoryBackend:
             "claim_count": len(normalized_claims),
             "engram_count": len(engrams),
         }
+
+    def delete_space(self, space_id: str) -> bool:
+        """Forget one space without affecting any other novel."""
+        normalized_space = str(space_id or "").strip()
+        existed = any(normalized_space in store for store in (self._claims, self._engrams, self._revisions))
+        self._claims.pop(normalized_space, None)
+        self._engrams.pop(normalized_space, None)
+        self._revisions.pop(normalized_space, None)
+        return existed
 
     def _cue_entities(self, space_id: str, query: str) -> list[str]:
         normalized_query = str(query or "").casefold()
@@ -624,6 +636,19 @@ class PersistentEcphoryMemoryBackend(LocalEcphoryMemoryBackend):
         payload["memory_revision"] = self._memory_revision(payload)
         payload["status"] = self._statuses.get(str(space_id or "").strip(), "pilot")
         return payload
+
+    def delete_space(self, space_id: str) -> bool:
+        """Delete active and immutable memory revisions for one explicit space."""
+        normalized_space = str(space_id or "").strip()
+        if not normalized_space:
+            return False
+        existed = super().delete_space(normalized_space)
+        self._statuses.pop(normalized_space, None)
+        space_root = self._space_root(normalized_space)
+        if space_root.is_dir():
+            shutil.rmtree(space_root)
+            existed = True
+        return existed
 
 
 def promoted_claims_from_report(report: dict[str, Any]) -> list[dict[str, Any]]:

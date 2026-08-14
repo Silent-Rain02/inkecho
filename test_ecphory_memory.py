@@ -204,6 +204,18 @@ class EcphoryMemoryTests(unittest.TestCase):
             ])
             self.assertFalse(backend.has_space("novel", "rev-2"))
 
+    def test_delete_space_removes_memory_from_disk_and_process(self) -> None:
+        with TemporaryDirectory() as temporary:
+            backend = PersistentEcphoryMemoryBackend(Path(temporary))
+            backend.replace_space("novel", "rev-1", [
+                claim("c1", "setting", "春秋蝉", "能够", "逆转时光", "春秋蝉能够逆转时光。", "第一卷", 10),
+            ])
+            self.assertTrue(backend.has_space("novel", "rev-1"))
+            self.assertTrue(backend.delete_space("novel"))
+            self.assertFalse(backend.has_space("novel"))
+            self.assertFalse(backend._space_root("novel").exists())
+            self.assertFalse(backend.delete_space("novel"))
+
 
 if __name__ == "__main__":
     unittest.main()

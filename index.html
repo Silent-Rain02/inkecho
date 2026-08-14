@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=25" />
+  <link rel="stylesheet" href="styles.css?v=26" />
   </head>
   <body>
     <div class="aurora-field" aria-hidden="true">
@@ -347,6 +347,7 @@
                   <div class="reviewed-memory-progress" id="reviewedMemoryProgress" role="progressbar" aria-label="深度记忆构建进度" aria-valuemin="0" aria-valuemax="100" hidden><span id="reviewedMemoryProgressBar"></span></div>
                   <div class="reviewed-memory-build-actions">
                     <button class="page-primary-button" id="startReviewedMemoryBuild" type="button">开始构建</button>
+                    <button class="page-secondary-button" id="startFullReviewedMemoryBuild" type="button" hidden>构建全文记忆</button>
                     <button class="page-secondary-button" id="promoteReviewedMemoryBuild" type="button" hidden>启用记忆</button>
                     <button class="text-button" id="cancelReviewedMemoryBuild" type="button" hidden>暂停</button>
                   </div>
@@ -1222,6 +1223,6 @@
       </form>
     </dialog>
     <div class="toast" id="toast" role="status"></div>
-  <script src="app.js?v=37"></script>
+  <script src="app.js?v=40"></script>
   </body>
 </html>

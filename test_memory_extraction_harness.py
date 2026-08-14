@@ -9,9 +9,33 @@ from scripts.memory_revalidation_harness import revalidate_chapter
 from scripts.reviewed_memory_eval import answer_text, result_text
 from scripts.reviewed_memory_harness import preflight_promoted_claims
 from scripts.reviewed_memory_audit import flat_fact, passing_indices
+from memory_extraction import extraction_messages, is_meta_narrative_chapter, validate_extraction
 
 
 class MemoryExtractionHarnessTests(unittest.TestCase):
+    def test_v10_excludes_author_and_publication_meta_narrative(self) -> None:
+        source = "于是，我决定写一本新书。这本书就叫做《蛊真人》。本书会杀美女。"
+        payload = {
+            "chapter": "序：不是走向成功，",
+            "facts": [{
+                "category": "event",
+                "subject": "这本书",
+                "predicate": "叫做",
+                "object": "《蛊真人》",
+                "statement": "这本书叫做《蛊真人》。",
+                "certainty": "explicit_fact",
+                "time_scope": "chapter_event",
+                "salience": "core",
+                "evidence_quote": "这本书就叫做《蛊真人》。",
+                "confidence": 0.99,
+            }],
+        }
+        result = validate_extraction(payload, payload["chapter"], source)
+        self.assertEqual(result["accepted_count"], 0)
+        self.assertIn("元叙事", result["rejections"][0]["reasons"][0])
+        self.assertTrue(is_meta_narrative_chapter(payload["chapter"], source))
+        self.assertIn("故事世界边界", extraction_messages(payload["chapter"], source, "v10-diegetic-only")[0]["content"])
+
     def test_second_pass_audit_flattens_evidence_and_only_keeps_clean_passes(self) -> None:
         fact = flat_fact({
             "id": "claim-1",

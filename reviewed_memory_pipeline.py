@@ -22,7 +22,7 @@ from memory_extraction import (
 )
 
 
-PIPELINE_PROMPT_VERSION = "v9-strict-boundaries"
+PIPELINE_PROMPT_VERSION = "v10-diegetic-only"
 MIN_SAMPLE_CHAPTERS = 3
 DEFAULT_SAMPLE_CHAPTERS = 6
 MAX_SAMPLE_CHAPTERS = 12

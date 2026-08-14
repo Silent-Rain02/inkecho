@@ -327,6 +327,7 @@ const reviewedMemoryBuildDescription = document.querySelector("#reviewedMemoryBu
 const reviewedMemoryProgress = document.querySelector("#reviewedMemoryProgress");
 const reviewedMemoryProgressBar = document.querySelector("#reviewedMemoryProgressBar");
 const startReviewedMemoryBuildButton = document.querySelector("#startReviewedMemoryBuild");
+const startFullReviewedMemoryBuildButton = document.querySelector("#startFullReviewedMemoryBuild");
 const promoteReviewedMemoryBuildButton = document.querySelector("#promoteReviewedMemoryBuild");
 const cancelReviewedMemoryBuildButton = document.querySelector("#cancelReviewedMemoryBuild");
 
@@ -1936,7 +1937,16 @@ function renderSourceKnowledge() {
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));
   });
-  if (sourceKnowledgeCount) sourceKnowledgeCount.textContent = current.count ? `${current.count.toLocaleString("zh-CN")} 条原作知识` : "尚未整理";
+  const fullBuildActive = reviewedMemoryBuildState.scope === "full"
+    && ["queued", "extracting", "reviewing", "building", "cancelling"].includes(reviewedMemoryBuildState.status);
+  if (sourceKnowledgeCount) {
+    sourceKnowledgeCount.textContent = current.count
+      ? `${current.count.toLocaleString("zh-CN")} 条${reviewedMemoryBuildState.productReady ? "已审核知识" : "基础原文索引"}`
+      : "尚未整理";
+  }
+  if (fullBuildActive && sourceKnowledgeHint?.dataset.state === "ready") {
+    sourceKnowledgeHint.textContent = "当前先使用带章节出处的基础原文索引；全文已审核记忆完成后会自动切换。";
+  }
   sourceKnowledgeList.replaceChildren();
   if (!current.items.length) {
     const empty = document.createElement("p");
@@ -2007,7 +2017,11 @@ async function loadSourceKnowledge(spaceId = getCurrentNovelSpaceId(), { force =
     activeSourceKnowledge = normalizeSourceKnowledge(payload.knowledge, normalizedSpaceId);
     if (sourceKnowledgeHint) {
       sourceKnowledgeHint.dataset.state = "ready";
-      sourceKnowledgeHint.textContent = "直接来自原文并保留章节出处，已参与原作问答。";
+      const fullBuildActive = reviewedMemoryBuildState.scope === "full"
+        && ["queued", "extracting", "reviewing", "building", "cancelling"].includes(reviewedMemoryBuildState.status);
+      sourceKnowledgeHint.textContent = fullBuildActive
+        ? "当前先使用带章节出处的基础原文索引；全文已审核记忆完成后会自动切换。"
+        : "直接来自原文并保留章节出处，已参与原作问答。";
     }
     renderSourceKnowledge();
   } catch (error) {
@@ -2034,6 +2048,7 @@ function normalizeReviewedMemoryBuild(payload, spaceId) {
     canCancel: source.can_cancel === true,
     canPromote: source.can_promote === true,
     productReady: source.product_ready === true,
+    scope: source.scope === "full" ? "full" : "pilot",
   };
 }
 
@@ -2043,7 +2058,7 @@ function renderReviewedMemoryBuild() {
     ? reviewedMemoryBuildState
     : { status: "loading", progress: 0 };
   const active = ["queued", "extracting", "reviewing", "building", "cancelling"].includes(state.status);
-  const content = {
+  let content = {
     loading: ["正在读取记忆状态", "请稍候。"],
     idle: ["增强人物与设定理解", "原文问答已经可用。构建后，复杂关系与世界规则会更准确。"],
     queued: ["深度记忆正在准备", state.stage || "正在选择代表章节。"],
@@ -2059,6 +2074,9 @@ function renderReviewedMemoryBuild() {
     production: ["深度记忆已启用", "复杂关系与世界规则会优先使用已审查的原作知识。"],
     stale: ["原文已经更新", "旧记忆不会继续使用，请基于新版本重新构建。"],
   }[state.status] || ["增强人物与设定理解", state.stage || "可以开始构建。"];
+  if (state.scope === "full" && active) {
+    content = ["正在构建全文记忆", state.stage || "正在逐章提取并核对原作事实，进度会自动保存。"];
+  }
   reviewedMemoryBuild.dataset.state = state.status;
   if (reviewedMemoryBuildTitle) reviewedMemoryBuildTitle.textContent = content[0];
   if (reviewedMemoryBuildDescription) reviewedMemoryBuildDescription.textContent = content[1];
@@ -2072,8 +2090,13 @@ function renderReviewedMemoryBuild() {
     startReviewedMemoryBuildButton.disabled = active || state.status === "loading";
     startReviewedMemoryBuildButton.textContent = ["cancelled", "interrupted"].includes(state.status) ? "继续构建" : ["error", "needs_review", "stale"].includes(state.status) ? "重新构建" : "开始构建";
   }
+  if (startFullReviewedMemoryBuildButton) {
+    startFullReviewedMemoryBuildButton.hidden = state.status !== "pilot_ready";
+    startFullReviewedMemoryBuildButton.disabled = active;
+  }
   if (promoteReviewedMemoryBuildButton) promoteReviewedMemoryBuildButton.hidden = !state.canPromote;
   if (cancelReviewedMemoryBuildButton) cancelReviewedMemoryBuildButton.hidden = !state.canCancel;
+  if (sourceKnowledgeList) renderSourceKnowledge();
 }
 
 function scheduleReviewedMemoryStatus(spaceId) {
@@ -2112,12 +2135,15 @@ async function loadReviewedMemoryStatus(spaceId = getCurrentNovelSpaceId()) {
   }
 }
 
-async function startReviewedMemoryBuild() {
+async function startReviewedMemoryBuild(scope = "pilot") {
   const spaceId = getCurrentNovelSpaceId();
   const novelName = getCurrentNovelDisplayName();
+  const fullBuild = scope === "full";
   if (!await ensureProviderDataConsent(
-    "构建深度记忆",
-    `构建深度记忆会把「${novelName}」中最多 6 个代表章节的有限预览发送给当前模型服务，用于提取并核对人物、关系与设定。不会发送完整小说或本地索引。`,
+    fullBuild ? "构建全文记忆" : "构建深度记忆",
+    fullBuild
+      ? `全文构建会把「${novelName}」按章节逐次发送有限预览给当前模型服务，每次只处理一章；任务可暂停并从断点继续，不会一次发送完整小说或本地索引。`
+      : `构建深度记忆会把「${novelName}」中最多 6 个代表章节的有限预览发送给当前模型服务，用于提取并核对人物、关系与设定。不会发送完整小说或本地索引。`,
   )) return;
   if (startReviewedMemoryBuildButton) startReviewedMemoryBuildButton.disabled = true;
   try {
@@ -2129,6 +2155,7 @@ async function startReviewedMemoryBuild() {
         provider: providerSelect.value,
         model: modelName.value.trim(),
         chapter_limit: 6,
+        scope: fullBuild ? "full" : "pilot",
       }),
     }, 30000);
     const payload = await response.json();
@@ -3643,9 +3670,9 @@ async function uploadNovelFile(fileSelection) {
     || file.name.replace(/\.(txt|md|markdown|html|htm|docx|epub|fb2|pdf)$/i, "").trim()
     || "未命名小说";
   const totalBytes = files.reduce((total, item) => total + (Number(item.size) || 0), 0);
-  if (files.some((item) => Number(item.size) > 20_000_000) || totalBytes > 20_000_000) {
-    setNovelUploadFeedback("error", "单个文件或合并后的总大小不能超过 20 MB，请压缩或拆分后再上传", false);
-    showToast("上传文件合计不能超过 20 MB");
+  if (files.some((item) => Number(item.size) > 40_000_000) || totalBytes > 40_000_000) {
+    setNovelUploadFeedback("error", "单个文件或合并后的总大小不能超过 40 MB，请压缩或拆分后再上传", false);
+    showToast("上传文件合计不能超过 40 MB");
     return;
   }
   if (targetSpace && !window.confirm(`将使用「${displayName}」重新解析并替换「${targetSpace.name}」的原文。空间 ID、项目绑定和空间记忆会保留，确定继续吗？`)) {
@@ -9793,7 +9820,8 @@ sourceKnowledgeSummary?.addEventListener("click", (event) => {
   activeSourceKnowledgeCategory = button.dataset.sourceKnowledgeCategory || "all";
   loadSourceKnowledge(getCurrentNovelSpaceId());
 });
-startReviewedMemoryBuildButton?.addEventListener("click", startReviewedMemoryBuild);
+startReviewedMemoryBuildButton?.addEventListener("click", () => startReviewedMemoryBuild("pilot"));
+startFullReviewedMemoryBuildButton?.addEventListener("click", () => startReviewedMemoryBuild("full"));
 cancelReviewedMemoryBuildButton?.addEventListener("click", cancelReviewedMemoryBuild);
 promoteReviewedMemoryBuildButton?.addEventListener("click", promoteReviewedMemoryBuild);
 openNovelMemoryComposerButton?.addEventListener("click", () => {

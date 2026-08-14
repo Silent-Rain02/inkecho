@@ -2404,6 +2404,12 @@ body.context-panel-open .studio-grid { grid-template-columns: minmax(260px, 300p
   z-index: 50;
   max-width: min(360px, calc(100vw - 56px));
   border-radius: 10px;
+  border-color: rgba(255, 255, 255, .12);
+  color: rgba(247, 245, 250, .94);
+  background: rgba(20, 19, 26, .66);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .16);
+  -webkit-backdrop-filter: blur(14px) saturate(115%);
+  backdrop-filter: blur(14px) saturate(115%);
   transform: translateY(-8px);
 }
 .toast.show { transform: translateY(0); }
@@ -2490,7 +2496,7 @@ body[data-theme="light"] .page-secondary-button,
 body[data-theme="light"] .mini-button { border-color: var(--line); color: #625b68; background: #f4f1eb; }
 body[data-theme="light"] .model-settings .model-save-button { border-color: rgba(118,87,188,.28); color: #5f419f; background: rgba(118,87,188,.08); }
 body[data-theme="light"] .provider-data-boundary { border-color: rgba(157,126,76,.22); color: #645d68; background: rgba(193,155,94,.07); }
-body[data-theme="light"] .toast { border-color: rgba(84,128,94,.22); color: #49654d; background: #edf5ea; }
+body[data-theme="light"] .toast { border-color: rgba(72,66,78,.14); color: rgba(47,43,52,.92); background: rgba(250,249,245,.70); }
 
 @media (max-width: 1050px) {
   .shell { width: min(100% - 24px, 980px); }

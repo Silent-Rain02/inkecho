@@ -10,18 +10,18 @@ from typing import Any
 PROMPT_VERSIONS = {
     "v1-baseline", "v2-evidence-first", "v3-review-ready", "v4-span-anchored",
     "v5-evidence-contained", "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage",
-    "v9-strict-boundaries",
+    "v9-strict-boundaries", "v10-diegetic-only",
 }
 SPAN_ANCHORED_VERSIONS = {
     "v4-span-anchored", "v5-evidence-contained", "v6-coverage-guided", "v7-coverage-structured",
-    "v8-dynamic-coverage", "v9-strict-boundaries",
+    "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only",
 }
 CONTEXTUAL_SPAN_VERSIONS = {
-    "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries",
+    "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only",
 }
 REPAIRABLE_PROMPT_VERSIONS = {
     "v5-evidence-contained", "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage",
-    "v9-strict-boundaries",
+    "v9-strict-boundaries", "v10-diegetic-only",
 }
 EXTRACTION_FOCUS_TYPES = {"relation", "location", "mechanism", "identity"}
 FACT_CATEGORIES = {"character", "relation", "setting", "event"}
@@ -50,6 +50,30 @@ LOW_VALUE_MEMORY_PATTERNS = (
     re.compile(r"记忆.{0,12}浮现"),
     re.compile(r"身处.{0,16}(?:学堂|房间|窗边|窗户旁|地板|阁楼.{0,6}层)"),
 )
+META_NARRATIVE_SUBJECTS = {"本书", "这本书", "该书", "本小说", "这部小说", "本作品", "这部作品", "作者", "读者", "书友"}
+META_NARRATIVE_PATTERNS = (
+    re.compile(r"(?:写|创作|连载|更新|发布|出版|上架|完结|订阅).{0,12}(?:新书|本书|小说|作品|章节)"),
+    re.compile(r"(?:本书|这本书|该书|本小说|这部小说|本作品).{0,24}(?:书名|叫做|呈现|写|更新|连载|读者|书友|月票|订阅)"),
+    re.compile(r"(?:作者|读者|书友|编辑|起点中文网|月票|订阅|更新时间|章节更新)"),
+)
+
+
+def is_meta_narrative_fact(subject: str, statement: str, evidence: str) -> bool:
+    """Reject author/publication commentary that is outside the fictional world."""
+    normalized_subject = str(subject or "").strip()
+    haystack = f"{statement}\n{evidence}"
+    if normalized_subject in META_NARRATIVE_SUBJECTS:
+        return True
+    return any(pattern.search(haystack) for pattern in META_NARRATIVE_PATTERNS)
+
+
+def is_meta_narrative_chapter(title: str, text: str) -> bool:
+    """Detect front/back matter dominated by writing or publishing commentary."""
+    normalized_title = re.sub(r"\s+", " ", str(title or "").strip())
+    sample = str(text or "")[:5000]
+    hits = sum(bool(pattern.search(sample)) for pattern in META_NARRATIVE_PATTERNS)
+    explicit_front_matter = bool(re.match(r"^(?:作者的话|写在前面|前言|序言|序[:：])", normalized_title))
+    return hits >= 2 or (explicit_front_matter and hits >= 1)
 
 
 FACT_OUTPUT_SCHEMA: dict[str, Any] = {
@@ -324,6 +348,16 @@ def _strict_boundaries_system_prompt() -> str:
 输出前逐字核对一次；不能在单个证据窗口内完整证明的候选直接省略。"""
 
 
+def _diegetic_only_system_prompt() -> str:
+    return _strict_boundaries_system_prompt() + """
+
+故事世界边界
+- 只保留故事世界内真实存在的人物、组织、地点、物品、规则与事件，也就是角色能够经历、知道或影响的事实。
+- 作者序言、创作宣言、书名说明、更新/出版信息、对读者或书友说的话，以及“本书会如何写”之类元叙事一律不得输出。
+- 章节若完全属于作者说明或出版附言，返回空 facts；有逐字依据也不能把这些内容当作世界设定或关键事件。
+- “作者、读者、本书、这部小说、书名、章节更新、月票、订阅”不是小说世界实体，禁止作为 subject 或 object。"""
+
+
 def chapter_source_spans(text: str, limit: int = 160) -> list[dict[str, Any]]:
     """Split a chapter into exact, addressable evidence spans without rewriting it."""
     spans: list[dict[str, Any]] = []
@@ -382,7 +416,7 @@ def contextual_chapter_source_spans(
 
 
 def source_spans_for_version(text: str, prompt_version: str) -> list[dict[str, Any]]:
-    if prompt_version in {"v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries"}:
+    if prompt_version in {"v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only"}:
         return contextual_chapter_source_spans(text, preceding_sentences=3)
     if prompt_version in CONTEXTUAL_SPAN_VERSIONS:
         return contextual_chapter_source_spans(text)
@@ -396,7 +430,7 @@ def extraction_schema_for_version(prompt_version: str) -> dict[str, Any]:
     if prompt_version == "v5-evidence-contained":
         schema["properties"]["facts"]["maxItems"] = 6
     elif prompt_version in {
-        "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries",
+        "v6-coverage-guided", "v7-coverage-structured", "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only",
     }:
         schema["properties"]["facts"]["maxItems"] = 8
     return schema
@@ -448,6 +482,7 @@ def extraction_messages(
         "v7-coverage-structured": _structured_coverage_system_prompt,
         "v8-dynamic-coverage": _dynamic_coverage_system_prompt,
         "v9-strict-boundaries": _strict_boundaries_system_prompt,
+        "v10-diegetic-only": _diegetic_only_system_prompt,
     }[prompt_version]()
     normalized_focus = [focus for focus in (focus_types or []) if focus in EXTRACTION_FOCUS_TYPES]
     if normalized_focus:
@@ -474,7 +509,7 @@ def extraction_messages(
         spans = source_spans_for_version(text, prompt_version)
         source_block = "\n".join(f"[{span['id']}] {span['text']}" for span in spans)
         coverage_hints = coverage_hints_for_text(text) if prompt_version in {
-            "v8-dynamic-coverage", "v9-strict-boundaries",
+            "v8-dynamic-coverage", "v9-strict-boundaries", "v10-diegetic-only",
         } else []
         coverage_line = (
             "本地词面扫描提示（仅表示需要检查，不代表事实成立）："
@@ -521,7 +556,7 @@ def review_messages(chapter: str, text: str, facts: list[dict[str, Any]]) -> lis
 - entities_resolved：subject 的完整名称必须在 evidence_quote 中出现；subject/predicate/object 必须与 statement 表达同一个事实，不能错置施事者、说话者或关系方向。
 - category_correct：category 与事实类型一致；relation 必须真的是两个实体间的关系，不能把持有物、资质结果或普通事件标成 relation。
 - time_correct：certainty 与 time_scope 必须能由 statement 和 evidence_quote 判断；无法判断时为 false。
-- useful：能直接帮助回答人物身份/能力、实体关系、世界规则、关键事件结果、关键场景的命名地点、重要持有物或后续一致性问题。窗边、地板、楼层等普通站位，以及没有后续影响的表情、姿态、视线、环境氛围、普通移动、听见声音、拿起观看、短暂沉思等瞬时描写必须为 false；纯修辞和泛泛评论也不算。
+- useful：能直接帮助回答人物身份/能力、实体关系、世界规则、关键事件结果、关键场景的命名地点、重要持有物或后续一致性问题。窗边、地板、楼层等普通站位，以及没有后续影响的表情、姿态、视线、环境氛围、普通移动、听见声音、拿起观看、短暂沉思等瞬时描写必须为 false；纯修辞和泛泛评论也不算。作者序言、创作宣言、书名说明、更新/出版信息、对读者或书友说的话，以及“本书会如何写”等元叙事必须为 false。
 任一 grounded 为 false 必须 verdict=fail；其余有一项 false 通常为 minor，多个 false 为 fail；全部为 true 才是 pass。
 reason 用一句具体中文说明，不要宽松放行。只输出 schema 指定的 JSON。"""
     system += f"\n必须按顺序返回且只返回 {len(compact_facts)} 条 review，fact_index 完整覆盖 {expected_indices}，不得遗漏或重复。"
@@ -820,6 +855,8 @@ def validate_extraction(
             reasons.append("statement 信息不足")
         if statement and any(pattern.search(statement) for pattern in LOW_VALUE_MEMORY_PATTERNS):
             reasons.append("瞬时描写不适合作为长期记忆")
+        if is_meta_narrative_fact(subject, statement, evidence):
+            reasons.append("作者或出版元叙事不属于小说世界记忆")
         if (
             category == "event"
             and (

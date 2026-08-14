@@ -46,8 +46,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("right: 28px", self.styles)
 
     def test_runtime_assets_are_present_and_expected_controls_are_wired(self) -> None:
-        self.assertIn('<link rel="stylesheet" href="styles.css?v=25"', self.html)
-        self.assertIn('<script src="app.js?v=37"></script>', self.html)
+        self.assertIn('<link rel="stylesheet" href="styles.css?v=26"', self.html)
+        self.assertIn('<script src="app.js?v=40"></script>', self.html)
         self.assertIn("overflow-wrap: anywhere", (ROOT / "styles.css").read_text(encoding="utf-8"))
         ids = set(re.findall(r'\bid=["\']([^"\']+)["\']', self.html))
         required = {
@@ -928,6 +928,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function closeNovelMemoryComposer", self.javascript)
         self.assertIn('id="novelMemoryComposer"', self.html)
         self.assertIn('id="openNovelMemoryComposer"', self.html)
+        self.assertIn('id="startFullReviewedMemoryBuild"', self.html)
+        self.assertIn('scope: fullBuild ? "full" : "pilot"', self.javascript)
+        self.assertIn("正在构建全文记忆", self.javascript)
         self.assertIn('id="cancelNovelMemoryEdit"', self.html)
         self.assertIn("置顶", self.javascript)
         self.assertIn("已置顶", self.javascript)

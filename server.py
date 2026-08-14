@@ -25,6 +25,7 @@ import json
 from openai import AzureOpenAI, OpenAI
 
 from ecphory_memory import PersistentEcphoryMemoryBackend
+from memory_extraction import is_meta_narrative_chapter
 from reviewed_memory_pipeline import (
     DEFAULT_SAMPLE_CHAPTERS,
     MAX_SAMPLE_CHAPTERS,
@@ -40,8 +41,8 @@ from reviewed_memory_pipeline import (
 ROOT = Path(__file__).resolve().parent
 SUPPORTED_PROVIDERS = {"custom_azure", "ollama", "openai", "azure", "compatible"}
 MAX_BODY_BYTES = 1_000_000
-MAX_UPLOAD_BODY_BYTES = 30_000_000
-MAX_UPLOAD_FILE_BYTES = 20_000_000
+MAX_UPLOAD_BODY_BYTES = 64_000_000
+MAX_UPLOAD_FILE_BYTES = 40_000_000
 MAX_UPLOAD_BATCH_FILES = 32
 MAX_SOURCE_CHAPTER_PREVIEW_CHARS = 12_000
 DEFAULT_HISTORY_CHARS = 48_000
@@ -493,7 +494,7 @@ def rename_novel_space(space_id: str, name: str) -> dict[str, Any]:
     return {"id": normalized, "name": clean_name, "updated_at": now}
 
 
-def delete_novel_space(space_id: str) -> dict[str, str]:
+def delete_novel_space(space_id: str) -> dict[str, Any]:
     """Remove an uploaded novel, its source file, and its space memory."""
     normalized = str(space_id or "").strip()[:100]
     if not normalized or normalized == DEFAULT_SOURCE_ID:
@@ -502,23 +503,24 @@ def delete_novel_space(space_id: str) -> dict[str, str]:
     with _novel_registry_lock:
         registry = read_novel_registry()
         target = next((item for item in registry if item.get("id") == normalized), None)
-        if target is None:
-            raise ValueError("找不到对应的小说知识空间")
         root = novel_space_root().resolve()
-        source_path = (root / str(target.get("filename") or "")).resolve()
-        try:
-            source_path.relative_to(root)
-        except ValueError as exc:
-            raise ValueError("小说文件位置无效，未执行移除") from exc
+        source_path: Path | None = None
+        if target is not None:
+            source_path = (root / str(target.get("filename") or "")).resolve()
+            try:
+                source_path.relative_to(root)
+            except ValueError as exc:
+                raise ValueError("小说文件位置无效，未执行移除") from exc
         # Move first so a registry write failure can restore the exact file.
         tombstone: Path | None = None
-        if source_path.is_file():
+        if source_path is not None and source_path.is_file():
             tombstone = root / f".{source_path.name}.deleting-{uuid.uuid4().hex[:10]}"
             source_path.replace(tombstone)
         try:
-            write_novel_registry([item for item in registry if item.get("id") != normalized])
+            if target is not None:
+                write_novel_registry([item for item in registry if item.get("id") != normalized])
         except Exception:
-            if tombstone is not None:
+            if tombstone is not None and source_path is not None:
                 try:
                     tombstone.replace(source_path)
                 except OSError:
@@ -544,7 +546,12 @@ def delete_novel_space(space_id: str) -> dict[str, str]:
         _source_cache_by_space.pop(normalized, None)
         _source_search_cache.clear()
     invalidate_source_index_cache(normalized)
-    return {"id": normalized, "name": str(target.get("name") or "未命名小说")}
+    delete_reviewed_memory_state(normalized)
+    return {
+        "id": normalized,
+        "name": str((target or {}).get("name") or "未命名小说"),
+        "already_missing": target is None,
+    }
 
 
 def novel_space_entry(space_id: str) -> dict[str, Any] | None:
@@ -926,7 +933,7 @@ def extract_uploaded_novel(payload: dict[str, Any], filename: str) -> tuple[str,
         except (ValueError, TypeError):
             raise ValueError("上传文件内容无法解码") from None
         if len(raw) > MAX_UPLOAD_FILE_BYTES:
-            raise ValueError("单本小说暂时不能超过 20 MB")
+            raise ValueError("单本小说暂时不能超过 40 MB")
     else:
         text = payload.get("text")
         if not isinstance(text, str) or not text.strip():
@@ -988,7 +995,7 @@ def extract_uploaded_novel_files(payload: dict[str, Any], fallback_filename: str
         combined_parts.append(f"第{index}部：{stem}\n{text}")
     combined_text = "\n\n".join(combined_parts).strip()
     if len(combined_text.encode("utf-8")) > MAX_UPLOAD_FILE_BYTES:
-        raise ValueError("合并后的小说文本超过 20 MB，请拆分后再上传")
+        raise ValueError("合并后的小说文本超过 40 MB，请拆分后再上传")
     encodings = {item[3] for item in extracted}
     formats = {item[4] for item in extracted}
     detected_encoding = next(iter(encodings)) if len(encodings) == 1 else "mixed"
@@ -1191,7 +1198,7 @@ def upload_novel_space(payload: dict[str, Any], progress_callback: Any = None) -
     text, detected_encoding, source_format = extract_uploaded_novel_files(payload, filename)
     report(42, "正文已读取，正在识别章节")
     if len(text.encode("utf-8")) > MAX_UPLOAD_FILE_BYTES:
-        raise ValueError("解析后的小说文本超过 20 MB，暂时无法建立知识空间")
+        raise ValueError("解析后的小说文本超过 40 MB，暂时无法建立知识空间")
     root = novel_space_root()
     root.mkdir(parents=True, exist_ok=True)
     requested_replace_id = str(payload.get("replace_space_id") or "").strip()[:100]
@@ -1401,6 +1408,19 @@ def reviewed_memory_checkpoint_path(space_id: str) -> Path:
     return novel_space_root() / ".indexes" / "reviewed-memory-checkpoints" / f"{digest}.json"
 
 
+def delete_reviewed_memory_state(space_id: str) -> None:
+    """Remove checkpoints, job metadata, and Ecphory revisions for one space."""
+    normalized = str(space_id or "").strip()
+    if not normalized:
+        return
+    with _reviewed_memory_jobs_lock:
+        _load_reviewed_memory_jobs_locked()
+        _reviewed_memory_jobs.pop(normalized, None)
+        _persist_reviewed_memory_jobs_locked()
+    reviewed_memory_checkpoint_path(normalized).unlink(missing_ok=True)
+    _reviewed_memory_backend.delete_space(normalized)
+
+
 def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp-{uuid.uuid4().hex[:8]}")
@@ -1470,6 +1490,7 @@ def _reviewed_memory_job_view(job: dict[str, Any], current_revision: str) -> dic
         "can_cancel": status in {"queued", "extracting", "reviewing", "building", "cancelling"},
         "can_promote": status == "pilot_ready" and bool(job.get("memory_revision")),
         "product_ready": status == "production",
+        "scope": "full" if job.get("scope") == "full" else "pilot",
         "updated_at": float(job.get("updated_at") or 0),
     }
 
@@ -1523,19 +1544,37 @@ def start_reviewed_memory_job(payload: dict[str, Any]) -> dict[str, Any]:
     if not revision or not status.get("available") or not status.get("chunks"):
         raise ValueError("当前小说原文尚未解析完成")
     settings = configured_provider_settings(payload)
+    scope = "full" if str(payload.get("scope") or "").strip().lower() == "full" else "pilot"
     try:
         requested_limit = int(payload.get("chapter_limit") or DEFAULT_SAMPLE_CHAPTERS)
     except (TypeError, ValueError):
         requested_limit = DEFAULT_SAMPLE_CHAPTERS
     chapter_limit = max(MIN_SAMPLE_CHAPTERS, min(requested_limit, MAX_SAMPLE_CHAPTERS))
-    titles = source_outline("", limit=MAX_SOURCE_CHUNKS, space_id=space_id)
+    titles = [
+        title for title in source_outline("", limit=MAX_SOURCE_CHUNKS, space_id=space_id)
+        if not SOURCE_VOLUME_RE.fullmatch(title)
+    ]
     if not titles:
         titles = ["作品开篇"]
-    selected_titles = representative_titles(titles, chapter_limit)
-    previews = [
-        source_chapter_preview(title, space_id=space_id, limit=MAX_SOURCE_CHAPTER_PREVIEW_CHARS)
-        for title in selected_titles
+    initial_titles = titles if scope == "full" else representative_titles(
+        titles, min(MAX_SAMPLE_CHAPTERS, chapter_limit + 2),
+    )
+    preview_candidates = source_chapter_previews(
+        initial_titles, space_id=space_id, limit=MAX_SOURCE_CHAPTER_PREVIEW_CHARS,
+    )
+    eligible_previews = [
+        preview for preview in preview_candidates
+        if not is_meta_narrative_chapter(str(preview.get("title") or ""), str(preview.get("text") or ""))
     ]
+    if scope == "full":
+        previews = eligible_previews
+    else:
+        selected_titles = representative_titles(
+            [str(preview["title"]) for preview in eligible_previews], chapter_limit,
+        )
+        preview_by_title = {str(preview["title"]): preview for preview in eligible_previews}
+        previews = [preview_by_title[title] for title in selected_titles]
+    selected_titles = [str(preview["title"]) for preview in previews]
     if not previews:
         raise ValueError("当前小说没有可用于构建记忆的章节")
     client = build_client(settings)
@@ -1566,6 +1605,7 @@ def start_reviewed_memory_job(payload: dict[str, Any]) -> dict[str, Any]:
             "total_chapters": len(previews),
             "provider": settings.provider,
             "model": settings.model,
+            "scope": scope,
             "created_at": now,
             "updated_at": now,
         }
@@ -1667,6 +1707,8 @@ def start_reviewed_memory_job(payload: dict[str, Any]) -> dict[str, Any]:
         except ReviewedMemoryCancelled:
             with _reviewed_memory_jobs_lock:
                 current_job = _reviewed_memory_jobs.get(space_id, {})
+                if current_job.get("job_id") != job_id:
+                    return
                 _reviewed_memory_jobs[space_id] = {
                     **current_job,
                     "status": "cancelled",
@@ -2435,6 +2477,66 @@ def source_chapter_preview(title: str = "", space_id: str = "", limit: int = MAX
         "previous_title": previous_title,
         "next_title": next_title,
     }
+
+
+def source_chapter_previews(
+    titles: list[str],
+    space_id: str = "",
+    limit: int = MAX_SOURCE_CHAPTER_PREVIEW_CHARS,
+) -> list[dict[str, Any]]:
+    """Build many chapter previews with one source-index scan."""
+    normalized_space_id = str(space_id or "").strip() or DEFAULT_SOURCE_ID
+    try:
+        bounded_limit = max(500, min(int(limit), MAX_SOURCE_CHAPTER_PREVIEW_CHARS))
+    except (TypeError, ValueError):
+        bounded_limit = MAX_SOURCE_CHAPTER_PREVIEW_CHARS
+    chunks = source_chunks(normalized_space_id)
+    requested = [re.sub(r"\s+", " ", str(title or "").strip())[:160] for title in titles]
+    requested = [title for title in requested if title]
+    requested_keys = {normalize_chapter_markers(title).lower() for title in requested}
+    grouped: dict[str, dict[str, Any]] = {}
+    ordered_titles: list[str] = []
+    previous_key = ""
+    for position, chunk in enumerate(chunks, start=1):
+        chunk_title = re.sub(r"\s+", " ", str(chunk.get("title") or "").strip())[:160]
+        if not chunk_title:
+            continue
+        key = normalize_chapter_markers(chunk_title).lower()
+        if key != previous_key:
+            ordered_titles.append(chunk_title)
+            previous_key = key
+        if key not in requested_keys:
+            continue
+        group = grouped.setdefault(key, {"title": chunk_title, "texts": [], "positions": []})
+        group["texts"].append(str(chunk.get("text") or "").strip())
+        group["positions"].append(position)
+    title_positions = {
+        normalize_chapter_markers(title).lower(): index
+        for index, title in enumerate(ordered_titles)
+    }
+    revision = source_revision(normalized_space_id)
+    previews: list[dict[str, Any]] = []
+    for requested_title in requested:
+        key = normalize_chapter_markers(requested_title).lower()
+        group = grouped.get(key)
+        if not group:
+            continue
+        text = "\n\n".join(group["texts"]).strip()
+        title_position = title_positions.get(key, -1)
+        previews.append({
+            "space_id": normalized_space_id,
+            "title": group["title"],
+            "text": text[:bounded_limit],
+            "truncated": len(text) > bounded_limit,
+            "chunks": len(group["positions"]),
+            "characters": len(text),
+            "source_revision": revision,
+            "source_chunk_start": group["positions"][0],
+            "source_chunk_end": group["positions"][-1],
+            "previous_title": ordered_titles[title_position - 1] if title_position > 0 else "",
+            "next_title": ordered_titles[title_position + 1] if 0 <= title_position < len(ordered_titles) - 1 else "",
+        })
+    return previews
 
 
 def source_sample_preview(space_id: str = "", limit: int = MAX_SOURCE_CHAPTER_PREVIEW_CHARS) -> dict[str, Any]:
