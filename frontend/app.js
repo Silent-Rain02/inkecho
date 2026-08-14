@@ -870,21 +870,21 @@ const providerDefaults = {
 };
 
 const providerDescriptions = {
-  custom_azure: "读取 .env 中的办公网自定义端点和密钥。",
+  custom_azure: "读取 .env 中的自定义节点地址和密钥。",
   ollama: "连接本机 Ollama，可运行 Qwen3、Llama、Gemma 等模型。",
   openai: "使用 OpenAI 官方 Chat Completions 接口。",
   azure: "使用标准 Azure OpenAI 部署名和端点。",
   compatible: "适用于 vLLM、LM Studio、LocalAI 等兼容服务；本地服务通常只需填写地址。",
 };
 const providerSetupHints = {
-  custom_azure: "修复步骤：① 点击“复制配置模板” ② 把办公网端点、密钥和日志标识填入项目配置文件 .env ③ 重启 InkEcho，再点击“测试连接”。密钥只保存在本机。",
+  custom_azure: "修复步骤：① 点击“复制配置模板” ② 把自定义节点地址、密钥和日志标识填入项目配置文件 .env ③ 重启 InkEcho，再点击“测试连接”。密钥只保存在本机。",
   ollama: "修复步骤：① 启动本机 Ollama ② 准备一个模型（例如 qwen3:8b）③ 点击“刷新模型”或“测试连接”。默认连接本机 11434 端口。",
   openai: "修复步骤：① 准备 OpenAI API 密钥 ② 点击“复制配置模板”，把密钥填入项目配置文件 .env ③ 重启 InkEcho，再点击“测试连接”。",
   azure: "修复步骤：① 准备 Azure 端点、密钥、API 版本和部署名 ② 点击“复制配置模板”并填入项目配置文件 .env ③ 重启 InkEcho，再点击“测试连接”。",
   compatible: "修复步骤：① 确认兼容服务已经启动 ② 点击“复制配置模板”，填写服务地址和模型名 ③ 重启 InkEcho，再点击“测试连接”。",
 };
 const providerDataBoundaries = {
-  custom_azure: "数据去向：生成时，命中的有限原作片段和必要上下文会发送到办公网自定义 Azure 服务；原始小说文件不会发送。",
+  custom_azure: "数据去向：生成时，命中的有限原作片段和必要上下文会发送到你配置的自定义 Azure-compatible 节点；原始小说文件不会发送。",
   ollama: "数据去向：Ollama 默认在本机处理命中的有限原作片段和必要上下文；如果你把 Base URL 改为远程地址，则以该地址的数据策略为准。",
   openai: "数据去向：生成时，命中的有限原作片段和必要上下文会发送到 OpenAI；原始小说文件不会发送。",
   azure: "数据去向：生成时，命中的有限原作片段和必要上下文会发送到 Azure OpenAI；原始小说文件不会发送。",
@@ -941,7 +941,7 @@ async function ensureProviderDataConsent(purpose = "生成内容", dataDescripti
   return decision;
 }
 const providerConfigTemplates = {
-  custom_azure: "# InkEcho · 办公网自定义 Azure\nINK_ECHO_PROVIDER=custom_azure\nINK_ECHO_CUSTOM_AZURE_API_KEY=replace_with_your_key\nINK_ECHO_CUSTOM_AZURE_ENDPOINT=https://your-office-endpoint.example/v1\nINK_ECHO_CUSTOM_AZURE_API_VERSION=2024-02-01\nINK_ECHO_CUSTOM_AZURE_MODEL=gpt-5-mini-2025-08-07\nINK_ECHO_CUSTOM_AZURE_LOGID=replace_with_your_logid",
+  custom_azure: "# InkEcho · 自定义 Azure-compatible 节点\nINK_ECHO_PROVIDER=custom_azure\nINK_ECHO_CUSTOM_AZURE_API_KEY=replace_with_your_key\nINK_ECHO_CUSTOM_AZURE_ENDPOINT=https://your-endpoint.example/v1\nINK_ECHO_CUSTOM_AZURE_API_VERSION=2024-02-01\nINK_ECHO_CUSTOM_AZURE_MODEL=gpt-5-mini-2025-08-07\nINK_ECHO_CUSTOM_AZURE_LOGID=replace_with_your_logid",
   ollama: "# InkEcho · Ollama\nINK_ECHO_PROVIDER=ollama\nINK_ECHO_OLLAMA_BASE_URL=http://127.0.0.1:11434/v1\nINK_ECHO_OLLAMA_MODEL=qwen3:8b",
   openai: "# InkEcho · OpenAI\nINK_ECHO_PROVIDER=openai\nINK_ECHO_OPENAI_API_KEY=replace_with_your_key\nINK_ECHO_OPENAI_MODEL=gpt-5-mini",
   azure: "# InkEcho · Azure OpenAI\nINK_ECHO_PROVIDER=azure\nINK_ECHO_AZURE_API_KEY=replace_with_your_key\nINK_ECHO_AZURE_ENDPOINT=https://your-resource.openai.azure.com/\nINK_ECHO_AZURE_API_VERSION=2024-02-01\nINK_ECHO_AZURE_MODEL=your-deployment-name\nINK_ECHO_AZURE_LOGID=",
@@ -8650,7 +8650,7 @@ async function refreshModels(options = {}) {
     const verified = payload.verified !== false;
     setProviderBadge(verified ? "已连接" : "配置完成", "#6f8b6a");
     if (payload.models.length) {
-      showToast(verified ? `已连接并找到 ${payload.models.length} 个模型` : "已读取部署配置（办公网端点不提供模型列表）");
+      showToast(verified ? `已连接并找到 ${payload.models.length} 个模型` : "已读取节点配置（该节点不提供模型列表）");
     } else {
       showToast(verified ? "当前服务未返回模型列表" : "配置已读取，当前端点不提供模型列表");
     }

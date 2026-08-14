@@ -5,7 +5,7 @@ import re
 import time
 from typing import Any, Callable
 
-from memory_extraction import (
+from .memory_extraction import (
     SPAN_ANCHORED_VERSIONS,
     adjudication_messages,
     extraction_messages,

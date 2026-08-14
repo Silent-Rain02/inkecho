@@ -9,7 +9,7 @@ from scripts.memory_revalidation_harness import revalidate_chapter
 from scripts.reviewed_memory_eval import answer_text, result_text
 from scripts.reviewed_memory_harness import preflight_promoted_claims
 from scripts.reviewed_memory_audit import flat_fact, passing_indices
-from memory_extraction import extraction_messages, is_meta_narrative_chapter, validate_extraction
+from inkecho.memory_extraction import extraction_messages, is_meta_narrative_chapter, validate_extraction
 
 
 class MemoryExtractionHarnessTests(unittest.TestCase):

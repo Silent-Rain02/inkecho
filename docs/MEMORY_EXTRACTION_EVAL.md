@@ -74,7 +74,7 @@ python3 scripts/reviewed_memory_qa_smoke.py
 ## 验证
 
 ```bash
-node --check app.js
-python3 -m unittest -q test_ecphory_memory.py test_memory_extraction_harness.py test_reviewed_memory_pipeline.py test_server.py test_frontend_contract.py
-python3 -m py_compile ecphory_memory.py memory_extraction.py reviewed_memory_pipeline.py server.py scripts/memory_extraction_harness.py scripts/reviewed_memory_harness.py scripts/reviewed_memory_eval.py scripts/memory_revalidation_harness.py scripts/reviewed_memory_audit.py scripts/reviewed_memory_audit_repair.py scripts/reviewed_memory_qa_smoke.py
+node --check frontend/app.js
+python3 -m unittest discover -s tests -p 'test_*.py' -q
+python3 -m py_compile server.py inkecho/*.py tests/*.py scripts/*.py
 ```

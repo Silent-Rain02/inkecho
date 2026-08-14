@@ -11,8 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from ecphory_memory import PersistentEcphoryMemoryBackend, promoted_claims_from_report  # noqa: E402
-from memory_extraction import validate_extraction  # noqa: E402
+from inkecho.ecphory_memory import PersistentEcphoryMemoryBackend, promoted_claims_from_report  # noqa: E402
+from inkecho.memory_extraction import validate_extraction  # noqa: E402
 import server  # noqa: E402
 
 

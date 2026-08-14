@@ -11,7 +11,7 @@ from types import SimpleNamespace
 from urllib.parse import urlencode
 from unittest.mock import patch
 import server
-from memory_extraction import (
+from inkecho.memory_extraction import (
     adjudication_messages,
     chapter_source_spans,
     extraction_schema_for_version,
@@ -27,7 +27,7 @@ from memory_extraction import (
     source_spans_for_version,
     validate_extraction,
 )
-from ecphory_memory import PersistentEcphoryMemoryBackend
+from inkecho.ecphory_memory import PersistentEcphoryMemoryBackend
 
 from server import (
     build_messages,
@@ -899,7 +899,7 @@ class ServerConfigTests(unittest.TestCase):
             self.assertFalse(provider_settings("custom_azure", "office-model").configured)
         with patch.dict(os.environ, {
             "INK_ECHO_CUSTOM_AZURE_API_KEY": "real-looking-key",
-            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://your-office-endpoint.example/v1",
+            "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "https://your-endpoint.example/v1",
         }, clear=True):
             self.assertFalse(provider_settings("custom_azure", "office-model").configured)
 
