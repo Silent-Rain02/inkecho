@@ -14,6 +14,7 @@ class FrontendContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
         cls.javascript = (ROOT / "app.js").read_text(encoding="utf-8")
+        cls.styles = (ROOT / "styles.css").read_text(encoding="utf-8")
 
     def test_html_ids_are_unique(self) -> None:
         ids = re.findall(r'\bid=["\']([^"\']+)["\']', self.html)
@@ -30,9 +31,23 @@ class FrontendContractTests(unittest.TestCase):
         )
         self.assertEqual(sorted(references - ids), [])
 
+    def test_morning_ui_alignment_controls_and_layout_are_preserved(self) -> None:
+        self.assertIn('id="toggleTheme"', self.html)
+        self.assertIn('id="saveModelConfig"', self.html)
+        self.assertIn("function setTheme(theme, persist = true)", self.javascript)
+        self.assertIn("function restoreTheme()", self.javascript)
+        self.assertIn('localStorage.setItem(themeStorageKey, activeTheme)', self.javascript)
+        self.assertIn("模型配置已保存", self.javascript)
+        self.assertIn("grid-template-columns: minmax(0, 1380px)", self.styles)
+        self.assertIn("height: clamp(640px, calc(100dvh - 112px), 840px)", self.styles)
+        self.assertIn('html[data-theme="light"]', self.styles)
+        self.assertIn("@keyframes composer-progress", self.styles)
+        self.assertIn("top: 82px", self.styles)
+        self.assertIn("right: 28px", self.styles)
+
     def test_runtime_assets_are_present_and_expected_controls_are_wired(self) -> None:
-        self.assertIn('<link rel="stylesheet" href="styles.css?v=24"', self.html)
-        self.assertIn('<script src="app.js?v=36"></script>', self.html)
+        self.assertIn('<link rel="stylesheet" href="styles.css?v=25"', self.html)
+        self.assertIn('<script src="app.js?v=37"></script>', self.html)
         self.assertIn("overflow-wrap: anywhere", (ROOT / "styles.css").read_text(encoding="utf-8"))
         ids = set(re.findall(r'\bid=["\']([^"\']+)["\']', self.html))
         required = {

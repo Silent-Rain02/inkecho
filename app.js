@@ -84,6 +84,7 @@ const modelOptions = document.querySelector("#modelOptions");
 const openProviderDiagnosticsButton = document.querySelector("#openProviderDiagnostics");
 const copyProviderConfigKeysButton = document.querySelector("#copyProviderConfigKeys");
 const copyProviderConfigTemplateButton = document.querySelector("#copyProviderConfigTemplate");
+const saveModelConfigButton = document.querySelector("#saveModelConfig");
 const providerDiagnosticsDialog = document.querySelector("#providerDiagnosticsDialog");
 const providerDiagnosticsStats = document.querySelector("#providerDiagnosticsStats");
 const providerDiagnosticsText = document.querySelector("#providerDiagnosticsText");
@@ -124,6 +125,7 @@ const previewSourceButton = document.querySelector("#previewSource");
 const sendButton = document.querySelector(".send-button");
 const draftStatus = document.querySelector("#draftStatus");
 const toggleFocusModeButton = document.querySelector("#toggleFocusMode");
+const toggleThemeButton = document.querySelector("#toggleTheme");
 const projectSelect = document.querySelector("#projectSelect");
 const projectSearchInput = document.querySelector("#projectSearch");
 const projectStatusFilter = document.querySelector("#projectStatusFilter");
@@ -342,6 +344,7 @@ const characterLibraryStorageKey = "inkecho.character-library.v1";
 const promptLibraryStorageKey = "inkecho.prompt-library.v1";
 const activeProjectStorageKey = "inkecho.active-project.v1";
 const focusModeStorageKey = "inkecho.focus-mode.v1";
+const themeStorageKey = "inkecho.theme.v1";
 const novelSpacesStorageKey = "inkecho.novel-spaces.v1";
 const activeNovelSpaceStorageKey = "inkecho.active-novel-space.v1";
 const spaceRecoveryStorageKey = "inkecho.space-recovery.v1";
@@ -4794,6 +4797,33 @@ function showToast(message) {
   toast.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+
+function setTheme(theme, persist = true) {
+  const activeTheme = theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = activeTheme;
+  document.body.dataset.theme = activeTheme;
+  if (toggleThemeButton) {
+    const isDark = activeTheme === "dark";
+    toggleThemeButton.textContent = isDark ? "☼" : "☾";
+    toggleThemeButton.setAttribute("aria-pressed", String(isDark));
+    toggleThemeButton.setAttribute("aria-label", isDark ? "切换到浅色主题" : "切换到深色主题");
+    toggleThemeButton.title = isDark ? "切换到浅色主题" : "切换到深色主题";
+  }
+  if (!persist) return;
+  try {
+    localStorage.setItem(themeStorageKey, activeTheme);
+  } catch {
+    // Theme preference is optional; keep the current page usable.
+  }
+}
+
+function restoreTheme() {
+  try {
+    setTheme(localStorage.getItem(themeStorageKey) === "light" ? "light" : "dark", false);
+  } catch {
+    setTheme("dark", false);
+  }
 }
 
 function getCommandPaletteMatches() {
@@ -9978,6 +10008,12 @@ modelName.addEventListener("change", () => {
   checkProviderHealth();
 });
 
+saveModelConfigButton?.addEventListener("click", () => {
+  saveServiceSettings();
+  updateProviderUI();
+  showToast("模型配置已保存");
+});
+
 creativitySelect.addEventListener("change", () => {
   syncModeControls();
   saveServiceSettings();
@@ -10261,6 +10297,12 @@ commandPaletteDialog.addEventListener("click", (event) => {
 toggleFocusModeButton.addEventListener("click", () => {
   setFocusMode(!document.body.classList.contains("focus-mode"));
   showToast(document.body.classList.contains("focus-mode") ? "已进入专注模式" : "已退出专注模式");
+});
+
+toggleThemeButton?.addEventListener("click", () => {
+  const nextTheme = document.body.dataset.theme === "light" ? "dark" : "light";
+  setTheme(nextTheme);
+  showToast(nextTheme === "dark" ? "已切换到深色主题" : "已切换到浅色主题");
 });
 
 document.querySelector("#exportSession").addEventListener("click", exportSession);
@@ -11066,6 +11108,7 @@ renderConversation();
 updateProviderUI();
 updateCount();
 updateStorageStatus();
+restoreTheme();
 restoreFocusMode();
 syncRetrievalStrategy();
 renderNovelSpaceLibrary();
