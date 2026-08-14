@@ -32,6 +32,7 @@ from reviewed_memory_pipeline import (
     MIN_SAMPLE_CHAPTERS,
     ReviewedMemoryCancelled,
     checkpoint_payload,
+    estimate_full_build_tokens,
     read_checkpoint,
     representative_titles,
     run_reviewed_memory_pipeline,
@@ -1473,6 +1474,17 @@ def _reviewed_memory_job_view(job: dict[str, Any], current_revision: str) -> dic
     stale = bool(job.get("source_revision") and job.get("source_revision") != current_revision)
     if stale:
         status = "stale"
+    raw_metrics = job.get("token_metrics") if isinstance(job.get("token_metrics"), dict) else {}
+    now = time.time()
+    started_at = float(raw_metrics.get("started_at") or job.get("created_at") or now)
+    elapsed_seconds = max(0.0, now - started_at)
+    input_tokens = max(0, int(raw_metrics.get("input_tokens") or 0))
+    output_tokens = max(0, int(raw_metrics.get("output_tokens") or 0))
+    total_tokens = max(input_tokens + output_tokens, int(raw_metrics.get("total_tokens") or 0))
+    estimated_total_tokens = max(total_tokens, int(raw_metrics.get("estimated_total_tokens") or 0))
+    tokens_per_minute = total_tokens / elapsed_seconds * 60 if elapsed_seconds >= 1 and total_tokens else 0.0
+    remaining_tokens = max(0, estimated_total_tokens - total_tokens)
+    estimated_finish_at = now + remaining_tokens / tokens_per_minute * 60 if tokens_per_minute > 0 and remaining_tokens else 0.0
     return {
         "job_id": str(job.get("job_id") or ""),
         "space_id": str(job.get("space_id") or ""),
@@ -1492,6 +1504,18 @@ def _reviewed_memory_job_view(job: dict[str, Any], current_revision: str) -> dic
         "product_ready": status == "production",
         "scope": "full" if job.get("scope") == "full" else "pilot",
         "updated_at": float(job.get("updated_at") or 0),
+        "token_metrics": {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": total_tokens,
+            "estimated_total_tokens": estimated_total_tokens,
+            "remaining_tokens": remaining_tokens,
+            "elapsed_seconds": round(elapsed_seconds, 1),
+            "tokens_per_minute": round(tokens_per_minute, 1),
+            "estimated_finish_at": round(estimated_finish_at, 3) if estimated_finish_at else 0,
+            "calls": max(0, int(raw_metrics.get("calls") or 0)),
+            "usage_source": str(raw_metrics.get("usage_source") or "estimated"),
+        },
     }
 
 
@@ -1533,6 +1557,97 @@ def reviewed_memory_status(space_id: str = "") -> dict[str, Any]:
         "status": "idle",
         "stage": "可构建深度记忆",
     }, revision)
+
+
+def reviewed_memory_preview(space_id: str = "", query: str = "", category: str = "all", limit: int = 40) -> dict[str, Any]:
+    """Expose incrementally completed model facts without promoting them.
+
+    The full build writes a checkpoint after every chapter. This read-only
+    view lets the UI stream those already reviewed facts while keeping the
+    raw sentence index separate and keeping the final graph promotion gate
+    intact.
+    """
+    normalized_space_id = str(space_id or "").strip() or DEFAULT_SOURCE_ID
+    if not is_known_novel_space(normalized_space_id):
+        raise ValueError("找不到对应的小说知识空间")
+    bounded_limit = max(1, min(int(limit), 120))
+    normalized_category = str(category or "all").strip().lower()
+    if normalized_category not in SOURCE_KNOWLEDGE_CATEGORIES:
+        normalized_category = "all"
+    normalized_query = normalize_chapter_markers(re.sub(r"\s+", " ", str(query or "").strip().lower()))
+    status = reviewed_memory_status(normalized_space_id)
+    revision = source_revision(normalized_space_id)
+    claims: list[dict[str, Any]] = []
+    product_ready = bool(status.get("product_ready"))
+    if product_ready and revision and _reviewed_memory_backend.is_product_ready(normalized_space_id, revision):
+        exported = _reviewed_memory_backend.export_space(normalized_space_id)
+        claims = [dict(item) for item in exported.get("claims", []) if isinstance(item, dict)]
+    else:
+        checkpoint_path = reviewed_memory_checkpoint_path(normalized_space_id)
+        try:
+            raw_checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+        except (OSError, TypeError, ValueError):
+            raw_checkpoint = {}
+        selected_titles = raw_checkpoint.get("selected_titles") if isinstance(raw_checkpoint, dict) else []
+        completed = read_checkpoint(checkpoint_path, normalized_space_id, revision, selected_titles)
+        for chapter in completed:
+            chapter_title = str(chapter.get("chapter") or "未知章节")[:160]
+            chunk_index = int(chapter.get("source_chunk_start") or 0)
+            for fact in chapter.get("promoted_facts", []):
+                if not isinstance(fact, dict):
+                    continue
+                claims.append({**fact, "chapter": chapter_title, "chunk_index": chunk_index})
+
+    filtered: list[tuple[float, dict[str, Any]]] = []
+    for claim in claims:
+        claim_category = str(claim.get("category") or "event")
+        if normalized_category != "all" and claim_category != normalized_category:
+            continue
+        statement = re.sub(r"\s+", " ", str(claim.get("statement") or "")).strip()
+        evidence = claim.get("evidence") if isinstance(claim.get("evidence"), dict) else {}
+        quote = re.sub(r"\s+", " ", str(claim.get("evidence_quote") or evidence.get("quote") or "")).strip()
+        chapter = re.sub(r"\s+", " ", str(claim.get("chapter") or evidence.get("chapter") or "未知章节")).strip()
+        haystack = normalize_chapter_markers(f"{statement}\n{quote}\n{chapter}").lower()
+        score = 0.0
+        if normalized_query:
+            if normalized_query in haystack:
+                score += 20.0
+            matched = sum(1 for term, _ in source_query_terms(normalized_query) if term in haystack)
+            if not matched:
+                continue
+            score += matched * 4.0
+        filtered.append((score, {
+            "id": str(claim.get("id") or ""),
+            "category": claim_category,
+            "category_label": SOURCE_KNOWLEDGE_CATEGORY_LABELS.get(claim_category, "原作知识"),
+            "title": statement[:36] + ("…" if len(statement) > 36 else ""),
+            "content": statement,
+            "evidence_quote": quote,
+            "chapter": chapter,
+            "chunk_index": int(claim.get("chunk_index") or evidence.get("chunk_index") or 0),
+            "source_revision": revision,
+            "memory_backend": "reviewed_graph" if product_ready else "model_memory_preview",
+            "knowledge_layer": "reviewed_graph" if product_ready else "model_memory_preview",
+            "is_reviewed": product_ready,
+            "is_temporary": not product_ready,
+        }))
+    filtered.sort(key=lambda pair: (pair[0], -int(pair[1].get("chunk_index") or 0)), reverse=True)
+    return {
+        "space_id": normalized_space_id,
+        "source_revision": revision,
+        "knowledge_layer": "reviewed_graph" if product_ready else "model_memory_preview",
+        "is_reviewed": product_ready,
+        "is_temporary": not product_ready,
+        "streaming": status.get("status") in {"queued", "extracting", "reviewing", "building", "cancelling"},
+        "memory_build": {
+            "status": status.get("status", "idle"),
+            "progress": int(status.get("progress") or 0),
+            "completed_chapters": int(status.get("completed_chapters") or 0),
+            "total_chapters": int(status.get("total_chapters") or 0),
+        },
+        "count": len(claims),
+        "items": [item for _, item in filtered[:bounded_limit]],
+    }
 
 
 def start_reviewed_memory_job(payload: dict[str, Any]) -> dict[str, Any]:
@@ -1586,12 +1701,34 @@ def start_reviewed_memory_job(payload: dict[str, Any]) -> dict[str, Any]:
         current = _reviewed_memory_jobs.get(space_id)
         if current and current.get("status") in {"queued", "extracting", "reviewing", "building", "cancelling"}:
             return _reviewed_memory_job_view(current, revision)
+        prior_metrics = current.get("token_metrics") if isinstance(current, dict) and isinstance(current.get("token_metrics"), dict) else {}
+        estimated_total_tokens = max(
+            int(prior_metrics.get("estimated_total_tokens") or 0),
+            estimate_full_build_tokens(previews),
+        )
+        token_metrics = {
+            **prior_metrics,
+            "input_tokens": max(0, int(prior_metrics.get("input_tokens") or 0)),
+            "output_tokens": max(0, int(prior_metrics.get("output_tokens") or 0)),
+            "total_tokens": max(0, int(prior_metrics.get("total_tokens") or 0)),
+            "estimated_total_tokens": estimated_total_tokens,
+            "calls": max(0, int(prior_metrics.get("calls") or 0)),
+            "started_at": float(prior_metrics.get("started_at") or (current or {}).get("created_at") or now),
+            "usage_source": str(prior_metrics.get("usage_source") or "estimated"),
+        }
         resume_statuses = {"cancelled", "interrupted", "error"}
         existing_chapters = (
             read_checkpoint(checkpoint_path, space_id, revision, selected_titles)
             if current and current.get("status") in resume_statuses
             else []
         )
+        if existing_chapters and not prior_metrics.get("total_tokens"):
+            historical_estimate = round(estimated_total_tokens * len(existing_chapters) / max(1, len(previews)))
+            token_metrics.update({
+                "total_tokens": historical_estimate,
+                "calls": len(existing_chapters) * 2,
+                "usage_source": "estimated",
+            })
         if current and current.get("status") == "needs_review":
             checkpoint_path.unlink(missing_ok=True)
         _reviewed_memory_jobs[space_id] = {
@@ -1608,6 +1745,7 @@ def start_reviewed_memory_job(payload: dict[str, Any]) -> dict[str, Any]:
             "scope": scope,
             "created_at": now,
             "updated_at": now,
+            "token_metrics": token_metrics,
         }
         _persist_reviewed_memory_jobs_locked()
 
@@ -1615,6 +1753,36 @@ def start_reviewed_memory_job(payload: dict[str, Any]) -> dict[str, Any]:
         with _reviewed_memory_jobs_lock:
             current_job = _reviewed_memory_jobs.get(space_id, {})
             return current_job.get("job_id") != job_id or bool(current_job.get("cancel_requested"))
+
+    def record_usage(event: dict[str, Any]) -> None:
+        with _reviewed_memory_jobs_lock:
+            current_job = _reviewed_memory_jobs.get(space_id, {})
+            if current_job.get("job_id") != job_id:
+                raise ReviewedMemoryCancelled()
+            metrics = dict(current_job.get("token_metrics") or {})
+            input_tokens = max(0, int(event.get("input_tokens") or 0))
+            output_tokens = max(0, int(event.get("output_tokens") or 0))
+            total_tokens = max(input_tokens + output_tokens, int(event.get("total_tokens") or 0))
+            prior_usage_source = str(metrics.get("usage_source") or "estimated")
+            next_usage_source = (
+                "mixed"
+                if event.get("usage_source") == "provider" and prior_usage_source == "estimated" and int(metrics.get("total_tokens") or 0) > 0
+                else "provider" if event.get("usage_source") == "provider" else prior_usage_source
+            )
+            metrics.update({
+                "input_tokens": int(metrics.get("input_tokens") or 0) + input_tokens,
+                "output_tokens": int(metrics.get("output_tokens") or 0) + output_tokens,
+                "total_tokens": int(metrics.get("total_tokens") or 0) + total_tokens,
+                "calls": int(metrics.get("calls") or 0) + 1,
+                "last_call_at": float(event.get("timestamp") or time.time()),
+                "usage_source": next_usage_source,
+            })
+            _reviewed_memory_jobs[space_id] = {
+                **current_job,
+                "token_metrics": metrics,
+                "updated_at": time.time(),
+            }
+            _persist_reviewed_memory_jobs_locked()
 
     def update_progress(progress: int, stage: str, chapters: list[dict[str, Any]]) -> None:
         _write_json_atomic(checkpoint_path, checkpoint_payload(
@@ -1657,6 +1825,7 @@ def start_reviewed_memory_job(payload: dict[str, Any]) -> dict[str, Any]:
                 update_progress,
                 cancelled,
                 existing_chapters=existing_chapters,
+                usage_callback=record_usage,
             )
             if cancelled():
                 raise ReviewedMemoryCancelled()
@@ -2043,7 +2212,13 @@ def source_knowledge_sentence_category(sentence: str, space_id: str = "") -> tup
 
 
 def build_source_knowledge(space_id: str = "") -> dict[str, Any]:
-    """Build a bounded, source-only fact index with chapter-level provenance."""
+    """Build a bounded source retrieval index with chapter provenance.
+
+    This is intentionally not called structured memory: it selects useful
+    sentences from the source with deterministic rules, but does not resolve
+    entities, time scopes, or contradictions through the reviewed memory
+    pipeline.
+    """
     normalized_space_id = str(space_id or "").strip() or DEFAULT_SOURCE_ID
     if not is_known_novel_space(normalized_space_id):
         raise ValueError("找不到对应的小说知识空间")
@@ -2098,6 +2273,9 @@ def build_source_knowledge(space_id: str = "") -> dict[str, Any]:
         "schema_version": SOURCE_KNOWLEDGE_SCHEMA_VERSION,
         "space_id": normalized_space_id,
         "source_revision": revision,
+        "knowledge_layer": "source_index",
+        "is_reviewed": False,
+        "is_temporary": True,
         "generated_at": time.time(),
         "counts": category_counts,
         "count": len(selected),
@@ -2207,7 +2385,12 @@ def reviewed_source_memory_search(
 
 
 def source_knowledge_search(query: str, space_id: str = "", limit: int = 6, category: str = "all") -> list[dict[str, Any]]:
-    """Retrieve structured source facts without ever consulting creative notes."""
+    """Retrieve source evidence, or reviewed graph facts when promoted.
+
+    The fallback source index is useful evidence, but it is not an
+    entity-resolved memory graph. Callers should inspect the returned layer
+    before presenting a result as structured memory.
+    """
     normalized_space_id = str(space_id or "").strip() or DEFAULT_SOURCE_ID
     normalized_query = normalize_chapter_markers(re.sub(r"\s+", " ", str(query or "").strip().lower()))
     normalized_category = str(category or "all").strip().lower()
@@ -2225,8 +2408,19 @@ def source_knowledge_search(query: str, space_id: str = "", limit: int = 6, cate
         return reviewed_items
     knowledge = source_knowledge(normalized_space_id)
     items = [item for item in knowledge.get("items", []) if normalized_category == "all" or item.get("category") == normalized_category]
+
+    def annotate_source_index(item: dict[str, Any], **extra: Any) -> dict[str, Any]:
+        return {
+            **item,
+            **extra,
+            "memory_backend": "source_index",
+            "knowledge_layer": "source_index",
+            "is_reviewed": False,
+            "is_temporary": True,
+        }
+
     if not normalized_query:
-        return [dict(item) for item in items[:bounded_limit]]
+        return [annotate_source_index(dict(item)) for item in items[:bounded_limit]]
     heading_focus = list(dict.fromkeys(
         normalize_chapter_markers(match.group(0)) for match in SOURCE_HEADING_FOCUS_RE.finditer(normalized_query)
     ))
@@ -2286,14 +2480,18 @@ def source_knowledge_search(query: str, space_id: str = "", limit: int = 6, cate
         if matched or score >= 10.0:
             scored.append((score + float(item.get("score") or 0) * 0.05, item))
     scored.sort(key=lambda pair: (pair[0], -int(pair[1].get("chunk_index") or 0)), reverse=True)
-    return [{**item, "match_score": round(score, 2)} for score, item in scored[:bounded_limit]]
+    return [annotate_source_index(item, match_score=round(score, 2)) for score, item in scored[:bounded_limit]]
 
 
 def source_knowledge_view(space_id: str = "", query: str = "", category: str = "all", limit: int = 40, force: bool = False) -> dict[str, Any]:
-    """Return a safe, bounded view of the source-derived knowledge index."""
+    """Return a bounded view with an explicit evidence/memory layer."""
     normalized_space_id = str(space_id or "").strip() or DEFAULT_SOURCE_ID
     current_revision = source_revision(normalized_space_id)
-    if current_revision and _reviewed_memory_backend.is_product_ready(normalized_space_id, current_revision):
+    reviewed_ready = bool(
+        current_revision
+        and _reviewed_memory_backend.is_product_ready(normalized_space_id, current_revision)
+    )
+    if reviewed_ready:
         reviewed = _reviewed_memory_backend.export_space(normalized_space_id)
         reviewed_counts = {key: 0 for key in SOURCE_KNOWLEDGE_CATEGORIES}
         for claim in reviewed.get("claims", []):
@@ -2302,16 +2500,34 @@ def source_knowledge_view(space_id: str = "", query: str = "", category: str = "
                 reviewed_counts[claim_category] += 1
         knowledge = {
             "source_revision": current_revision,
+            "knowledge_layer": "reviewed_graph",
+            "is_reviewed": True,
+            "is_temporary": False,
             "generated_at": 0,
             "count": len(reviewed.get("claims", [])),
             "counts": reviewed_counts,
         }
     else:
         knowledge = source_knowledge(normalized_space_id, force=force)
+    try:
+        build = reviewed_memory_status(normalized_space_id)
+    except ValueError:
+        # A caller may inspect a mocked or not-yet-registered source index;
+        # layer metadata should still be available in that read-only view.
+        build = {"status": "idle", "progress": 0, "completed_chapters": 0, "total_chapters": 0}
     items = source_knowledge_search(query, normalized_space_id, limit=limit, category=category)
     return {
         "space_id": normalized_space_id,
         "source_revision": knowledge.get("source_revision", ""),
+        "knowledge_layer": "reviewed_graph" if reviewed_ready else "source_index",
+        "is_reviewed": reviewed_ready,
+        "is_temporary": not reviewed_ready,
+        "memory_build": {
+            "status": build.get("status", "idle"),
+            "progress": int(build.get("progress") or 0),
+            "completed_chapters": int(build.get("completed_chapters") or 0),
+            "total_chapters": int(build.get("total_chapters") or 0),
+        },
         "generated_at": float(knowledge.get("generated_at") or 0),
         "count": int(knowledge.get("count") or 0),
         "counts": {
@@ -4243,11 +4459,15 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
     source_context = "\n\n".join(source_context_parts)
     source_knowledge_context = "\n\n".join(
         "\n".join(filter(None, (
-            f"【{item.get('category_label', '原作知识')} · 依据：{item.get('chapter', '未知章节')}】",
+            f"【{('经审核记忆' if item.get('memory_backend') == 'reviewed_graph' else '原文线索 · ' + str(item.get('category_label', '原作知识')))} · 依据：{item.get('chapter', '未知章节')}】",
             str(item.get("content") or ""),
             f"原文证据：{item.get('evidence_quote')}" if item.get("evidence_quote") else "",
         )))
         for item in source_knowledge_matches
+    )
+    source_knowledge_is_reviewed = bool(
+        source_knowledge_matches
+        and all(item.get("memory_backend") == "reviewed_graph" for item in source_knowledge_matches)
     )
     combined_source_matches = [
         *prompt_source_matches,
@@ -4306,7 +4526,8 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
             "事实句末尽量使用“（依据：章节标题）”标出当前片段中的依据。无法直接支持的内容必须标为“合理推断”或“目前不确定”，"
             "不得用模型记忆把多个片段拼成未被明确支持的结论。"
             "对于‘是什么关系、在哪里、得到什么、有什么作用、需要什么代价’等直接事实题，只回答问题要求的范围；"
-            "先使用结构化知识中最直接的事实作答，不要为了显得完整而罗列同章其他人物、物品、环境或后续细节。"
+            "优先使用经审核结构化记忆中最直接的事实；如果当前只有原文检索线索，就先回到原文片段核对，不要把线索当成已建立的记忆；"
+            "不要为了显得完整而罗列同章其他人物、物品、环境或后续细节。"
             f"\n本次原作检索强度：{source_quality_prompt_hint(source_quality)}"
             f"\n本次答案依据层级：{source_answer_coverage_prompt_hint(answer_coverage)}"
             "\n问答模式不读取小说空间的用户长期笔记作为事实依据；如需核对原作，请只依据当前检索片段。"
@@ -4325,11 +4546,26 @@ def build_messages(payload: dict[str, Any]) -> list[dict[str, str]]:
             f"{memory_context}"
         )
     if source_knowledge_context:
+        knowledge_heading = (
+            f"{source_name(source_space_id)}经审核的原作结构化记忆"
+            if source_knowledge_is_reviewed
+            else f"{source_name(source_space_id)}原文检索线索"
+        )
+        knowledge_instruction = (
+            "这些内容已经通过原文证据、实体和时间范围审查，可以辅助回答人物关系、人物信息、世界设定和关键事件；引用时必须保留章节出处。"
+            if source_knowledge_is_reviewed
+            else "这些内容只是从原文句子筛出的检索线索，尚未通过结构化记忆审查；可以用来定位和核对原文，但不能把它们当作已经建立的人物关系、世界设定或时间线记忆。"
+        )
+        knowledge_consistency_instruction = (
+            "若结构化记忆与本次原文检索片段不一致，以原文检索片段为准。"
+            if source_knowledge_is_reviewed
+            else "回答时仍必须以当前原文检索片段为直接依据。"
+        )
         system += (
-            f"\n{source_name(source_space_id)}原作结构化知识（自动从原文句子提取，并保留章节出处）：\n"
+            f"\n{knowledge_heading}（保留章节出处）：\n"
             f"{source_knowledge_context}\n"
-            "这些内容属于原作知识层，不是用户创作笔记。可以帮助回答人物关系、人物信息、世界设定和关键事件；"
-            "引用时必须保留其章节出处。若结构化知识与本次原文检索片段不一致，以原文检索片段为准。"
+            f"{knowledge_instruction}"
+            f"引用时必须保留其章节出处。{knowledge_consistency_instruction}"
         )
     if source_context:
         system += (
@@ -4508,6 +4744,18 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             try:
                 self.send_json({"ok": True, "memory": novel_space_memory(space_id)})
             except ValueError as exc:
+                self.send_json({"ok": False, "error": public_error(exc)}, status=HTTPStatus.NOT_FOUND)
+            return
+        if parsed.path == "/api/novels/reviewed-memory/preview":
+            query = parse_qs(parsed.query)
+            space_id = query.get("novel_space_id", [DEFAULT_SOURCE_ID])[0][:100]
+            search_query = query.get("query", [""])[0][:120]
+            category = query.get("category", ["all"])[0][:20]
+            try:
+                limit = max(1, min(int(query.get("limit", ["40"])[0]), 120))
+                preview = reviewed_memory_preview(space_id, search_query, category, limit)
+                self.send_json({"ok": True, "memory_preview": preview})
+            except (TypeError, ValueError) as exc:
                 self.send_json({"ok": False, "error": public_error(exc)}, status=HTTPStatus.NOT_FOUND)
             return
         if parsed.path == "/api/novels/knowledge":

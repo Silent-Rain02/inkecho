@@ -2024,6 +2024,47 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertIn("第二卷", results[0]["chapter"])
 
+    def test_reviewed_memory_preview_reads_completed_checkpoint_facts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, patch("server.novel_space_root", return_value=Path(directory)):
+            space = upload_novel_space({
+                "name": "阶段记忆测试",
+                "filename": "阶段记忆.txt",
+                "text": "第一章：开局\n林澈与周岚结盟。",
+            })
+            revision = server.source_revision(space["id"])
+            checkpoint = server.reviewed_memory_checkpoint_path(space["id"])
+            checkpoint.parent.mkdir(parents=True, exist_ok=True)
+            checkpoint.write_text(json.dumps({
+                "schema_version": 1,
+                "space_id": space["id"],
+                "source_revision": revision,
+                "prompt_version": "v10-diegetic-only",
+                "selected_titles": ["第一章：开局"],
+                "chapters": [{
+                    "chapter": "第一章：开局",
+                    "source_chunk_start": 1,
+                    "promoted_facts": [{
+                        "id": "model-fact-1",
+                        "category": "relation",
+                        "statement": "林澈与周岚结盟。",
+                        "evidence_quote": "林澈与周岚结盟。",
+                    }],
+                }],
+            }, ensure_ascii=False), encoding="utf-8")
+            with patch("server.reviewed_memory_status", return_value={
+                "status": "reviewing",
+                "progress": 4,
+                "completed_chapters": 1,
+                "total_chapters": 2,
+                "product_ready": False,
+            }):
+                preview = server.reviewed_memory_preview(space["id"])
+            self.assertEqual(preview["knowledge_layer"], "model_memory_preview")
+            self.assertTrue(preview["streaming"])
+            self.assertEqual(preview["count"], 1)
+            self.assertEqual(preview["items"][0]["memory_backend"], "model_memory_preview")
+            self.assertEqual(preview["items"][0]["chapter"], "第一章：开局")
+
     def test_source_knowledge_prefers_promoted_reviewed_memory(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             backend = PersistentEcphoryMemoryBackend(Path(directory))
@@ -2627,7 +2668,8 @@ class ServerConfigTests(unittest.TestCase):
                 "messages": [{"role": "user", "content": "林澈和周岚是什么关系？", "mode": "问答"}],
             })
         prompt = messages[0]["content"]
-        self.assertIn("原作结构化知识", prompt)
+        self.assertIn("原文检索线索", prompt)
+        self.assertIn("尚未通过结构化记忆审查", prompt)
         self.assertIn("林澈是周岚的师父", prompt)
         self.assertIn("依据：第一章：开局", prompt)
         self.assertNotIn("周岚其实来自月球", prompt)

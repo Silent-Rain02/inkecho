@@ -2229,6 +2229,26 @@ button:focus-visible,
 .source-knowledge-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .source-knowledge-heading strong { color: #e4dde9; font-size: 15px; font-weight: 500; }
 .source-knowledge-heading p { max-width: 600px; margin: 6px 0 0; color: #817a89; font-size: 10px; line-height: 1.65; }
+.model-memory-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 17px; }
+.model-memory-live { color: #746d7d; font: 8px var(--mono); }
+.model-memory-live.is-live { color: #9fc6b4; }
+.model-memory-hint { display: block; margin-top: 7px; color: #817a89; font-size: 9px; line-height: 1.55; }
+.model-memory-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.model-memory-card { display: flex; min-width: 0; min-height: 150px; flex-direction: column; padding: 15px; border: 1px solid rgba(143,129,181,.34); border-radius: 13px; background: rgba(21,19,29,.88); transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+.model-memory-card.is-streaming-memory { border-style: solid; box-shadow: inset 0 1px rgba(179,153,220,.06); }
+.model-memory-card.is-reviewed-memory { border-color: rgba(90,150,126,.4); }
+.model-memory-card:hover { border-color: #76668c; background: rgba(25,22,34,.94); transform: translateY(-1px); }
+.model-memory-card p { margin: 12px 0 15px; color: #c0b8c8; font-size: 11px; line-height: 1.75; }
+.model-memory-empty { grid-column: 1 / -1; }
+.source-index-disclosure { margin-top: 22px; border-top: 1px solid #2b2832; }
+.source-index-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 2px 4px; cursor: pointer; list-style: none; color: #aaa1b3; font-size: 11px; }
+.source-index-disclosure > summary::-webkit-details-marker { display: none; }
+.source-index-disclosure > summary::before { width: 14px; color: #766d7c; content: "＋"; font: 12px var(--mono); }
+.source-index-disclosure[open] > summary::before { content: "－"; }
+.source-index-disclosure > summary span { margin-right: auto; }
+.source-index-disclosure > summary small { color: #716b78; font-size: 9px; }
+.source-index-disclosure > summary:hover { color: #d8d0e1; }
+.source-index-disclosure-body { padding-top: 5px; }
 .reviewed-memory-build { position: relative; margin-top: 16px; padding: 15px 16px; overflow: hidden; border: 1px solid #332f3a; border-radius: 14px; background: linear-gradient(135deg, rgba(24,22,30,.94), rgba(18,17,23,.9)); }
 .reviewed-memory-build::after { position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 1px rgba(255,255,255,.025); content: ""; pointer-events: none; }
 .reviewed-memory-build-copy { display: flex; align-items: flex-start; gap: 11px; }
@@ -2246,6 +2266,11 @@ button:focus-visible,
 .reviewed-memory-build[data-state="stale"] .reviewed-memory-build-mark { border-color: rgba(171,104,85,.55); color: #c69a8c; }
 .reviewed-memory-progress { height: 2px; margin: 13px 0 0 37px; overflow: hidden; border-radius: 999px; background: #2d2932; }
 .reviewed-memory-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #75628d, #a78bc2); transition: width .35s ease; }
+.reviewed-memory-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 13px 0 0 37px; }
+.reviewed-memory-metrics span { min-width: 0; padding: 7px 8px; border: 1px solid #2b2833; border-radius: 8px; background: rgba(12,11,16,.32); }
+.reviewed-memory-metrics strong, .reviewed-memory-metrics small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reviewed-memory-metrics strong { color: #c8bdd6; font: 10px var(--mono); }
+.reviewed-memory-metrics small { margin-top: 3px; color: #716b78; font-size: 8px; }
 .reviewed-memory-build-actions { display: flex; align-items: center; gap: 8px; margin: 13px 0 0 37px; }
 .reviewed-memory-build-actions:empty { display: none; }
 .reviewed-memory-build-actions .page-primary-button,
@@ -2258,6 +2283,8 @@ button:focus-visible,
 .source-knowledge-hint[data-state="error"] { color: #c78c7a; }
 .source-knowledge-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 17px; }
 .source-knowledge-card { display: flex; min-width: 0; min-height: 150px; flex-direction: column; padding: 15px; border: 1px solid #302d38; border-radius: 13px; background: rgba(18,17,24,.76); transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+.source-knowledge-card.is-source-index { border-style: dashed; }
+.source-knowledge-card.is-reviewed-memory { border-color: rgba(90,150,126,.28); }
 .source-knowledge-card:hover { border-color: #403a4a; background: rgba(22,20,29,.9); transform: translateY(-1px); }
 .source-knowledge-badge { align-self: flex-start; padding: 4px 8px; border-radius: 999px; color: #aaa0b8; background: #24212b; font: 8px var(--mono); }
 .source-knowledge-badge.is-relation { color: #c9afe8; background: rgba(138,98,190,.13); }
@@ -2277,10 +2304,13 @@ button:focus-visible,
   .memory-layer-tabs { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
   .memory-layer-tab { min-width: 0; }
   .source-knowledge-heading { align-items: stretch; flex-direction: column; }
-  .reviewed-memory-build-actions, .reviewed-memory-progress { margin-left: 0; }
+  .reviewed-memory-build-actions, .reviewed-memory-progress, .reviewed-memory-metrics { margin-left: 0; }
   .source-knowledge-toolbar { align-items: stretch; flex-direction: column; }
   .source-knowledge-toolbar .memory-count { align-self: flex-start; padding-left: 0; }
   .source-knowledge-list { grid-template-columns: 1fr; }
+  .model-memory-list { grid-template-columns: 1fr; }
+  .model-memory-toolbar { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .reviewed-memory-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 body[data-workspace-view="memory"] .page-heading { padding-top: 20px; padding-bottom: 17px; }

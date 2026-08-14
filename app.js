@@ -321,11 +321,23 @@ const sourceKnowledgeCount = document.querySelector("#sourceKnowledgeCount");
 const sourceKnowledgeSummary = document.querySelector("#sourceKnowledgeSummary");
 const sourceKnowledgeHint = document.querySelector("#sourceKnowledgeHint");
 const sourceKnowledgeList = document.querySelector("#sourceKnowledgeList");
+const modelMemoryCount = document.querySelector("#modelMemoryCount");
+const modelMemoryLive = document.querySelector("#modelMemoryLive");
+const modelMemoryHint = document.querySelector("#modelMemoryHint");
+const modelMemoryList = document.querySelector("#modelMemoryList");
+const sourceKnowledgeDisclosure = document.querySelector("#sourceKnowledgeDisclosure");
 const reviewedMemoryBuild = document.querySelector("#reviewedMemoryBuild");
 const reviewedMemoryBuildTitle = document.querySelector("#reviewedMemoryBuildTitle");
 const reviewedMemoryBuildDescription = document.querySelector("#reviewedMemoryBuildDescription");
 const reviewedMemoryProgress = document.querySelector("#reviewedMemoryProgress");
 const reviewedMemoryProgressBar = document.querySelector("#reviewedMemoryProgressBar");
+const reviewedMemoryMetrics = document.querySelector("#reviewedMemoryMetrics");
+const memoryTokensSpent = document.querySelector("#memoryTokensSpent");
+const memoryTokensSpentLabel = document.querySelector("#memoryTokensSpentLabel");
+const memoryElapsedTime = document.querySelector("#memoryElapsedTime");
+const memoryEstimatedTokens = document.querySelector("#memoryEstimatedTokens");
+const memoryTokensPerMinute = document.querySelector("#memoryTokensPerMinute");
+const memoryEstimatedFinish = document.querySelector("#memoryEstimatedFinish");
 const startReviewedMemoryBuildButton = document.querySelector("#startReviewedMemoryBuild");
 const startFullReviewedMemoryBuildButton = document.querySelector("#startFullReviewedMemoryBuild");
 const promoteReviewedMemoryBuildButton = document.querySelector("#promoteReviewedMemoryBuild");
@@ -1122,9 +1134,11 @@ let activeNovelMemory = { spaceId: defaultNovelSpaceId, notes: [], count: 0 };
 let editingNovelMemoryId = null;
 let activeMemoryLayer = "source";
 let activeSourceKnowledgeCategory = "all";
-let activeSourceKnowledge = { spaceId: "", count: 0, counts: {}, items: [] };
+let activeSourceKnowledge = { spaceId: "", count: 0, counts: {}, items: [], knowledgeLayer: "source_index", isReviewed: false, isTemporary: true };
+let activeModelMemory = { spaceId: "", count: 0, items: [], knowledgeLayer: "model_memory_preview", isReviewed: false, isTemporary: true, streaming: false, memoryBuild: {} };
 let sourceKnowledgeRequestId = 0;
 let sourceKnowledgeSearchTimer = null;
+let modelMemoryRequestId = 0;
 let reviewedMemoryBuildState = { spaceId: "", status: "idle", progress: 0, memoryRevision: "" };
 let reviewedMemoryStatusTimer = null;
 function normalizeSpaceRecovery(value) {
@@ -1882,6 +1896,7 @@ function setMemoryLayer(layer, { focus = false } = {}) {
   activeMemoryLayer = layer === "creative" ? "creative" : "source";
   const sourceActive = activeMemoryLayer === "source";
   if (sourceKnowledgePanel) sourceKnowledgePanel.hidden = !sourceActive;
+  if (modelMemoryList) modelMemoryList.hidden = !sourceActive;
   if (creativeMemoryPanel) creativeMemoryPanel.hidden = sourceActive;
   if (openNovelMemoryComposerButton) openNovelMemoryComposerButton.hidden = sourceActive;
   memoryLayerTabs.forEach((button) => {
@@ -1893,18 +1908,123 @@ function setMemoryLayer(layer, { focus = false } = {}) {
   if (sourceActive) {
     loadSourceKnowledge(getCurrentNovelSpaceId());
     loadReviewedMemoryStatus(getCurrentNovelSpaceId());
+    loadReviewedMemoryPreview(getCurrentNovelSpaceId());
     if (focus) sourceKnowledgeSearchInput?.focus();
   } else if (focus) {
     novelMemorySearchInput?.focus();
   }
 }
 
-function normalizeSourceKnowledge(payload, spaceId) {
+function normalizeModelMemory(payload, spaceId) {
   const source = payload && typeof payload === "object" ? payload : {};
-  const counts = source.counts && typeof source.counts === "object" ? source.counts : {};
+  const knowledgeLayer = safeText(source.knowledge_layer, "model_memory_preview", 40);
   return {
     spaceId,
     count: Math.max(0, Number(source.count) || 0),
+    knowledgeLayer,
+    isReviewed: source.is_reviewed === true || knowledgeLayer === "reviewed_graph",
+    isTemporary: source.is_temporary !== false && knowledgeLayer !== "reviewed_graph",
+    streaming: source.streaming === true,
+    memoryBuild: source.memory_build && typeof source.memory_build === "object" ? source.memory_build : {},
+    items: (Array.isArray(source.items) ? source.items : []).map((item) => ({
+      id: safeText(item?.id, "", 80),
+      category: safeText(item?.category, "event", 20),
+      categoryLabel: safeText(item?.category_label, "原作记忆", 20),
+      title: safeText(item?.title, "原作记忆", 80),
+      content: safeText(item?.content, "", 420),
+      evidenceQuote: safeText(item?.evidence_quote, "", 420),
+      chapter: safeText(item?.chapter, "未知章节", 160),
+    })).filter((item) => item.content),
+  };
+}
+
+function renderModelMemory() {
+  if (!modelMemoryList) return;
+  const currentSpaceId = getCurrentNovelSpaceId();
+  const current = activeModelMemory.spaceId === currentSpaceId
+    ? activeModelMemory
+    : { count: 0, items: [], knowledgeLayer: "model_memory_preview", isReviewed: false, isTemporary: true, streaming: false, memoryBuild: {} };
+  const reviewed = current.knowledgeLayer === "reviewed_graph" || current.isReviewed === true;
+  const build = current.memoryBuild || {};
+  const completed = Math.max(0, Number(build.completed_chapters) || 0);
+  const total = Math.max(0, Number(build.total_chapters) || 0);
+  if (modelMemoryCount) {
+    modelMemoryCount.textContent = current.count
+      ? `${current.count.toLocaleString("zh-CN")} 条${reviewed ? "已审核记忆" : "模型记忆"}`
+      : reviewed ? "尚未形成记忆" : "模型记忆正在生成";
+  }
+  if (modelMemoryLive) {
+    modelMemoryLive.textContent = current.streaming ? "● 实时更新" : reviewed ? "✓ 已完成" : "○ 等待构建";
+    modelMemoryLive.classList.toggle("is-live", current.streaming);
+  }
+  if (modelMemoryHint) {
+    modelMemoryHint.textContent = current.streaming
+      ? `后台每完成一章就会刷新一次；当前已处理 ${completed.toLocaleString("zh-CN")} / ${total.toLocaleString("zh-CN")} 章。以下是阶段性提取结果。`
+      : reviewed
+        ? "这些记忆已通过原文证据审查，并保留可回查的章节出处。"
+        : "全文记忆尚未产出可展示的模型结果；下方原文线索已收起，仅用于手动核对。";
+  }
+  modelMemoryList.replaceChildren();
+  if (!current.items.length) {
+    const empty = document.createElement("p");
+    empty.className = "memory-empty model-memory-empty";
+    empty.textContent = current.streaming ? "模型正在提取第一批记忆……" : "暂时没有可展示的模型记忆。";
+    modelMemoryList.appendChild(empty);
+    return;
+  }
+  const categoryLabels = { character: "人物", relation: "关系", setting: "设定", event: "事件" };
+  current.items.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = `model-memory-card${reviewed ? " is-reviewed-memory" : " is-streaming-memory"}`;
+    const badge = document.createElement("span");
+    badge.className = `source-knowledge-badge is-${item.category}`;
+    badge.textContent = `${reviewed ? "已审核" : "模型提取"} · ${categoryLabels[item.category] || item.categoryLabel}`;
+    const content = document.createElement("p");
+    content.textContent = item.content;
+    const source = document.createElement("button");
+    source.type = "button";
+    source.className = "source-knowledge-source";
+    source.textContent = item.chapter;
+    source.title = "打开对应原文章节";
+    source.addEventListener("click", () => {
+      setWorkspaceView("source", { announce: true, focus: false });
+      openSourceChapterReader(item.chapter);
+    });
+    card.append(badge, content, source);
+    modelMemoryList.appendChild(card);
+  });
+}
+
+async function loadReviewedMemoryPreview(spaceId = getCurrentNovelSpaceId()) {
+  if (!modelMemoryList) return;
+  const normalizedSpaceId = safeText(spaceId, defaultNovelSpaceId, 100);
+  const requestId = ++modelMemoryRequestId;
+  try {
+    const query = new URLSearchParams({ novel_space_id: normalizedSpaceId, limit: "80" });
+    const response = await fetchWithTimeout(`/api/novels/reviewed-memory/preview?${query}`, {}, 15000);
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.memory_preview) throw new Error(payload.error || "模型记忆读取失败");
+    if (requestId !== modelMemoryRequestId || getCurrentNovelSpaceId() !== normalizedSpaceId) return;
+    activeModelMemory = normalizeModelMemory(payload.memory_preview, normalizedSpaceId);
+    renderModelMemory();
+  } catch (error) {
+    if (requestId !== modelMemoryRequestId) return;
+    activeModelMemory = { spaceId: normalizedSpaceId, count: 0, items: [], knowledgeLayer: "model_memory_preview", isReviewed: false, isTemporary: true, streaming: false, memoryBuild: {} };
+    if (modelMemoryHint) modelMemoryHint.textContent = error?.message || "模型记忆暂时无法读取";
+    renderModelMemory();
+  }
+}
+
+function normalizeSourceKnowledge(payload, spaceId) {
+  const source = payload && typeof payload === "object" ? payload : {};
+  const counts = source.counts && typeof source.counts === "object" ? source.counts : {};
+  const knowledgeLayer = safeText(source.knowledge_layer, "source_index", 30);
+  return {
+    spaceId,
+    count: Math.max(0, Number(source.count) || 0),
+    knowledgeLayer,
+    isReviewed: source.is_reviewed === true || knowledgeLayer === "reviewed_graph",
+    isTemporary: source.is_temporary !== false && knowledgeLayer !== "reviewed_graph",
     counts: {
       character: Math.max(0, Number(counts.character) || 0),
       relation: Math.max(0, Number(counts.relation) || 0),
@@ -1927,10 +2047,19 @@ function renderSourceKnowledge() {
   const currentSpaceId = getCurrentNovelSpaceId();
   const current = activeSourceKnowledge.spaceId === currentSpaceId
     ? activeSourceKnowledge
-    : { count: 0, counts: {}, items: [] };
+    : { count: 0, counts: {}, items: [], knowledgeLayer: "source_index", isReviewed: false, isTemporary: true };
+  const reviewedLayer = current.knowledgeLayer === "reviewed_graph" || current.isReviewed === true;
+  const categoryLabels = reviewedLayer
+    ? { character: "人物信息", relation: "人物关系", setting: "世界设定", event: "关键事件" }
+    : { character: "人物线索", relation: "关系线索", setting: "设定线索", event: "事件线索" };
   sourceKnowledgeSummary?.querySelectorAll("[data-source-knowledge-count]").forEach((counter) => {
     const category = counter.dataset.sourceKnowledgeCount || "all";
     counter.textContent = String(category === "all" ? current.count : Number(current.counts?.[category]) || 0);
+  });
+  sourceKnowledgeSummary?.querySelectorAll("[data-source-knowledge-category]").forEach((button) => {
+    const category = button.dataset.sourceKnowledgeCategory;
+    const label = button.querySelector("span");
+    if (label && category && category !== "all") label.textContent = categoryLabels[category] || "原作依据";
   });
   sourceKnowledgeSummary?.querySelectorAll("[data-source-knowledge-category]").forEach((button) => {
     const active = button.dataset.sourceKnowledgeCategory === activeSourceKnowledgeCategory;
@@ -1941,11 +2070,15 @@ function renderSourceKnowledge() {
     && ["queued", "extracting", "reviewing", "building", "cancelling"].includes(reviewedMemoryBuildState.status);
   if (sourceKnowledgeCount) {
     sourceKnowledgeCount.textContent = current.count
-      ? `${current.count.toLocaleString("zh-CN")} 条${reviewedMemoryBuildState.productReady ? "已审核知识" : "基础原文索引"}`
-      : "尚未整理";
+      ? `${current.count.toLocaleString("zh-CN")} 条${reviewedLayer ? "已审核记忆" : "原文线索"}`
+      : reviewedLayer ? "尚未形成记忆" : "尚未整理原文线索";
   }
-  if (fullBuildActive && sourceKnowledgeHint?.dataset.state === "ready") {
-    sourceKnowledgeHint.textContent = "当前先使用带章节出处的基础原文索引；全文已审核记忆完成后会自动切换。";
+  if (sourceKnowledgeHint?.dataset.state === "ready") {
+    sourceKnowledgeHint.textContent = reviewedLayer
+      ? "这些条目已通过原文证据审查，并保留章节出处；已参与原作问答，可作为结构化记忆使用。"
+      : fullBuildActive
+        ? "当前展示的是可回查的原文线索；全文记忆正在构建，审核通过后会自动切换。"
+        : "这些内容直接来自原文，是用于定位依据的线索，不等于结构化记忆。";
   }
   sourceKnowledgeList.replaceChildren();
   if (!current.items.length) {
@@ -1955,16 +2088,16 @@ function renderSourceKnowledge() {
       ? "正在从原文中整理人物、关系和世界设定……"
       : sourceKnowledgeSearchInput?.value.trim() || activeSourceKnowledgeCategory !== "all"
         ? "没有找到符合当前条件的原作知识。"
-        : "当前原文还没有可展示的结构化知识。";
+        : "当前原文还没有可展示的线索。";
     sourceKnowledgeList.appendChild(empty);
     return;
   }
   current.items.forEach((item) => {
     const card = document.createElement("article");
-    card.className = "source-knowledge-card";
+    card.className = `source-knowledge-card${reviewedLayer ? " is-reviewed-memory" : " is-source-index"}`;
     const badge = document.createElement("span");
     badge.className = `source-knowledge-badge is-${item.category}`;
-    badge.textContent = item.categoryLabel;
+    badge.textContent = reviewedLayer ? item.categoryLabel : `${categoryLabels[item.category] || "原文线索"}`;
     const content = document.createElement("p");
     content.textContent = item.content;
     const source = document.createElement("button");
@@ -2017,16 +2150,11 @@ async function loadSourceKnowledge(spaceId = getCurrentNovelSpaceId(), { force =
     activeSourceKnowledge = normalizeSourceKnowledge(payload.knowledge, normalizedSpaceId);
     if (sourceKnowledgeHint) {
       sourceKnowledgeHint.dataset.state = "ready";
-      const fullBuildActive = reviewedMemoryBuildState.scope === "full"
-        && ["queued", "extracting", "reviewing", "building", "cancelling"].includes(reviewedMemoryBuildState.status);
-      sourceKnowledgeHint.textContent = fullBuildActive
-        ? "当前先使用带章节出处的基础原文索引；全文已审核记忆完成后会自动切换。"
-        : "直接来自原文并保留章节出处，已参与原作问答。";
     }
     renderSourceKnowledge();
   } catch (error) {
     if (requestId !== sourceKnowledgeRequestId) return;
-    activeSourceKnowledge = { spaceId: normalizedSpaceId, count: 0, counts: {}, items: [] };
+    activeSourceKnowledge = { spaceId: normalizedSpaceId, count: 0, counts: {}, items: [], knowledgeLayer: "source_index", isReviewed: false, isTemporary: true };
     if (sourceKnowledgeHint) {
       sourceKnowledgeHint.dataset.state = "error";
       sourceKnowledgeHint.textContent = error?.message || "原作知识暂时无法读取";
@@ -2037,11 +2165,26 @@ async function loadSourceKnowledge(spaceId = getCurrentNovelSpaceId(), { force =
 
 function normalizeReviewedMemoryBuild(payload, spaceId) {
   const source = payload && typeof payload === "object" ? payload : {};
+  const rawMetrics = source.token_metrics && typeof source.token_metrics === "object" ? source.token_metrics : {};
   return {
     spaceId,
     status: safeText(source.status, "idle", 30),
     stage: safeText(source.stage, "", 180),
     progress: Math.max(0, Math.min(100, Number(source.progress) || 0)),
+    completedChapters: Math.max(0, Number(source.completed_chapters) || 0),
+    totalChapters: Math.max(0, Number(source.total_chapters) || 0),
+    tokenMetrics: {
+      inputTokens: Math.max(0, Number(rawMetrics.input_tokens) || 0),
+      outputTokens: Math.max(0, Number(rawMetrics.output_tokens) || 0),
+      totalTokens: Math.max(0, Number(rawMetrics.total_tokens) || 0),
+      estimatedTotalTokens: Math.max(0, Number(rawMetrics.estimated_total_tokens) || 0),
+      remainingTokens: Math.max(0, Number(rawMetrics.remaining_tokens) || 0),
+      elapsedSeconds: Math.max(0, Number(rawMetrics.elapsed_seconds) || 0),
+      tokensPerMinute: Math.max(0, Number(rawMetrics.tokens_per_minute) || 0),
+      estimatedFinishAt: Math.max(0, Number(rawMetrics.estimated_finish_at) || 0),
+      calls: Math.max(0, Number(rawMetrics.calls) || 0),
+      usageSource: safeText(rawMetrics.usage_source, "estimated", 20),
+    },
     memoryRevision: safeText(source.memory_revision, "", 80),
     error: safeText(source.error, "", 180),
     canStart: source.can_start === true,
@@ -2050,6 +2193,34 @@ function normalizeReviewedMemoryBuild(payload, spaceId) {
     productReady: source.product_ready === true,
     scope: source.scope === "full" ? "full" : "pilot",
   };
+}
+
+function formatTokenMetric(value) {
+  const amount = Math.max(0, Number(value) || 0);
+  if (amount >= 1000000) return `${(amount / 1000000).toFixed(amount >= 10000000 ? 1 : 2)}M`;
+  if (amount >= 1000) return `${(amount / 1000).toFixed(amount >= 100000 ? 0 : 1)}k`;
+  return Math.round(amount).toLocaleString("zh-CN");
+}
+
+function formatMemoryElapsed(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remaining = total % 60;
+  if (hours) return `${hours}h ${minutes}m`;
+  if (minutes) return `${minutes}m ${remaining}s`;
+  return `${remaining}s`;
+}
+
+function formatMemoryFinish(epochSeconds) {
+  const epoch = Number(epochSeconds) || 0;
+  if (!epoch) return "计算中";
+  const date = new Date(epoch * 1000);
+  if (Number.isNaN(date.getTime())) return "计算中";
+  const now = new Date();
+  const sameDay = date.toDateString() === now.toDateString();
+  const time = date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  return sameDay ? time : `${date.getMonth() + 1}月${date.getDate()}日 ${time}`;
 }
 
 function renderReviewedMemoryBuild() {
@@ -2075,7 +2246,10 @@ function renderReviewedMemoryBuild() {
     stale: ["原文已经更新", "旧记忆不会继续使用，请基于新版本重新构建。"],
   }[state.status] || ["增强人物与设定理解", state.stage || "可以开始构建。"];
   if (state.scope === "full" && active) {
-    content = ["正在构建全文记忆", state.stage || "正在逐章提取并核对原作事实，进度会自动保存。"];
+    const chapterProgress = state.totalChapters
+      ? `已处理 ${state.completedChapters.toLocaleString("zh-CN")} / ${state.totalChapters.toLocaleString("zh-CN")} 章。`
+      : "进度会自动保存。";
+    content = ["正在构建全文记忆", `${state.stage || "正在逐章提取并核对原作事实。"} ${chapterProgress} 下方暂时只展示原文线索。`];
   }
   reviewedMemoryBuild.dataset.state = state.status;
   if (reviewedMemoryBuildTitle) reviewedMemoryBuildTitle.textContent = content[0];
@@ -2085,6 +2259,16 @@ function renderReviewedMemoryBuild() {
     reviewedMemoryProgress.setAttribute("aria-valuenow", String(Math.round(state.progress || 0)));
   }
   if (reviewedMemoryProgressBar) reviewedMemoryProgressBar.style.width = `${state.progress || 0}%`;
+  const metrics = state.tokenMetrics || {};
+  const metricsVisible = active || metrics.totalTokens > 0 || metrics.estimatedTotalTokens > 0;
+  if (reviewedMemoryMetrics) reviewedMemoryMetrics.hidden = !metricsVisible;
+  const tokenCountApproximate = metrics.usageSource !== "provider";
+  if (memoryTokensSpent) memoryTokensSpent.textContent = `${tokenCountApproximate && metrics.totalTokens ? "≈" : ""}${formatTokenMetric(metrics.totalTokens)}`;
+  if (memoryTokensSpentLabel) memoryTokensSpentLabel.textContent = tokenCountApproximate ? "已用 token（含估算）" : "已用 token";
+  if (memoryElapsedTime) memoryElapsedTime.textContent = formatMemoryElapsed(metrics.elapsedSeconds);
+  if (memoryEstimatedTokens) memoryEstimatedTokens.textContent = formatTokenMetric(metrics.estimatedTotalTokens);
+  if (memoryTokensPerMinute) memoryTokensPerMinute.textContent = metrics.tokensPerMinute ? formatTokenMetric(metrics.tokensPerMinute) : "收集中";
+  if (memoryEstimatedFinish) memoryEstimatedFinish.textContent = formatMemoryFinish(metrics.estimatedFinishAt);
   if (startReviewedMemoryBuildButton) {
     startReviewedMemoryBuildButton.hidden = !state.canStart && !["idle", "cancelled", "interrupted", "error", "needs_review", "stale"].includes(state.status);
     startReviewedMemoryBuildButton.disabled = active || state.status === "loading";
@@ -2096,6 +2280,7 @@ function renderReviewedMemoryBuild() {
   }
   if (promoteReviewedMemoryBuildButton) promoteReviewedMemoryBuildButton.hidden = !state.canPromote;
   if (cancelReviewedMemoryBuildButton) cancelReviewedMemoryBuildButton.hidden = !state.canCancel;
+  renderModelMemory();
   if (sourceKnowledgeList) renderSourceKnowledge();
 }
 
@@ -2118,8 +2303,13 @@ async function loadReviewedMemoryStatus(spaceId = getCurrentNovelSpaceId()) {
     const payload = await response.json();
     if (!response.ok || !payload.ok || !payload.memory_build) throw new Error(payload.error || "深度记忆状态读取失败");
     if (getCurrentNovelSpaceId() !== normalizedSpaceId) return;
+    const wasProductReady = reviewedMemoryBuildState.productReady === true;
     reviewedMemoryBuildState = normalizeReviewedMemoryBuild(payload.memory_build, normalizedSpaceId);
     renderReviewedMemoryBuild();
+    await loadReviewedMemoryPreview(normalizedSpaceId);
+    if (!wasProductReady && reviewedMemoryBuildState.productReady) {
+      await loadSourceKnowledge(normalizedSpaceId);
+    }
     scheduleReviewedMemoryStatus(normalizedSpaceId);
   } catch (error) {
     if (getCurrentNovelSpaceId() !== normalizedSpaceId) return;

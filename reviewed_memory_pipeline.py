@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from typing import Any, Callable
 
@@ -26,6 +27,31 @@ PIPELINE_PROMPT_VERSION = "v10-diegetic-only"
 MIN_SAMPLE_CHAPTERS = 3
 DEFAULT_SAMPLE_CHAPTERS = 6
 MAX_SAMPLE_CHAPTERS = 12
+
+
+def approximate_token_count(text: str) -> int:
+    """Estimate provider tokens when an upstream response omits usage."""
+    value = str(text or "")
+    cjk = len(re.findall(r"[\u3400-\u9fff]", value))
+    latin_words = len(re.findall(r"[A-Za-z0-9_]+", value))
+    punctuation = len(re.findall(r"[^\s\u3400-\u9fffA-Za-z0-9_]", value))
+    return max(1, round(cjk * 1.0 + latin_words * 0.75 + punctuation * 0.35))
+
+
+def approximate_message_tokens(messages: list[dict[str, str]]) -> int:
+    return sum(approximate_token_count(str(message.get("content") or "")) + 4 for message in messages)
+
+
+def estimate_full_build_tokens(previews: list[dict[str, Any]]) -> int:
+    """Estimate two-pass extraction plus a conservative adjudication buffer."""
+    source_tokens = sum(approximate_token_count(str(preview.get("text") or "")) for preview in previews)
+    chapter_count = max(1, len(previews))
+    # Both extraction and review include the chapter context. The fixed
+    # overhead covers schema instructions and the compact candidate facts.
+    estimated_input = source_tokens * 2 + chapter_count * 900
+    estimated_output = chapter_count * 1500
+    adjudication_buffer = chapter_count * 180
+    return max(1, round((estimated_input + estimated_output + adjudication_buffer) * 1.08))
 
 
 class ReviewedMemoryCancelled(Exception):
@@ -59,6 +85,7 @@ def completion_json(
     max_tokens: int,
     token_budget: Callable[[int], int],
     extract_text: Callable[[Any], str],
+    usage_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     common = {
         "model": model,
@@ -88,6 +115,25 @@ def completion_json(
             content = extract_text(choice.message.content if choice else "")
             if not content.strip():
                 raise RuntimeError("模型没有返回可解析的记忆结果")
+            usage = getattr(response, "usage", None)
+            def usage_value(name: str) -> int:
+                value = usage.get(name) if isinstance(usage, dict) else getattr(usage, name, 0)
+                try:
+                    return max(0, int(value or 0))
+                except (TypeError, ValueError):
+                    return 0
+            input_tokens = usage_value("prompt_tokens")
+            output_tokens = usage_value("completion_tokens")
+            total_tokens = usage_value("total_tokens") or input_tokens + output_tokens
+            if usage_callback:
+                usage_callback({
+                    "input_tokens": input_tokens or approximate_message_tokens(messages),
+                    "output_tokens": output_tokens or approximate_token_count(content),
+                    "total_tokens": total_tokens or approximate_message_tokens(messages) + approximate_token_count(content),
+                    "usage_source": "provider" if usage and total_tokens else "estimated",
+                    "schema_name": schema_name,
+                    "timestamp": time.time(),
+                })
             return parse_json_object(content)
         except Exception as exc:  # noqa: BLE001
             last_error = exc
@@ -105,6 +151,7 @@ def _review_chapter(
     token_budget: Callable[[int], int],
     extract_text: Callable[[Any], str],
     cancelled: Callable[[], bool],
+    usage_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     if cancelled():
         raise ReviewedMemoryCancelled()
@@ -114,7 +161,7 @@ def _review_chapter(
     raw = completion_json(
         client, model, extraction_messages(title, text, PIPELINE_PROMPT_VERSION),
         "novel_memory_extraction", extraction_schema_for_version(PIPELINE_PROMPT_VERSION),
-        10000, token_budget, extract_text,
+        10000, token_budget, extract_text, usage_callback,
     )
     if PIPELINE_PROMPT_VERSION in SPAN_ANCHORED_VERSIONS:
         raw = resolve_span_evidence(raw, spans)
@@ -142,7 +189,7 @@ def _review_chapter(
     review_raw = completion_json(
         client, model, review_messages(title, text, facts),
         "novel_memory_review", review_schema_for_count(len(facts)),
-        8000, token_budget, extract_text,
+        8000, token_budget, extract_text, usage_callback,
     )
     reviews = normalize_reviews(review_raw, len(facts))
     reviews_by_index = {int(review["fact_index"]): review for review in reviews}
@@ -155,7 +202,7 @@ def _review_chapter(
         adjudicated_raw = completion_json(
             client, model, adjudication_messages(title, fact, prior),
             "novel_memory_review_adjudication", review_schema_for_count(1),
-            3000, token_budget, extract_text,
+            3000, token_budget, extract_text, usage_callback,
         )
         adjudicated = normalize_reviews(adjudicated_raw, 1)
         if adjudicated:
@@ -187,6 +234,7 @@ def run_reviewed_memory_pipeline(
     progress: Callable[[int, str, list[dict[str, Any]]], None],
     cancelled: Callable[[], bool],
     existing_chapters: list[dict[str, Any]] | None = None,
+    usage_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Extract, independently review, and gate a bounded representative sample."""
     completed = {
@@ -200,6 +248,7 @@ def run_reviewed_memory_pipeline(
         if title not in completed:
             completed[title] = _review_chapter(
                 preview, client, model, token_budget, extract_text, cancelled,
+                usage_callback=usage_callback,
             )
         ordered = [completed[str(item["title"])] for item in previews if str(item["title"]) in completed]
         progress(

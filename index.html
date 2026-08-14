@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=26" />
+  <link rel="stylesheet" href="styles.css?v=27" />
   </head>
   <body>
     <div class="aurora-field" aria-hidden="true">
@@ -335,16 +335,23 @@
               <section class="source-knowledge-panel" id="sourceKnowledgePanel" role="tabpanel" aria-labelledby="sourceKnowledgeTab">
                 <div class="source-knowledge-heading">
                   <div>
-                    <strong>原作知识</strong>
-                    <p>人物、关系和设定都保留可打开的原文出处。</p>
+                    <strong>模型记忆</strong>
+                    <p>优先展示模型从原文中提取并核对过的事实；全文构建时会随后台进度逐步更新。</p>
                   </div>
                 </div>
                 <div class="reviewed-memory-build" id="reviewedMemoryBuild" data-state="idle">
                   <div class="reviewed-memory-build-copy">
                     <span class="reviewed-memory-build-mark" aria-hidden="true">◎</span>
-                    <p><strong id="reviewedMemoryBuildTitle">增强人物与设定理解</strong><small id="reviewedMemoryBuildDescription">原文问答已经可用。构建后，复杂关系与世界规则会更准确。</small></p>
+                    <p><strong id="reviewedMemoryBuildTitle">增强人物与设定理解</strong><small id="reviewedMemoryBuildDescription">原文问答已经可用。完成审核后，复杂关系与世界规则才会形成可复用记忆。</small></p>
                   </div>
                   <div class="reviewed-memory-progress" id="reviewedMemoryProgress" role="progressbar" aria-label="深度记忆构建进度" aria-valuemin="0" aria-valuemax="100" hidden><span id="reviewedMemoryProgressBar"></span></div>
+                  <div class="reviewed-memory-metrics" id="reviewedMemoryMetrics" aria-live="polite">
+                    <span><strong id="memoryTokensSpent">—</strong><small id="memoryTokensSpentLabel">已用 token</small></span>
+                    <span><strong id="memoryElapsedTime">—</strong><small>已用时间</small></span>
+                    <span><strong id="memoryEstimatedTokens">—</strong><small>预计总 token</small></span>
+                    <span><strong id="memoryTokensPerMinute">—</strong><small>token / min</small></span>
+                    <span><strong id="memoryEstimatedFinish">—</strong><small>预计完成</small></span>
+                  </div>
                   <div class="reviewed-memory-build-actions">
                     <button class="page-primary-button" id="startReviewedMemoryBuild" type="button">开始构建</button>
                     <button class="page-secondary-button" id="startFullReviewedMemoryBuild" type="button" hidden>构建全文记忆</button>
@@ -352,22 +359,33 @@
                     <button class="text-button" id="cancelReviewedMemoryBuild" type="button" hidden>暂停</button>
                   </div>
                 </div>
+                <div class="model-memory-toolbar">
+                  <span class="memory-count" id="modelMemoryCount">正在读取模型记忆…</span>
+                  <span class="model-memory-live" id="modelMemoryLive" aria-live="polite">● 实时更新</span>
+                </div>
+                <small class="model-memory-hint" id="modelMemoryHint" aria-live="polite">正在读取模型提取结果……</small>
+                <div class="model-memory-list" id="modelMemoryList" aria-live="polite"></div>
+                <details class="source-index-disclosure" id="sourceKnowledgeDisclosure">
+                  <summary><span>原文线索</span><small>规则筛选，仅用于核对原文</small></summary>
+                  <div class="source-index-disclosure-body">
                 <div class="source-knowledge-toolbar">
                   <div class="memory-search-wrap">
                     <span aria-hidden="true">⌕</span>
-                    <input id="sourceKnowledgeSearch" type="search" maxlength="120" placeholder="搜索人物、关系或世界设定" aria-label="搜索原作知识" />
+                    <input id="sourceKnowledgeSearch" type="search" maxlength="120" placeholder="搜索原文线索" aria-label="搜索原文依据" />
                   </div>
-                  <span class="memory-count" id="sourceKnowledgeCount">正在整理原作知识…</span>
+                  <span class="memory-count" id="sourceKnowledgeCount">正在读取原文线索…</span>
                 </div>
-                <div class="memory-summary source-knowledge-summary" id="sourceKnowledgeSummary" aria-label="原作知识分类">
+                <div class="memory-summary source-knowledge-summary" id="sourceKnowledgeSummary" aria-label="原文线索分类">
                   <button class="memory-summary-item is-active" type="button" data-source-knowledge-category="all" aria-pressed="true"><span>全部</span><strong data-source-knowledge-count="all">0</strong></button>
-                  <button class="memory-summary-item" type="button" data-source-knowledge-category="character" aria-pressed="false"><span>人物信息</span><strong data-source-knowledge-count="character">0</strong></button>
-                  <button class="memory-summary-item" type="button" data-source-knowledge-category="relation" aria-pressed="false"><span>人物关系</span><strong data-source-knowledge-count="relation">0</strong></button>
-                  <button class="memory-summary-item" type="button" data-source-knowledge-category="setting" aria-pressed="false"><span>世界设定</span><strong data-source-knowledge-count="setting">0</strong></button>
-                  <button class="memory-summary-item" type="button" data-source-knowledge-category="event" aria-pressed="false"><span>关键事件</span><strong data-source-knowledge-count="event">0</strong></button>
+                  <button class="memory-summary-item" type="button" data-source-knowledge-category="character" aria-pressed="false"><span>人物线索</span><strong data-source-knowledge-count="character">0</strong></button>
+                  <button class="memory-summary-item" type="button" data-source-knowledge-category="relation" aria-pressed="false"><span>关系线索</span><strong data-source-knowledge-count="relation">0</strong></button>
+                  <button class="memory-summary-item" type="button" data-source-knowledge-category="setting" aria-pressed="false"><span>设定线索</span><strong data-source-knowledge-count="setting">0</strong></button>
+                  <button class="memory-summary-item" type="button" data-source-knowledge-category="event" aria-pressed="false"><span>事件线索</span><strong data-source-knowledge-count="event">0</strong></button>
                 </div>
-                <small class="source-knowledge-hint" id="sourceKnowledgeHint" aria-live="polite">这些内容直接来自原文，并会参与原作问答。</small>
+                <small class="source-knowledge-hint" id="sourceKnowledgeHint" aria-live="polite">这些内容直接来自原文，是用于定位依据的线索，不等于结构化记忆。</small>
                 <div class="source-knowledge-list" id="sourceKnowledgeList" aria-live="polite"></div>
+                  </div>
+                </details>
               </section>
 
               <section class="creative-memory-panel" id="creativeMemoryPanel" role="tabpanel" aria-labelledby="creativeMemoryTab" hidden>
@@ -1223,6 +1241,6 @@
       </form>
     </dialog>
     <div class="toast" id="toast" role="status"></div>
-  <script src="app.js?v=40"></script>
+  <script src="app.js?v=41"></script>
   </body>
 </html>
