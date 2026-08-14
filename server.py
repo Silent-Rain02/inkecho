@@ -24,9 +24,9 @@ import json
 
 from openai import AzureOpenAI, OpenAI
 
-from ecphory_memory import PersistentEcphoryMemoryBackend
-from memory_extraction import is_meta_narrative_chapter
-from reviewed_memory_pipeline import (
+from inkecho.ecphory_memory import PersistentEcphoryMemoryBackend
+from inkecho.memory_extraction import is_meta_narrative_chapter
+from inkecho.reviewed_memory_pipeline import (
     DEFAULT_SAMPLE_CHAPTERS,
     MAX_SAMPLE_CHAPTERS,
     MIN_SAMPLE_CHAPTERS,
@@ -40,6 +40,7 @@ from reviewed_memory_pipeline import (
 
 
 ROOT = Path(__file__).resolve().parent
+FRONTEND_ROOT = ROOT / "frontend"
 SUPPORTED_PROVIDERS = {"custom_azure", "ollama", "openai", "azure", "compatible"}
 MAX_BODY_BYTES = 1_000_000
 MAX_UPLOAD_BODY_BYTES = 64_000_000
@@ -218,8 +219,8 @@ PROVIDER_REQUIRED_ENV = {
     "compatible": ("INK_ECHO_COMPATIBLE_BASE_URL",),
 }
 PROVIDER_FIELD_LABELS = {
-    "INK_ECHO_CUSTOM_AZURE_API_KEY": "办公网密钥",
-    "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "办公网端点",
+    "INK_ECHO_CUSTOM_AZURE_API_KEY": "自定义节点密钥",
+    "INK_ECHO_CUSTOM_AZURE_ENDPOINT": "自定义节点地址",
     "INK_ECHO_OPENAI_API_KEY": "OpenAI 密钥",
     "INK_ECHO_AZURE_API_KEY": "Azure 密钥",
     "INK_ECHO_AZURE_ENDPOINT": "Azure 端点",
@@ -287,7 +288,7 @@ def is_placeholder(value: str) -> bool:
         or unwrapped.startswith("your_")
         or unwrapped.startswith("replace_with_")
         or "your-resource" in unwrapped
-        or "your-office-endpoint" in unwrapped
+        or "your-endpoint.example" in unwrapped
     )
 
 
@@ -4360,7 +4361,7 @@ def static_asset_path(request_path: str) -> Path | None:
     relative = request_path.lstrip("/") or "index.html"
     if relative not in STATIC_FILES:
         return None
-    candidate = (ROOT / relative).resolve()
+    candidate = (FRONTEND_ROOT / relative).resolve()
     return candidate if candidate.is_file() else None
 
 

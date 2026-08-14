@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from ecphory_memory import (
+from inkecho.ecphory_memory import (
     LocalEcphoryMemoryBackend,
     PersistentEcphoryMemoryBackend,
     promoted_claims_from_report,

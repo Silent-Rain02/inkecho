@@ -2,7 +2,7 @@ import json
 import unittest
 from types import SimpleNamespace
 
-from reviewed_memory_pipeline import representative_titles, run_reviewed_memory_pipeline
+from inkecho.reviewed_memory_pipeline import representative_titles, run_reviewed_memory_pipeline
 
 
 class FakeCompletions:

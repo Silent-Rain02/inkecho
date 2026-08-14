@@ -6,15 +6,16 @@ from collections import Counter
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
+FRONTEND_ROOT = ROOT / "frontend"
 
 
 class FrontendContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
-        cls.javascript = (ROOT / "app.js").read_text(encoding="utf-8")
-        cls.styles = (ROOT / "styles.css").read_text(encoding="utf-8")
+        cls.html = (FRONTEND_ROOT / "index.html").read_text(encoding="utf-8")
+        cls.javascript = (FRONTEND_ROOT / "app.js").read_text(encoding="utf-8")
+        cls.styles = (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8")
 
     def test_html_ids_are_unique(self) -> None:
         ids = re.findall(r'\bid=["\']([^"\']+)["\']', self.html)
@@ -48,7 +49,7 @@ class FrontendContractTests(unittest.TestCase):
     def test_runtime_assets_are_present_and_expected_controls_are_wired(self) -> None:
         self.assertIn('<link rel="stylesheet" href="styles.css?v=27"', self.html)
         self.assertIn('<script src="app.js?v=41"></script>', self.html)
-        self.assertIn("overflow-wrap: anywhere", (ROOT / "styles.css").read_text(encoding="utf-8"))
+        self.assertIn("overflow-wrap: anywhere", (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8"))
         ids = set(re.findall(r'\bid=["\']([^"\']+)["\']', self.html))
         required = {
             "projectSelect",
@@ -231,7 +232,7 @@ class FrontendContractTests(unittest.TestCase):
             "settingsPageSlot",
         }
         self.assertTrue(required.issubset(ids))
-        self.assertIn("命中的有限原作片段和必要上下文会发送到办公网自定义 Azure 服务", self.javascript)
+        self.assertIn("命中的有限原作片段和必要上下文会发送到你配置的自定义 Azure-compatible 节点", self.javascript)
         self.assertIn("Ollama 默认在本机处理", self.javascript)
         self.assertIn("function ensureProviderDataConsent", self.javascript)
         self.assertIn('if (!await ensureProviderDataConsent(selectedMode === "问答" ? "生成内容问答" : "生成创作回复")) return;', self.javascript)
@@ -743,7 +744,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("const filePayloads = []", self.javascript)
         self.assertIn("files: filePayloads", self.javascript)
         self.assertIn("localeCompare(String(right.name || \"\")", self.javascript)
-        self.assertIn("is-dragging", (ROOT / "styles.css").read_text(encoding="utf-8"))
+        self.assertIn("is-dragging", (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8"))
         self.assertIn("function renderSourcePageDiagnostics", self.javascript)
         self.assertIn("sourcePageDiagnostics.replaceChildren()", self.javascript)
         self.assertIn("function syncSourceChapterSelection", self.javascript)
@@ -949,7 +950,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function applyNovelMemoryTemplate", self.javascript)
         self.assertIn('data-memory-template-title="人物关系"', self.html)
         self.assertIn('id="novelMemoryContentCount"', self.html)
-        self.assertIn("memory-content-count.is-near-limit", (ROOT / "styles.css").read_text(encoding="utf-8"))
+        self.assertIn("memory-content-count.is-near-limit", (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8"))
         self.assertIn("source-evidence-save", self.javascript)
         self.assertIn("saveGeneratedMemoryNote", self.javascript)
         self.assertIn("已将原作依据保存到空间记忆", self.javascript)
@@ -1042,7 +1043,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("function findResumeProjectForNovelSpace", self.javascript)
         self.assertIn("点击续写将恢复最近项目", self.javascript)
         self.assertIn('continueWriting.textContent = spaceProjects.length ? "继续最近项目" : "开始续写"', self.javascript)
-        self.assertIn("novel-space-projects", (ROOT / "styles.css").read_text(encoding="utf-8"))
+        self.assertIn("novel-space-projects", (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8"))
         self.assertIn("let novelSpacesLoaded = false", self.javascript)
         self.assertIn("let novelSpacesLoadError = false", self.javascript)
         self.assertIn('novelSpaceList.setAttribute("aria-busy", String(!novelSpacesLoaded))', self.javascript)
@@ -1110,10 +1111,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('const workspacePageWorkbench = document.querySelector("#workspacePageWorkbench");', self.javascript)
         self.assertIn('if (workspacePageWorkbench) workspacePageWorkbench.hidden = nextView !== "workbench";', self.javascript)
         self.assertIn('if (nextView !== "workbench" && document.body.classList.contains("focus-mode")) setFocusMode(false);', self.javascript)
-        self.assertIn(".studio-grid[hidden] { display: none !important; }", (ROOT / "styles.css").read_text(encoding="utf-8"))
+        self.assertIn(".studio-grid[hidden] { display: none !important; }", (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8"))
         self.assertIn("function sourceReferenceChapterTitle", self.javascript)
         self.assertIn("source-reference-chapter-button", self.javascript)
-        self.assertIn("source-reference-chapter-button", (ROOT / "styles.css").read_text(encoding="utf-8"))
+        self.assertIn("source-reference-chapter-button", (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8"))
         self.assertIn("阅读原作章节", self.javascript)
         self.assertIn('read.textContent = "阅读整章"', self.javascript)
         self.assertIn("result.chapter_title", self.javascript)

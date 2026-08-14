@@ -16,8 +16,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import server  # noqa: E402
-from ecphory_memory import PersistentEcphoryMemoryBackend  # noqa: E402
-from memory_extraction import (  # noqa: E402
+from inkecho.ecphory_memory import PersistentEcphoryMemoryBackend  # noqa: E402
+from inkecho.memory_extraction import (  # noqa: E402
     adjudication_messages,
     normalize_reviews,
     review_has_literal_entity_conflict,

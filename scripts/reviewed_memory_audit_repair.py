@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import server  # noqa: E402
-from memory_extraction import (  # noqa: E402
+from inkecho.memory_extraction import (  # noqa: E402
     normalize_reviews,
     repair_messages,
     repair_schema_for_count,
