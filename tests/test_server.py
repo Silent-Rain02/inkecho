@@ -605,6 +605,55 @@ class ServerConfigTests(unittest.TestCase):
         }])
         self.assertTrue(score["passed"])
 
+    def test_memory_gate_quarantines_small_grounding_tail_without_blocking_clean_majority(self) -> None:
+        def review(index: int, grounded: bool = True) -> dict:
+            return {
+                "fact_index": index,
+                "verdict": "pass" if grounded else "fail",
+                "grounded": grounded,
+                "atomic": True,
+                "entities_resolved": True,
+                "category_correct": True,
+                "time_correct": True,
+                "useful": True,
+                "reason": "证据充分。" if grounded else "证据不完整。",
+            }
+
+        score = score_run([{
+            "raw_count": 100,
+            "accepted_count": 100,
+            "rejected_count": 0,
+            "reviews": [review(index) for index in range(99)] + [review(99, False)],
+            "promoted_count": 99,
+        }])
+        self.assertTrue(score["passed"])
+        self.assertEqual(score["grounding_failures"], 1)
+        self.assertEqual(score["grounding_failure_rate"], 0.01)
+        self.assertTrue(score["gates"]["grounding_failure_rate_at_most_2pct"])
+
+    def test_memory_gate_still_blocks_a_high_grounding_failure_rate(self) -> None:
+        reviews = [{
+            "fact_index": index,
+            "verdict": "pass" if index < 97 else "fail",
+            "grounded": index < 97,
+            "atomic": True,
+            "entities_resolved": True,
+            "category_correct": True,
+            "time_correct": True,
+            "useful": True,
+            "reason": "证据充分。",
+        } for index in range(100)]
+        score = score_run([{
+            "raw_count": 100,
+            "accepted_count": 100,
+            "rejected_count": 0,
+            "reviews": reviews,
+            "promoted_count": 97,
+        }])
+        self.assertFalse(score["passed"])
+        self.assertEqual(score["grounding_failure_rate"], 0.03)
+        self.assertFalse(score["gates"]["grounding_failure_rate_at_most_2pct"])
+
     def test_review_normalization_overrides_self_contradictory_pass(self) -> None:
         reviews = normalize_reviews({"reviews": [{
             "fact_index": 0,
@@ -2064,6 +2113,17 @@ class ServerConfigTests(unittest.TestCase):
             self.assertEqual(preview["count"], 1)
             self.assertEqual(preview["items"][0]["memory_backend"], "model_memory_preview")
             self.assertEqual(preview["items"][0]["chapter"], "第一章：开局")
+            self.assertEqual(preview["filtered_count"], 1)
+            self.assertEqual(preview["category_counts"]["relation"], 1)
+            self.assertEqual(preview["available_chapters"][0]["title"], "第一章：开局")
+            self.assertEqual(
+                server.reviewed_memory_preview(space["id"], category="setting")["filtered_count"],
+                0,
+            )
+            self.assertEqual(
+                server.reviewed_memory_preview(space["id"], chapter="开局")["filtered_count"],
+                1,
+            )
 
     def test_source_knowledge_prefers_promoted_reviewed_memory(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -3265,14 +3325,66 @@ class ServerConfigTests(unittest.TestCase):
                 "space_id": novel["id"],
                 "source_revision": server.source_revision(novel["id"]),
                 "status": "needs_review",
+                "token_metrics": {
+                    "input_tokens": 1200,
+                    "output_tokens": 800,
+                    "total_tokens": 2000,
+                    "estimated_total_tokens": 9000,
+                    "calls": 4,
+                    "started_at": 1,
+                    "usage_source": "provider",
+                },
             }
-            server.start_reviewed_memory_job({
+            restarted = server.start_reviewed_memory_job({
                 "novel_space_id": novel["id"],
                 "provider": "compatible",
                 "model": "memory-test",
                 "chapter_limit": 3,
             })
             self.assertEqual(captured["existing"], [])
+            self.assertEqual(restarted["completed_chapters"], 0)
+            self.assertEqual(restarted["progress"], 100)
+            self.assertEqual(restarted["token_metrics"]["input_tokens"], 0)
+            self.assertEqual(restarted["token_metrics"]["output_tokens"], 0)
+            self.assertEqual(restarted["token_metrics"]["total_tokens"], 0)
+            self.assertEqual(restarted["token_metrics"]["calls"], 0)
+
+    def test_full_memory_token_estimate_reprojects_from_observed_chapters(self) -> None:
+        view = server._reviewed_memory_job_view({
+            "job_id": "full-estimate",
+            "space_id": "space-estimate",
+            "source_revision": "rev-1",
+            "status": "reviewing",
+            "scope": "full",
+            "completed_chapters": 100,
+            "total_chapters": 200,
+            "token_metrics": {
+                "input_tokens": 600_000,
+                "output_tokens": 400_000,
+                "total_tokens": 1_000_000,
+                "estimated_total_tokens": 1_200_000,
+                "started_at": time.time() - 60,
+            },
+        }, "rev-1")
+        self.assertEqual(view["token_metrics"]["estimated_total_tokens"], 2_000_000)
+        self.assertEqual(view["token_metrics"]["remaining_tokens"], 1_000_000)
+
+    def test_pilot_memory_token_estimate_keeps_static_budget(self) -> None:
+        view = server._reviewed_memory_job_view({
+            "job_id": "pilot-estimate",
+            "space_id": "space-estimate",
+            "source_revision": "rev-1",
+            "status": "reviewing",
+            "scope": "pilot",
+            "completed_chapters": 1,
+            "total_chapters": 6,
+            "token_metrics": {
+                "total_tokens": 1_000_000,
+                "estimated_total_tokens": 1_200_000,
+                "started_at": time.time() - 60,
+            },
+        }, "rev-1")
+        self.assertEqual(view["token_metrics"]["estimated_total_tokens"], 1_200_000)
 
     def test_prompt_includes_retrieved_source_context(self) -> None:
         with patch(

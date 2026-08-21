@@ -53,6 +53,47 @@ class EcphoryMemoryTests(unittest.TestCase):
         self.assertIn("方源", entity_names)
         self.assertIn("黑楼兰", entity_names)
         self.assertEqual(exported["claims"][0]["evidence"]["chapter"], "第三卷")
+        self.assertIn("normalization", exported)
+
+    def test_lifecycle_metadata_classifies_contextual_claims(self) -> None:
+        backend = LocalEcphoryMemoryBackend()
+        backend.replace_space("novel", "rev-1", [
+            claim("school", "event", "方源", "没有来", "上课", "方源今天没有来上课。", "第一章", 1),
+            claim("wisdom", "event", "第二只蛊", "带给", "他智慧", "第二只蛊带给了他智慧。", "人祖传", 2),
+            claim("rule", "setting", "春秋蝉", "能够", "逆转时光", "春秋蝉能够逆转时光。", "第一章", 3),
+        ])
+        by_id = {item["id"]: item for item in backend.export_space("novel")["claims"]}
+        self.assertEqual(by_id["school"]["answerability"], "retrieval_only")
+        self.assertEqual(by_id["wisdom"]["answerability"], "context_required")
+        self.assertEqual(by_id["rule"]["answerability"], "self_contained")
+
+    def test_global_duplicate_is_marked_and_not_recalled_twice(self) -> None:
+        backend = LocalEcphoryMemoryBackend()
+        backend.replace_space("novel", "rev-1", [
+            claim("early", "setting", "春秋蝉", "能够", "逆转时光", "春秋蝉能够逆转时光。", "第一章", 1),
+            claim("late", "setting", "春秋蝉", "能够", "逆转时光", "春秋蝉能够逆转时光。", "第五章", 5),
+        ])
+        exported = backend.export_space("novel")
+        by_id = {item["id"]: item for item in exported["claims"]}
+        self.assertEqual(by_id["late"]["lifecycle_status"], "duplicate")
+        self.assertEqual(by_id["late"]["duplicate_of"], "early")
+        self.assertEqual(exported["normalization"]["duplicate_count"], 1)
+        recalled = backend.recall("novel", "春秋蝉能够做什么？")
+        self.assertEqual([item["claim"]["id"] for item in recalled["results"]].count("late"), 0)
+
+    def test_time_scoped_state_changes_are_not_called_conflicts(self) -> None:
+        backend = LocalEcphoryMemoryBackend()
+        backend.replace_space("novel", "rev-1", [
+            claim("early", "character", "方源", "修为是", "一转", "方源修为是一转。", "第一卷", 10),
+            claim("late", "character", "方源", "修为是", "二转", "方源修为是二转。", "第二卷", 200),
+        ])
+        exported = backend.export_space("novel")
+        self.assertEqual(exported["normalization"]["disputed_count"], 0)
+        self.assertEqual(exported["normalization"]["temporal_variant_group_count"], 1)
+        self.assertEqual(
+            {item["status_reason"] for item in exported["claims"]},
+            {"temporal_state_variant"},
+        )
 
     def test_two_hop_recall_expands_from_entity_cue(self) -> None:
         recalled = self.backend.recall("novel", "方源的盟友拥有什么仙蛊？", depth=2, limit=5)

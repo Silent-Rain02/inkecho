@@ -13,7 +13,7 @@ import uuid
 import zipfile
 from html.parser import HTMLParser
 from threading import Lock, Thread
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -26,6 +26,7 @@ from openai import AzureOpenAI, OpenAI
 
 from inkecho.ecphory_memory import PersistentEcphoryMemoryBackend
 from inkecho.memory_extraction import is_meta_narrative_chapter
+from inkecho.memory_normalization import normalize_claim_set, normalization_summary
 from inkecho.reviewed_memory_pipeline import (
     DEFAULT_SAMPLE_CHAPTERS,
     MAX_SAMPLE_CHAPTERS,
@@ -1483,6 +1484,41 @@ def _reviewed_memory_job_view(job: dict[str, Any], current_revision: str) -> dic
     output_tokens = max(0, int(raw_metrics.get("output_tokens") or 0))
     total_tokens = max(input_tokens + output_tokens, int(raw_metrics.get("total_tokens") or 0))
     estimated_total_tokens = max(total_tokens, int(raw_metrics.get("estimated_total_tokens") or 0))
+    completed_chapters = max(0, int(job.get("completed_chapters") or 0))
+    total_chapters = max(0, int(job.get("total_chapters") or 0))
+    if (
+        job.get("scope") == "full"
+        and total_tokens
+        and 0 < completed_chapters < total_chapters
+    ):
+        # The initial estimate cannot know the provider's prompt overhead or
+        # how often adjudication will be triggered. Once enough chapters have
+        # completed, project the total from observed per-chapter usage and
+        # never let the estimate fall below the original conservative floor.
+        observed_projection = math.ceil(total_tokens * total_chapters / completed_chapters)
+        estimated_total_tokens = max(estimated_total_tokens, observed_projection)
+    raw_quality = job.get("quality") if isinstance(job.get("quality"), dict) else None
+    quality = None
+    if raw_quality:
+        raw_gates = raw_quality.get("gates") if isinstance(raw_quality.get("gates"), dict) else {}
+        quality = {
+            "raw_count": max(0, int(raw_quality.get("raw_count") or 0)),
+            "accepted_count": max(0, int(raw_quality.get("accepted_count") or 0)),
+            "rejected_count": max(0, int(raw_quality.get("rejected_count") or 0)),
+            "reviewed_count": max(0, int(raw_quality.get("reviewed_count") or 0)),
+            "review_pass_count": max(0, int(raw_quality.get("review_pass_count") or 0)),
+            "review_minor_count": max(0, int(raw_quality.get("review_minor_count") or 0)),
+            "review_fail_count": max(0, int(raw_quality.get("review_fail_count") or 0)),
+            "promoted_count": max(0, int(raw_quality.get("promoted_count") or 0)),
+            "review_pass_rate": round(float(raw_quality.get("review_pass_rate") or 0), 3),
+            "review_usable_rate": round(float(raw_quality.get("review_usable_rate") or 0), 3),
+            "grounding_failures": max(0, int(raw_quality.get("grounding_failures") or 0)),
+            "grounding_failure_rate": round(float(raw_quality.get("grounding_failure_rate") or 0), 3),
+            "category_failures": max(0, int(raw_quality.get("category_failures") or 0)),
+            "useful_failures": max(0, int(raw_quality.get("useful_failures") or 0)),
+            "passed": bool(raw_quality.get("passed")),
+            "gates": {str(key): bool(value) for key, value in raw_gates.items()},
+        }
     tokens_per_minute = total_tokens / elapsed_seconds * 60 if elapsed_seconds >= 1 and total_tokens else 0.0
     remaining_tokens = max(0, estimated_total_tokens - total_tokens)
     estimated_finish_at = now + remaining_tokens / tokens_per_minute * 60 if tokens_per_minute > 0 and remaining_tokens else 0.0
@@ -1493,8 +1529,8 @@ def _reviewed_memory_job_view(job: dict[str, Any], current_revision: str) -> dic
         "status": status,
         "stage": "原文已变化，需要重新构建" if stale else str(job.get("stage") or ""),
         "progress": max(0, min(100, int(job.get("progress") or 0))),
-        "completed_chapters": max(0, int(job.get("completed_chapters") or 0)),
-        "total_chapters": max(0, int(job.get("total_chapters") or 0)),
+        "completed_chapters": completed_chapters,
+        "total_chapters": total_chapters,
         "claim_count": max(0, int(job.get("claim_count") or 0)),
         "engram_count": max(0, int(job.get("engram_count") or 0)),
         "memory_revision": str(job.get("memory_revision") or ""),
@@ -1504,6 +1540,7 @@ def _reviewed_memory_job_view(job: dict[str, Any], current_revision: str) -> dic
         "can_promote": status == "pilot_ready" and bool(job.get("memory_revision")),
         "product_ready": status == "production",
         "scope": "full" if job.get("scope") == "full" else "pilot",
+        "quality": quality,
         "updated_at": float(job.get("updated_at") or 0),
         "token_metrics": {
             "input_tokens": input_tokens,
@@ -1560,7 +1597,7 @@ def reviewed_memory_status(space_id: str = "") -> dict[str, Any]:
     }, revision)
 
 
-def reviewed_memory_preview(space_id: str = "", query: str = "", category: str = "all", limit: int = 40) -> dict[str, Any]:
+def reviewed_memory_preview(space_id: str = "", query: str = "", category: str = "all", limit: int = 40, chapter: str = "") -> dict[str, Any]:
     """Expose incrementally completed model facts without promoting them.
 
     The full build writes a checkpoint after every chapter. This read-only
@@ -1576,13 +1613,17 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
     if normalized_category not in SOURCE_KNOWLEDGE_CATEGORIES:
         normalized_category = "all"
     normalized_query = normalize_chapter_markers(re.sub(r"\s+", " ", str(query or "").strip().lower()))
+    requested_chapter = re.sub(r"\s+", " ", str(chapter or "").strip())[:160]
+    normalized_chapter = normalize_chapter_markers(requested_chapter.lower())
     status = reviewed_memory_status(normalized_space_id)
     revision = source_revision(normalized_space_id)
     claims: list[dict[str, Any]] = []
+    normalization: dict[str, Any] = {}
     product_ready = bool(status.get("product_ready"))
     if product_ready and revision and _reviewed_memory_backend.is_product_ready(normalized_space_id, revision):
         exported = _reviewed_memory_backend.export_space(normalized_space_id)
         claims = [dict(item) for item in exported.get("claims", []) if isinstance(item, dict)]
+        normalization = dict(exported.get("normalization") or {})
     else:
         checkpoint_path = reviewed_memory_checkpoint_path(normalized_space_id)
         try:
@@ -1590,7 +1631,13 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
         except (OSError, TypeError, ValueError):
             raw_checkpoint = {}
         selected_titles = raw_checkpoint.get("selected_titles") if isinstance(raw_checkpoint, dict) else []
-        completed = read_checkpoint(checkpoint_path, normalized_space_id, revision, selected_titles)
+        completed = read_checkpoint(
+            checkpoint_path,
+            normalized_space_id,
+            revision,
+            selected_titles,
+            allow_older_prompt=True,
+        )
         for chapter in completed:
             chapter_title = str(chapter.get("chapter") or "未知章节")[:160]
             chunk_index = int(chapter.get("source_chunk_start") or 0)
@@ -1598,6 +1645,49 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
                 if not isinstance(fact, dict):
                     continue
                 claims.append({**fact, "chapter": chapter_title, "chunk_index": chunk_index})
+
+    # Apply the same deterministic lifecycle pass to streaming checkpoint
+    # results without mutating the checkpoint. The final immutable revision
+    # applies it again during backend promotion.
+    if claims and not product_ready:
+        raw_claims = list(claims)
+        normalized_claims = normalize_claim_set(
+            raw_claims,
+            normalized_space_id,
+            revision,
+            skip_invalid=True,
+        )
+        normalized_by_id = {item.id: asdict(item) for item in normalized_claims}
+        claims = []
+        for raw in raw_claims:
+            claim_id = str(raw.get("id") or "")
+            if claim_id in normalized_by_id:
+                claims.append(normalized_by_id[claim_id])
+                continue
+            # A hand-written/legacy checkpoint may omit structured entities.
+            # Keep it visible for inspection, but explicitly mark it as
+            # context-dependent rather than allowing it into graph recall.
+            claims.append({
+                **raw,
+                "memory_kind": str(raw.get("memory_kind") or "event"),
+                "answerability": "context_required",
+                "lifecycle_status": "active",
+                "status_reason": "legacy_or_incomplete_structured_claim",
+            })
+        normalization = normalization_summary(normalized_claims)
+        normalization["input_count"] = len(raw_claims)
+        normalization["incomplete_count"] = len(raw_claims) - len(normalized_claims)
+
+    chapter_counts: dict[str, int] = {}
+    category_counts = {category_name: 0 for category_name in SOURCE_KNOWLEDGE_CATEGORIES}
+    for claim in claims:
+        claim_category = str(claim.get("category") or "event")
+        if claim_category not in category_counts:
+            claim_category = "event"
+        evidence = claim.get("evidence") if isinstance(claim.get("evidence"), dict) else {}
+        chapter = re.sub(r"\s+", " ", str(claim.get("chapter") or evidence.get("chapter") or "未知章节")).strip()
+        category_counts[claim_category] += 1
+        chapter_counts[chapter] = chapter_counts.get(chapter, 0) + 1
 
     filtered: list[tuple[float, dict[str, Any]]] = []
     for claim in claims:
@@ -1608,6 +1698,8 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
         evidence = claim.get("evidence") if isinstance(claim.get("evidence"), dict) else {}
         quote = re.sub(r"\s+", " ", str(claim.get("evidence_quote") or evidence.get("quote") or "")).strip()
         chapter = re.sub(r"\s+", " ", str(claim.get("chapter") or evidence.get("chapter") or "未知章节")).strip()
+        if normalized_chapter and normalized_chapter not in normalize_chapter_markers(chapter).lower():
+            continue
         haystack = normalize_chapter_markers(f"{statement}\n{quote}\n{chapter}").lower()
         score = 0.0
         if normalized_query:
@@ -1631,6 +1723,13 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
             "knowledge_layer": "reviewed_graph" if product_ready else "model_memory_preview",
             "is_reviewed": product_ready,
             "is_temporary": not product_ready,
+            "memory_kind": str(claim.get("memory_kind") or "event"),
+            "answerability": str(claim.get("answerability") or "context_required"),
+            "lifecycle_status": str(claim.get("lifecycle_status") or "active"),
+            "canonical_key": str(claim.get("canonical_key") or ""),
+            "cluster_id": str(claim.get("cluster_id") or ""),
+            "duplicate_of": str(claim.get("duplicate_of") or ""),
+            "status_reason": str(claim.get("status_reason") or ""),
         }))
     filtered.sort(key=lambda pair: (pair[0], -int(pair[1].get("chunk_index") or 0)), reverse=True)
     return {
@@ -1647,6 +1746,14 @@ def reviewed_memory_preview(space_id: str = "", query: str = "", category: str =
             "total_chapters": int(status.get("total_chapters") or 0),
         },
         "count": len(claims),
+        "filtered_count": len(filtered),
+        "category_counts": category_counts,
+        "normalization": normalization,
+        "available_chapters": [
+            {"title": title, "count": count}
+            for title, count in chapter_counts.items()
+        ],
+        "filters": {"category": normalized_category, "chapter": requested_chapter},
         "items": [item for _, item in filtered[:bounded_limit]],
     }
 
@@ -1703,26 +1810,42 @@ def start_reviewed_memory_job(payload: dict[str, Any]) -> dict[str, Any]:
         if current and current.get("status") in {"queued", "extracting", "reviewing", "building", "cancelling"}:
             return _reviewed_memory_job_view(current, revision)
         prior_metrics = current.get("token_metrics") if isinstance(current, dict) and isinstance(current.get("token_metrics"), dict) else {}
-        estimated_total_tokens = max(
-            int(prior_metrics.get("estimated_total_tokens") or 0),
-            estimate_full_build_tokens(previews),
-        )
-        token_metrics = {
-            **prior_metrics,
-            "input_tokens": max(0, int(prior_metrics.get("input_tokens") or 0)),
-            "output_tokens": max(0, int(prior_metrics.get("output_tokens") or 0)),
-            "total_tokens": max(0, int(prior_metrics.get("total_tokens") or 0)),
-            "estimated_total_tokens": estimated_total_tokens,
-            "calls": max(0, int(prior_metrics.get("calls") or 0)),
-            "started_at": float(prior_metrics.get("started_at") or (current or {}).get("created_at") or now),
-            "usage_source": str(prior_metrics.get("usage_source") or "estimated"),
-        }
         resume_statuses = {"cancelled", "interrupted", "error"}
         existing_chapters = (
             read_checkpoint(checkpoint_path, space_id, revision, selected_titles)
             if current and current.get("status") in resume_statuses
             else []
         )
+        # A new build must not inherit the counters or start time of an old
+        # build. Only a genuine checkpoint resume carries historical usage
+        # forward; incompatible/cleared checkpoints are a fresh run.
+        is_resuming = bool(existing_chapters)
+        estimated_total_tokens = estimate_full_build_tokens(previews)
+        if is_resuming:
+            estimated_total_tokens = max(
+                int(prior_metrics.get("estimated_total_tokens") or 0),
+                estimated_total_tokens,
+            )
+            token_metrics = {
+                **prior_metrics,
+                "input_tokens": max(0, int(prior_metrics.get("input_tokens") or 0)),
+                "output_tokens": max(0, int(prior_metrics.get("output_tokens") or 0)),
+                "total_tokens": max(0, int(prior_metrics.get("total_tokens") or 0)),
+                "estimated_total_tokens": estimated_total_tokens,
+                "calls": max(0, int(prior_metrics.get("calls") or 0)),
+                "started_at": float(prior_metrics.get("started_at") or (current or {}).get("created_at") or now),
+                "usage_source": str(prior_metrics.get("usage_source") or "estimated"),
+            }
+        else:
+            token_metrics = {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "estimated_total_tokens": estimated_total_tokens,
+                "calls": 0,
+                "started_at": now,
+                "usage_source": "estimated",
+            }
         if existing_chapters and not prior_metrics.get("total_tokens"):
             historical_estimate = round(estimated_total_tokens * len(existing_chapters) / max(1, len(previews)))
             token_metrics.update({
@@ -2359,7 +2482,15 @@ def reviewed_source_memory_search(
         scores = {}
         memory_intent = "browse"
     items: list[dict[str, Any]] = []
+    skipped_lifecycle_items = False
     for claim in raw_claims:
+        lifecycle_status = str(claim.get("lifecycle_status") or "active")
+        answerability = str(claim.get("answerability") or "context_required")
+        # Retrieval-only evidence remains visible in the memory inspection
+        # view, but it must not enter the answer context as a durable fact.
+        if lifecycle_status in {"duplicate", "deprecated", "superseded"} or answerability == "retrieval_only":
+            skipped_lifecycle_items = True
+            continue
         claim_category = str(claim.get("category") or "event")
         if normalized_category != "all" and claim_category != normalized_category:
             continue
@@ -2379,9 +2510,18 @@ def reviewed_source_memory_search(
             "match_score": round(scores.get(str(claim.get("id") or ""), 0.0), 2),
             "memory_backend": "reviewed_graph",
             "memory_intent": memory_intent,
+            "memory_kind": str(claim.get("memory_kind") or "event"),
+            "answerability": answerability,
+            "lifecycle_status": lifecycle_status,
+            "canonical_key": str(claim.get("canonical_key") or ""),
+            "cluster_id": str(claim.get("cluster_id") or ""),
         })
         if len(items) >= bounded_limit:
             break
+    if not items and skipped_lifecycle_items:
+        # Let the source-index fallback answer a locator-style query with the
+        # original text, while keeping low-quality claims out of durable memory.
+        return None
     return items
 
 
@@ -4752,9 +4892,10 @@ class InkEchoHandler(BaseHTTPRequestHandler):
             space_id = query.get("novel_space_id", [DEFAULT_SOURCE_ID])[0][:100]
             search_query = query.get("query", [""])[0][:120]
             category = query.get("category", ["all"])[0][:20]
+            chapter = query.get("chapter", [""])[0][:160]
             try:
                 limit = max(1, min(int(query.get("limit", ["40"])[0]), 120))
-                preview = reviewed_memory_preview(space_id, search_query, category, limit)
+                preview = reviewed_memory_preview(space_id, search_query, category, limit, chapter)
                 self.send_json({"ok": True, "memory_preview": preview})
             except (TypeError, ValueError) as exc:
                 self.send_json({"ok": False, "error": public_error(exc)}, status=HTTPStatus.NOT_FOUND)

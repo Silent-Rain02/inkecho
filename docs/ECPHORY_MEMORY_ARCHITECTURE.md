@@ -61,6 +61,20 @@
 
 续写还会传入章节截止位置，任何发生在截止点之后的 claim 都不会进入当前状态上下文。
 
+## 记忆生命周期与二次规范化
+
+抽取和审查通过不等于一条记忆适合直接回答。写入不可变 revision 前，会执行一层不依赖模型的确定性规范化：
+
+- `canonical_fact`：稳定设定、关系和可复用人物事实。
+- `state_snapshot`：带章节或时间范围的身份、境界、持有状态等。
+- `event`：剧情事件，默认保留时间和章节边界。
+- `answerability`：`self_contained`、`context_required`、`retrieval_only`，分别表示可独立回答、需要回看上下文、只用于定位原文。
+- `lifecycle_status`：`active`、`duplicate`、`disputed`、`deprecated`、`superseded`。旧证据不删除，重复项和已更新项在召回时降级或过滤。
+
+稳定事实按规范化的 `category / subject / predicate / object` 建立记忆簇；同簇的重复证据保留在 revision 中，并通过 `duplicate_of` 指向代表条目。对不同章节中的单值状态先标记为 `temporal_state_variant`，不自动选择新旧版本，避免把小说中的时间变化误判成错误；真正的矛盾才进入 `disputed`。后续可以在同一模型上增加人工或模型确认的 `supersedes` 操作，而不需要重提取原文。
+
+这层设计参考 Mem0 的“写入前关联记忆、去重/更新、检索时融合实体与关键词”的思路，但保留 InkEcho 的原文优先约束：规范化只改变检索权重和生命周期，不覆盖逐字证据，也不把模型摘要当成原作事实。
+
 ## 持久化与上线边界
 
 - 每个小说空间完全隔离。

@@ -364,6 +364,24 @@
                   <span class="model-memory-live" id="modelMemoryLive" aria-live="polite">● 实时更新</span>
                 </div>
                 <small class="model-memory-hint" id="modelMemoryHint" aria-live="polite">正在读取模型提取结果……</small>
+                <div class="model-memory-filters" aria-label="模型记忆筛选">
+                  <label>
+                    <span>类别</span>
+                    <select id="modelMemoryCategory" aria-label="按记忆类别筛选">
+                      <option value="all">全部类别</option>
+                      <option value="character">人物</option>
+                      <option value="relation">关系</option>
+                      <option value="setting">世界设定</option>
+                      <option value="event">事件</option>
+                    </select>
+                  </label>
+                  <label class="model-memory-chapter-filter">
+                    <span>章节</span>
+                    <input id="modelMemoryChapter" list="modelMemoryChapterOptions" type="search" maxlength="160" placeholder="输入章节或卷名" aria-label="按章节筛选模型记忆" />
+                    <datalist id="modelMemoryChapterOptions"></datalist>
+                  </label>
+                  <button class="text-button model-memory-clear" id="clearModelMemoryFilters" type="button" hidden>清除筛选</button>
+                </div>
                 <div class="model-memory-list" id="modelMemoryList" aria-live="polite"></div>
                 <details class="source-index-disclosure" id="sourceKnowledgeDisclosure">
                   <summary><span>原文线索</span><small>规则筛选，仅用于核对原文</small></summary>
@@ -1241,6 +1259,6 @@
       </form>
     </dialog>
     <div class="toast" id="toast" role="status"></div>
-  <script src="app.js?v=41"></script>
+    <script src="app.js?v=47"></script>
   </body>
 </html>

@@ -12,6 +12,7 @@ from .memory_extraction import (
     extraction_schema_for_version,
     normalize_reviews,
     parse_json_object,
+    PROMPT_VERSIONS,
     review_has_literal_entity_conflict,
     review_messages,
     review_schema_for_count,
@@ -23,7 +24,7 @@ from .memory_extraction import (
 )
 
 
-PIPELINE_PROMPT_VERSION = "v10-diegetic-only"
+PIPELINE_PROMPT_VERSION = "v11-self-contained-conditions"
 MIN_SAMPLE_CHAPTERS = 3
 DEFAULT_SAMPLE_CHAPTERS = 6
 MAX_SAMPLE_CHAPTERS = 12
@@ -296,15 +297,24 @@ def checkpoint_payload(
     }
 
 
-def read_checkpoint(path: Any, space_id: str, source_revision: str, selected_titles: list[str]) -> list[dict[str, Any]]:
+def read_checkpoint(
+    path: Any,
+    space_id: str,
+    source_revision: str,
+    selected_titles: list[str],
+    allow_older_prompt: bool = False,
+) -> list[dict[str, Any]]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, TypeError, ValueError):
         return []
+    prompt_matches = payload.get("prompt_version") == PIPELINE_PROMPT_VERSION or (
+        allow_older_prompt and payload.get("prompt_version") in PROMPT_VERSIONS
+    )
     if (
         payload.get("space_id") != space_id
         or payload.get("source_revision") != source_revision
-        or payload.get("prompt_version") != PIPELINE_PROMPT_VERSION
+        or not prompt_matches
         or payload.get("selected_titles") != selected_titles
     ):
         return []

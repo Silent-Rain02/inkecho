@@ -2233,6 +2233,14 @@ button:focus-visible,
 .model-memory-live { color: #746d7d; font: 8px var(--mono); }
 .model-memory-live.is-live { color: #9fc6b4; }
 .model-memory-hint { display: block; margin-top: 7px; color: #817a89; font-size: 9px; line-height: 1.55; }
+.model-memory-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; margin-top: 13px; padding: 9px 10px; border: 1px solid #2d2936; border-radius: 10px; background: rgba(17,16,23,.62); }
+.model-memory-filters label { display: grid; gap: 5px; min-width: 132px; color: #817a89; font: 8px var(--mono); }
+.model-memory-filters label span { color: #8f8798; }
+.model-memory-filters select, .model-memory-filters input { width: 100%; height: 32px; padding: 0 9px; border: 1px solid #393440; border-radius: 8px; outline: 0; color: #dcd5e5; background: #15141b; font: 10px var(--serif); }
+.model-memory-filters select:focus, .model-memory-filters input:focus { border-color: rgba(165,132,255,.46); box-shadow: 0 0 0 3px rgba(165,132,255,.1); }
+.model-memory-chapter-filter { flex: 1 1 220px; }
+.model-memory-clear { min-height: 32px; padding: 0 9px; border-radius: 8px; font-size: 9px; }
+.model-memory-clear[hidden] { display: none !important; }
 .model-memory-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
 .model-memory-card { display: flex; min-width: 0; min-height: 150px; flex-direction: column; padding: 15px; border: 1px solid rgba(143,129,181,.34); border-radius: 13px; background: rgba(21,19,29,.88); transition: border-color .2s ease, background .2s ease, transform .2s ease; }
 .model-memory-card.is-streaming-memory { border-style: solid; box-shadow: inset 0 1px rgba(179,153,220,.06); }
@@ -2310,6 +2318,8 @@ button:focus-visible,
   .source-knowledge-list { grid-template-columns: 1fr; }
   .model-memory-list { grid-template-columns: 1fr; }
   .model-memory-toolbar { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .model-memory-filters { align-items: stretch; flex-direction: column; }
+  .model-memory-filters label, .model-memory-chapter-filter { width: 100%; min-width: 0; }
   .reviewed-memory-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
