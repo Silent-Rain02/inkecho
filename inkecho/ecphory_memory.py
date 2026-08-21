@@ -43,6 +43,16 @@ class MemoryClaim:
     salience: str
     evidence: EvidenceRef
     entities: tuple[str, ...]
+    # These fields are intentionally additive. Older immutable revisions can
+    # still be loaded because normalize_claim supplies safe defaults.
+    memory_kind: str = "event"
+    answerability: str = "context_required"
+    lifecycle_status: str = "active"
+    canonical_key: str = ""
+    cluster_id: str = ""
+    duplicate_of: str = ""
+    conflict_key: str = ""
+    status_reason: str = ""
 
 
 @dataclass
@@ -149,6 +159,16 @@ def normalize_claim(raw: dict[str, Any] | MemoryClaim, space_id: str, source_rev
             chunk_index=max(0, int(raw.get("chunk_index") or evidence.get("chunk_index") or 0)),
         ),
         entities=entities,
+        memory_kind=str(raw.get("memory_kind") or "event")[:40],
+        # Empty means "let the deterministic normalizer classify it". Older
+        # raw claims do not carry this field yet.
+        answerability=str(raw.get("answerability") or "")[:40],
+        lifecycle_status=str(raw.get("lifecycle_status") or "active")[:40],
+        canonical_key=str(raw.get("canonical_key") or "")[:240],
+        cluster_id=str(raw.get("cluster_id") or "")[:100],
+        duplicate_of=str(raw.get("duplicate_of") or "")[:80],
+        conflict_key=str(raw.get("conflict_key") or "")[:240],
+        status_reason=str(raw.get("status_reason") or "")[:160],
     )
 
 
@@ -159,6 +179,7 @@ class LocalEcphoryMemoryBackend:
         self._claims: dict[str, dict[str, MemoryClaim]] = {}
         self._engrams: dict[str, dict[str, Engram]] = {}
         self._revisions: dict[str, str] = {}
+        self._normalization_summaries: dict[str, dict[str, Any]] = {}
         self._semantic_scorer = semantic_scorer
 
     def replace_space(
@@ -171,11 +192,18 @@ class LocalEcphoryMemoryBackend:
         normalized_revision = str(source_revision or "").strip()
         if not normalized_space or not normalized_revision:
             raise ValueError("space_id 与 source_revision 不能为空")
+        materialized = list(claims)
+        # Import lazily to keep the normalization module independent from the
+        # core claim dataclasses and avoid an import cycle.
+        from .memory_normalization import normalize_claim_set, normalization_summary
+
+        normalized_materialized = normalize_claim_set(materialized, normalized_space, normalized_revision)
         normalized_claims: dict[str, MemoryClaim] = {}
         engrams: dict[str, Engram] = {}
-        for raw in claims:
-            claim = normalize_claim(raw, normalized_space, normalized_revision)
+        for claim in normalized_materialized:
             normalized_claims[claim.id] = claim
+            if claim.lifecycle_status in {"duplicate", "deprecated", "superseded"}:
+                continue
             for entity in claim.entities:
                 key = entity.casefold()
                 engram = engrams.setdefault(key, Engram(
@@ -197,12 +225,14 @@ class LocalEcphoryMemoryBackend:
         self._claims[normalized_space] = normalized_claims
         self._engrams[normalized_space] = engrams
         self._revisions[normalized_space] = normalized_revision
+        self._normalization_summaries[normalized_space] = normalization_summary(normalized_materialized)
         return {
             "schema_version": ECPHORY_SCHEMA_VERSION,
             "space_id": normalized_space,
             "source_revision": normalized_revision,
             "claim_count": len(normalized_claims),
             "engram_count": len(engrams),
+            "normalization": self._normalization_summaries[normalized_space],
         }
 
     def delete_space(self, space_id: str) -> bool:
@@ -212,6 +242,7 @@ class LocalEcphoryMemoryBackend:
         self._claims.pop(normalized_space, None)
         self._engrams.pop(normalized_space, None)
         self._revisions.pop(normalized_space, None)
+        self._normalization_summaries.pop(normalized_space, None)
         return existed
 
     def _cue_entities(self, space_id: str, query: str) -> list[str]:
@@ -312,7 +343,10 @@ class LocalEcphoryMemoryBackend:
             if compositional_relation_query
             and any(alias.casefold() in compositional_prefix for alias in engrams[key].aliases)
         }
-        candidate_claims = list(claims.values())
+        candidate_claims = [
+            claim for claim in claims.values()
+            if claim.lifecycle_status not in {"duplicate", "deprecated", "superseded"}
+        ]
         semantic_scores = (
             self._semantic_scorer(query, candidate_claims)
             if self._semantic_scorer and candidate_claims
@@ -460,6 +494,7 @@ class LocalEcphoryMemoryBackend:
                 {**asdict(claim), "evidence": asdict(claim.evidence)}
                 for claim in claims.values()
             ],
+            "normalization": self._normalization_summaries.get(normalized_space, {}),
             "engrams": [
                 {
                     **asdict(engram),

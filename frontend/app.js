@@ -1148,6 +1148,7 @@ let modelMemoryRequestId = 0;
 let modelMemoryFilterTimer = null;
 let reviewedMemoryBuildState = { spaceId: "", status: "idle", progress: 0, memoryRevision: "" };
 let reviewedMemoryStatusTimer = null;
+let reviewedMemoryStatusRequestId = 0;
 function normalizeSpaceRecovery(value) {
   const source = value && typeof value === "object" ? value : {};
   const normalizeNames = (items) => [...new Set((Array.isArray(items) ? items : [])
@@ -2005,6 +2006,9 @@ function normalizeModelMemory(payload, spaceId) {
       content: safeText(item?.content, "", 420),
       evidenceQuote: safeText(item?.evidence_quote, "", 420),
       chapter: safeText(item?.chapter, "未知章节", 160),
+      memoryKind: safeText(item?.memory_kind, "event", 40),
+      answerability: safeText(item?.answerability, "context_required", 40),
+      lifecycleStatus: safeText(item?.lifecycle_status, "active", 40),
     })).filter((item) => item.content),
   };
 }
@@ -2065,12 +2069,28 @@ function renderModelMemory() {
     return;
   }
   const categoryLabels = { character: "人物", relation: "关系", setting: "设定", event: "事件" };
+  const answerabilityLabels = {
+    self_contained: "可独立回答",
+    context_required: "需结合上下文",
+    retrieval_only: "仅供原文定位",
+  };
+  const lifecycleLabels = {
+    duplicate: "重复证据",
+    disputed: "存在版本差异",
+    deprecated: "已弃用",
+    superseded: "已更新",
+  };
   current.items.forEach((item) => {
     const card = document.createElement("article");
     card.className = `model-memory-card${reviewed ? " is-reviewed-memory" : " is-streaming-memory"}`;
     const badge = document.createElement("span");
     badge.className = `source-knowledge-badge is-${item.category}`;
-    badge.textContent = `${reviewed ? "已审核" : "模型提取"} · ${categoryLabels[item.category] || item.categoryLabel}`;
+    badge.textContent = [
+      reviewed ? "已审核" : "模型提取",
+      categoryLabels[item.category] || item.categoryLabel,
+      answerabilityLabels[item.answerability] || "",
+      lifecycleLabels[item.lifecycleStatus] || "",
+    ].filter(Boolean).join(" · ");
     const content = document.createElement("p");
     content.textContent = item.content;
     const source = document.createElement("button");
@@ -2267,6 +2287,7 @@ function normalizeReviewedMemoryBuild(payload, spaceId) {
   const rawQuality = source.quality && typeof source.quality === "object" ? source.quality : null;
   return {
     spaceId,
+    jobId: safeText(source.job_id, "", 100),
     status: safeText(source.status, "idle", 30),
     stage: safeText(source.stage, "", 180),
     progress: Math.max(0, Math.min(100, Number(source.progress) || 0)),
@@ -2428,6 +2449,7 @@ function scheduleReviewedMemoryStatus(spaceId) {
 
 async function loadReviewedMemoryStatus(spaceId = getCurrentNovelSpaceId()) {
   const normalizedSpaceId = safeText(spaceId, defaultNovelSpaceId, 100);
+  const requestId = ++reviewedMemoryStatusRequestId;
   window.clearTimeout(reviewedMemoryStatusTimer);
   if (reviewedMemoryBuildState.spaceId !== normalizedSpaceId) {
     reviewedMemoryBuildState = { spaceId: normalizedSpaceId, status: "loading", progress: 0, memoryRevision: "" };
@@ -2438,7 +2460,7 @@ async function loadReviewedMemoryStatus(spaceId = getCurrentNovelSpaceId()) {
     const response = await fetchWithTimeout(`/api/novels/reviewed-memory/status?${query}`, {}, 15000);
     const payload = await response.json();
     if (!response.ok || !payload.ok || !payload.memory_build) throw new Error(payload.error || "深度记忆状态读取失败");
-    if (getCurrentNovelSpaceId() !== normalizedSpaceId) return;
+    if (requestId !== reviewedMemoryStatusRequestId || getCurrentNovelSpaceId() !== normalizedSpaceId) return;
     const wasProductReady = reviewedMemoryBuildState.productReady === true;
     reviewedMemoryBuildState = normalizeReviewedMemoryBuild(payload.memory_build, normalizedSpaceId);
     renderReviewedMemoryBuild();
@@ -2448,7 +2470,7 @@ async function loadReviewedMemoryStatus(spaceId = getCurrentNovelSpaceId()) {
     }
     scheduleReviewedMemoryStatus(normalizedSpaceId);
   } catch (error) {
-    if (getCurrentNovelSpaceId() !== normalizedSpaceId) return;
+    if (requestId !== reviewedMemoryStatusRequestId || getCurrentNovelSpaceId() !== normalizedSpaceId) return;
     reviewedMemoryBuildState = {
       spaceId: normalizedSpaceId,
       status: "error",
@@ -2458,6 +2480,12 @@ async function loadReviewedMemoryStatus(spaceId = getCurrentNovelSpaceId()) {
       canStart: true,
     };
     renderReviewedMemoryBuild();
+    // A service restart or brief network interruption should not leave the
+    // memory panel permanently stuck on the transient error state.
+    reviewedMemoryStatusTimer = window.setTimeout(
+      () => loadReviewedMemoryStatus(normalizedSpaceId),
+      5000,
+    );
   }
 }
 
@@ -2471,6 +2499,34 @@ async function startReviewedMemoryBuild(scope = "pilot") {
       ? `全文构建会把「${novelName}」按章节逐次发送有限预览给当前模型服务，每次只处理一章；任务可暂停并从断点继续，不会一次发送完整小说或本地索引。`
       : `构建深度记忆会把「${novelName}」中最多 6 个代表章节的有限预览发送给当前模型服务，用于提取并核对人物、关系与设定。不会发送完整小说或本地索引。`,
   )) return;
+  // Invalidate an older polling response before creating the new job. A
+  // request from the previous build may otherwise finish after this POST and
+  // paint the old progress back over the fresh queued state.
+  const startRequestId = ++reviewedMemoryStatusRequestId;
+  window.clearTimeout(reviewedMemoryStatusTimer);
+  reviewedMemoryBuildState = {
+    spaceId,
+    jobId: "",
+    status: "loading",
+    stage: "正在创建新的构建任务",
+    progress: 0,
+    completedChapters: 0,
+    totalChapters: 0,
+    tokenMetrics: {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      estimatedTotalTokens: 0,
+      remainingTokens: 0,
+      elapsedSeconds: 0,
+      tokensPerMinute: 0,
+      estimatedFinishAt: 0,
+      calls: 0,
+      usageSource: "estimated",
+    },
+    memoryRevision: "",
+  };
+  renderReviewedMemoryBuild();
   if (startReviewedMemoryBuildButton) startReviewedMemoryBuildButton.disabled = true;
   try {
     const response = await fetchWithTimeout("/api/novels/reviewed-memory/start", {
@@ -2486,10 +2542,12 @@ async function startReviewedMemoryBuild(scope = "pilot") {
     }, 30000);
     const payload = await response.json();
     if (!response.ok || !payload.ok || !payload.memory_build) throw new Error(payload.error || "无法开始构建深度记忆");
+    if (startRequestId !== reviewedMemoryStatusRequestId || getCurrentNovelSpaceId() !== spaceId) return;
     reviewedMemoryBuildState = normalizeReviewedMemoryBuild(payload.memory_build, spaceId);
     renderReviewedMemoryBuild();
     scheduleReviewedMemoryStatus(spaceId);
   } catch (error) {
+    if (startRequestId !== reviewedMemoryStatusRequestId) return;
     showToast(error?.message || "无法开始构建深度记忆");
     await loadReviewedMemoryStatus(spaceId);
   }
@@ -2497,6 +2555,8 @@ async function startReviewedMemoryBuild(scope = "pilot") {
 
 async function cancelReviewedMemoryBuild() {
   const spaceId = getCurrentNovelSpaceId();
+  ++reviewedMemoryStatusRequestId;
+  window.clearTimeout(reviewedMemoryStatusTimer);
   try {
     const response = await fetchWithTimeout("/api/novels/reviewed-memory/cancel", {
       method: "POST",
@@ -3269,6 +3329,9 @@ async function loadNovelSpacesFromServer({ announce = false } = {}) {
     conversationTitle.textContent = getConversationTitle();
     syncWorkspacePage();
     loadNovelSpaceMemory(getCurrentNovelSpaceId());
+    if (activeWorkspaceView === "memory") {
+      loadReviewedMemoryStatus(getCurrentNovelSpaceId());
+    }
     if (announce) showToast(`已读取 ${serverSpaces.length} 个小说知识空间`);
   } catch {
     novelSpacesLoaded = true;
@@ -7808,6 +7871,7 @@ function setWorkspaceView(view, { announce = false, focus = false } = {}) {
     if (focus) providerSelect?.focus();
   } else if (nextView === "memory") {
     setMemoryLayer(activeMemoryLayer, { focus });
+    loadReviewedMemoryStatus(getCurrentNovelSpaceId());
     if (announce) showToast("已打开空间记忆：原作知识用于问答，创作记忆用于续写");
   } else if (nextView === "story") {
     if (announce) showToast("故事管理集中在场景计划、角色卡和摘要");

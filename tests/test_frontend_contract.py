@@ -48,7 +48,7 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_runtime_assets_are_present_and_expected_controls_are_wired(self) -> None:
         self.assertIn('<link rel="stylesheet" href="styles.css?v=27"', self.html)
-        self.assertIn('<script src="app.js?v=43"></script>', self.html)
+        self.assertIn('<script src="app.js?v=47"></script>', self.html)
         self.assertIn("overflow-wrap: anywhere", (FRONTEND_ROOT / "styles.css").read_text(encoding="utf-8"))
         ids = set(re.findall(r'\bid=["\']([^"\']+)["\']', self.html))
         required = {
@@ -926,6 +926,8 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("async function loadSourceKnowledge", self.javascript)
         self.assertIn("function renderSourceKnowledge", self.javascript)
         self.assertIn("async function loadReviewedMemoryStatus", self.javascript)
+        self.assertIn("reviewedMemoryStatusRequestId", self.javascript)
+        self.assertIn("jobId: safeText(source.job_id", self.javascript)
         self.assertIn("async function loadReviewedMemoryPreview", self.javascript)
         self.assertIn("async function startReviewedMemoryBuild", self.javascript)
         self.assertIn("async function promoteReviewedMemoryBuild", self.javascript)

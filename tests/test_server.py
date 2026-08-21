@@ -3325,14 +3325,66 @@ class ServerConfigTests(unittest.TestCase):
                 "space_id": novel["id"],
                 "source_revision": server.source_revision(novel["id"]),
                 "status": "needs_review",
+                "token_metrics": {
+                    "input_tokens": 1200,
+                    "output_tokens": 800,
+                    "total_tokens": 2000,
+                    "estimated_total_tokens": 9000,
+                    "calls": 4,
+                    "started_at": 1,
+                    "usage_source": "provider",
+                },
             }
-            server.start_reviewed_memory_job({
+            restarted = server.start_reviewed_memory_job({
                 "novel_space_id": novel["id"],
                 "provider": "compatible",
                 "model": "memory-test",
                 "chapter_limit": 3,
             })
             self.assertEqual(captured["existing"], [])
+            self.assertEqual(restarted["completed_chapters"], 0)
+            self.assertEqual(restarted["progress"], 100)
+            self.assertEqual(restarted["token_metrics"]["input_tokens"], 0)
+            self.assertEqual(restarted["token_metrics"]["output_tokens"], 0)
+            self.assertEqual(restarted["token_metrics"]["total_tokens"], 0)
+            self.assertEqual(restarted["token_metrics"]["calls"], 0)
+
+    def test_full_memory_token_estimate_reprojects_from_observed_chapters(self) -> None:
+        view = server._reviewed_memory_job_view({
+            "job_id": "full-estimate",
+            "space_id": "space-estimate",
+            "source_revision": "rev-1",
+            "status": "reviewing",
+            "scope": "full",
+            "completed_chapters": 100,
+            "total_chapters": 200,
+            "token_metrics": {
+                "input_tokens": 600_000,
+                "output_tokens": 400_000,
+                "total_tokens": 1_000_000,
+                "estimated_total_tokens": 1_200_000,
+                "started_at": time.time() - 60,
+            },
+        }, "rev-1")
+        self.assertEqual(view["token_metrics"]["estimated_total_tokens"], 2_000_000)
+        self.assertEqual(view["token_metrics"]["remaining_tokens"], 1_000_000)
+
+    def test_pilot_memory_token_estimate_keeps_static_budget(self) -> None:
+        view = server._reviewed_memory_job_view({
+            "job_id": "pilot-estimate",
+            "space_id": "space-estimate",
+            "source_revision": "rev-1",
+            "status": "reviewing",
+            "scope": "pilot",
+            "completed_chapters": 1,
+            "total_chapters": 6,
+            "token_metrics": {
+                "total_tokens": 1_000_000,
+                "estimated_total_tokens": 1_200_000,
+                "started_at": time.time() - 60,
+            },
+        }, "rev-1")
+        self.assertEqual(view["token_metrics"]["estimated_total_tokens"], 1_200_000)
 
     def test_prompt_includes_retrieved_source_context(self) -> None:
         with patch(
